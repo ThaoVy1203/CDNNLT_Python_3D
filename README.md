@@ -42,4 +42,5 @@ docker-compose up --build
 
 - Frontend: React, TypeScript, Three.js, React Three Fiber
 - Backend: FastAPI, Python
+- AI Service: **Google Gemini Flash API** (nhận diện và phân tích đề bài từ ảnh)
 - 3D Rendering: @react-three/fiber, @react-three/drei

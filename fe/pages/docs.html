@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tài liệu học tập - Geo3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body>
+
+<div id="topbar-container"></div>
+<script src="../js/auth.js"></script>
+<script src="../js/topbar.js"></script>
+<script>
+  document.getElementById('topbar-container').innerHTML = renderTopbar('docs');
+  window.addEventListener('DOMContentLoaded', function() {
+    initTopbar();
+  });
+</script>
+
+<div class="docs-container">
+  <!-- Sidebar -->
+  <aside class="docs-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Bắt đầu</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item">
+          <a href="#intro" class="sidebar-link active" onclick="showSection('intro')">Giới thiệu</a>
+        </li>
+        <li class="sidebar-item">
+          <a href="#how-to-use" class="sidebar-link" onclick="showSection('how-to-use')">Cách sử dụng</a>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="sidebar-title">Lý thuyết</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item">
+          <a href="#pyramid" class="sidebar-link" onclick="showSection('pyramid')">Hình chóp</a>
+        </li>
+        <li class="sidebar-item">
+          <a href="#prism" class="sidebar-link" onclick="showSection('prism')">Hình lăng trụ</a>
+        </li>
+        <li class="sidebar-item">
+          <a href="#sphere" class="sidebar-link" onclick="showSection('sphere')">Mặt cầu</a>
+        </li>
+        <li class="sidebar-item">
+          <a href="#distance" class="sidebar-link" onclick="showSection('distance')">Khoảng cách</a>
+        </li>
+        <li class="sidebar-item">
+          <a href="#angle" class="sidebar-link" onclick="showSection('angle')">Góc trong không gian</a>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="sidebar-title">Công thức</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item">
+          <a href="#formulas" class="sidebar-link" onclick="showSection('formulas')">Công thức tổng hợp</a>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="docs-content" id="docsContent">
+    <!-- Intro Section -->
+    <div class="docs-section" id="intro">
+      <div class="docs-header">
+        <h1 class="docs-title">Tài liệu học tập Hình học không gian</h1>
+        <p class="docs-subtitle">Hệ thống kiến thức đầy đủ về hình học không gian từ cơ bản đến nâng cao, kèm công thức và ví dụ minh họa</p>
+      </div>
+
+      <h2 class="section-heading">Giới thiệu</h2>
+      <p class="docs-text">
+        Hình học không gian là một phần quan trọng trong chương trình Toán học phổ thông, nghiên cứu về các hình khối trong không gian ba chiều. Tài liệu này sẽ giúp bạn nắm vững các khái niệm cơ bản, công thức quan trọng và phương pháp giải các dạng bài tập thường gặp.
+      </p>
+
+      <h3 class="section-subheading">Nội dung chính</h3>
+      <ul class="docs-list">
+        <li>Các khái niệm cơ bản về điểm, đường thẳng, mặt phẳng trong không gian</li>
+        <li>Quan hệ song song và vuông góc</li>
+        <li>Các hình khối: hình chóp, hình lăng trụ, mặt cầu</li>
+        <li>Công thức tính thể tích, diện tích</li>
+        <li>Khoảng cách và góc trong không gian</li>
+      </ul>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-content">
+          <strong>Mẹo học tập:</strong> Hãy kết hợp việc học lý thuyết với thực hành vẽ hình và giải bài tập. Sử dụng công cụ Geo3D để trực quan hóa các bài toán sẽ giúp bạn hiểu sâu hơn.
+        </div>
+      </div>
+    </div>
+
+    <!-- How to Use Section -->
+    <div class="docs-section" id="how-to-use" style="display:none;">
+      <h2 class="section-heading">Cách sử dụng Geo3D</h2>
+      
+      <h3 class="section-subheading">Bước 1: Tải ảnh đề bài</h3>
+      <p class="docs-text">
+        Chụp hoặc tải lên ảnh đề bài toán hình học không gian. Hệ thống AI sẽ tự động nhận diện và trích xuất thông tin.
+      </p>
+
+      <h3 class="section-subheading">Bước 2: Xem mô hình 3D</h3>
+      <p class="docs-text">
+        Hệ thống sẽ tự động dựng mô hình 3D tương tác. Bạn có thể xoay, phóng to, thu nhỏ để quan sát từ mọi góc độ.
+      </p>
+
+      <h3 class="section-subheading">Bước 3: Theo dõi dựng hình</h3>
+      <p class="docs-text">
+        Xem từng bước dựng hình chi tiết, giúp bạn hiểu cách vẽ hình chính xác.
+      </p>
+
+      <h3 class="section-subheading">Bước 4: Phân tích và giải</h3>
+      <p class="docs-text">
+        Trước khi xem lời giải, hãy tự phân tích hướng giải của bạn. Điều này giúp rèn luyện tư duy và ghi nhớ lâu hơn.
+      </p>
+
+      <div class="tip-box">
+        <div class="tip-icon">⚡</div>
+        <div class="tip-content">
+          <strong>Lưu ý:</strong> Hệ thống yêu cầu bạn viết ít nhất 50 ký tự phân tích trước khi mở khóa lời giải. Đây là cách học hiệu quả nhất!
+        </div>
+      </div>
+    </div>
+
+    <!-- Pyramid Section -->
+    <div class="docs-section" id="pyramid" style="display:none;">
+      <h2 class="section-heading">Hình chóp</h2>
+      
+      <p class="docs-text">
+        Hình chóp là khối đa diện có một mặt là đa giác (gọi là đáy) và các mặt còn lại là các tam giác có chung một đỉnh (gọi là đỉnh của hình chóp).
+      </p>
+
+      <h3 class="section-subheading">Các loại hình chóp</h3>
+      <ul class="docs-list">
+        <li><strong>Hình chóp tam giác:</strong> Đáy là tam giác (tứ diện)</li>
+        <li><strong>Hình chóp tứ giác:</strong> Đáy là tứ giác</li>
+        <li><strong>Hình chóp đều:</strong> Đáy là đa giác đều và đường cao đi qua tâm đáy</li>
+      </ul>
+
+      <div class="formula-box">
+        <div class="formula-title">CÔNG THỨC THỂ TÍCH</div>
+        <div class="formula-content">
+          V = (1/3) × S<sub>đáy</sub> × h
+          <br><br>
+          Trong đó:
+          <br>• S<sub>đáy</sub>: Diện tích đáy
+          <br>• h: Chiều cao (khoảng cách từ đỉnh đến mặt đáy)
+        </div>
+      </div>
+
+      <div class="example-box">
+        <div class="example-title">VÍ DỤ</div>
+        <div class="example-content">
+          Cho hình chóp S.ABCD có đáy ABCD là hình vuông cạnh a, SA vuông góc với mặt phẳng đáy và SA = a√2.
+          <br><br>
+          <strong>Tính thể tích:</strong>
+          <br>• S<sub>đáy</sub> = a²
+          <br>• h = SA = a√2
+          <br>• V = (1/3) × a² × a√2 = (a³√2)/3
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulas Section -->
+    <div class="docs-section" id="formulas" style="display:none;">
+      <h2 class="section-heading">Công thức tổng hợp</h2>
+
+      <div class="formula-box">
+        <div class="formula-title">THỂ TÍCH</div>
+        <div class="formula-content">
+          • Hình chóp: V = (1/3) × S<sub>đáy</sub> × h
+          <br>• Hình lăng trụ: V = S<sub>đáy</sub> × h
+          <br>• Hình cầu: V = (4/3)πR³
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">DIỆN TÍCH</div>
+        <div class="formula-content">
+          • Mặt cầu: S = 4πR²
+          <br>• Hình vuông: S = a²
+          <br>• Tam giác: S = (1/2) × a × h
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">KHOẢNG CÁCH</div>
+        <div class="formula-content">
+          • Điểm đến mặt phẳng: d(M, (P)) = |ax₀ + by₀ + cz₀ + d| / √(a² + b² + c²)
+          <br>• Hai mặt phẳng song song: d = |d₁ - d₂| / √(a² + b² + c²)
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">GÓC</div>
+        <div class="formula-content">
+          • Góc giữa hai đường thẳng: cos α = |cos(u⃗, v⃗)|
+          <br>• Góc giữa đường thẳng và mặt phẳng: sin α = |cos(u⃗, n⃗)|
+          <br>• Góc giữa hai mặt phẳng: cos α = |cos(n⃗₁, n⃗₂)|
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
+    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+  </div>
+  <div style="font-size:12px;color:var(--ink-3)">
+    © 2024 Geo3D · Made with ❤️ for students
+  </div>
+</footer>
+
+<script>
+function showSection(sectionId) {
+  // Hide all sections
+  document.querySelectorAll('.docs-section').forEach(section => {
+    section.style.display = 'none';
+  });
+  
+  // Show selected section
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.style.display = 'block';
+  }
+  
+  // Update active link
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // Scroll to top of content
+  document.querySelector('.docs-content').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luyện tập - Geo3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../css/practice.css">
+</head>
+<body>
+
+<div id="topbar-container"></div>
+<script src="../js/auth.js"></script>
+<script src="../js/topbar.js"></script>
+<script>
+  document.getElementById('topbar-container').innerHTML = renderTopbar('practice');
+  window.addEventListener('DOMContentLoaded', function() {
+    initTopbar();
+    displayProblems();
+  });
+</script>
+
+<div class="practice-container">
+    <h1 class="practice-title">Luyện tập hình học không gian</h1>
+    <p class="practice-subtitle">Rèn luyện kỹ năng với hệ thống bài tập từ cơ bản đến nâng cao</p>
+  </div>
+
+  <!-- Categories -->
+  <div class="categories-grid">
+    <div class="category-card" onclick="filterByCategory('pyramid')">
+      <div class="category-icon">🔺</div>
+      <h3 class="category-title">Hình chóp</h3>
+      <p class="category-desc">Các bài toán về hình chóp tam giác, tứ giác</p>
+      <div class="category-count">24 bài tập</div>
+    </div>
+    
+    <div class="category-card" onclick="filterByCategory('prism')">
+      <div class="category-icon">📦</div>
+      <h3 class="category-title">Hình lăng trụ</h3>
+      <p class="category-desc">Lăng trụ đứng, lăng trụ xiên, thể tích</p>
+      <div class="category-count">18 bài tập</div>
+    </div>
+    
+    <div class="category-card" onclick="filterByCategory('sphere')">
+      <div class="category-icon">⚪</div>
+      <h3 class="category-title">Mặt cầu</h3>
+      <p class="category-desc">Phương trình mặt cầu, tiếp tuyến</p>
+      <div class="category-count">15 bài tập</div>
+    </div>
+  </div>
+
+  <!-- Problems Section -->
+  <div class="problems-section">
+    <div class="section-header">
+      <h2 class="section-title">Bài tập phổ biến</h2>
+      <div class="difficulty-filters">
+        <button class="difficulty-btn easy active" onclick="filterDifficulty('easy')">Dễ</button>
+        <button class="difficulty-btn medium" onclick="filterDifficulty('medium')">Trung bình</button>
+        <button class="difficulty-btn hard" onclick="filterDifficulty('hard')">Khó</button>
+      </div>
+    </div>
+
+    <div class="problems-grid" id="problemsList">
+      <!-- Will be populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
+    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+  </div>
+  <div style="font-size:12px;color:var(--ink-3)">
+    © 2024 Geo3D · Made with ❤️ for students
+  </div>
+</footer>
+
+<script>
+const problems = [
+  {
+    id: 1,
+    title: "Tính thể tích hình chóp S.ABCD có đáy là hình vuông",
+    category: "pyramid",
+    difficulty: "easy",
+    tags: ["Thể tích", "Hình vuông"],
+    completed: true
+  },
+  {
+    id: 2,
+    title: "Tính góc giữa đường thẳng và mặt phẳng trong hình chóp",
+    category: "pyramid",
+    difficulty: "medium",
+    tags: ["Góc", "Hình chóp"],
+    completed: false
+  },
+  {
+    id: 3,
+    title: "Tìm khoảng cách từ điểm đến mặt phẳng",
+    category: "pyramid",
+    difficulty: "medium",
+    tags: ["Khoảng cách", "Mặt phẳng"],
+    completed: true
+  },
+  {
+    id: 4,
+    title: "Chứng minh hai đường thẳng vuông góc trong không gian",
+    category: "prism",
+    difficulty: "easy",
+    tags: ["Vuông góc", "Chứng minh"],
+    completed: false
+  },
+  {
+    id: 5,
+    title: "Tính diện tích thiết diện của hình chóp",
+    category: "pyramid",
+    difficulty: "hard",
+    tags: ["Thiết diện", "Diện tích"],
+    completed: false
+  },
+  {
+    id: 6,
+    title: "Tìm tâm và bán kính mặt cầu ngoại tiếp tứ diện",
+    category: "sphere",
+    difficulty: "hard",
+    tags: ["Mặt cầu", "Tứ diện"],
+    completed: false
+  },
+  {
+    id: 7,
+    title: "Tính thể tích khối lăng trụ tam giác đều",
+    category: "prism",
+    difficulty: "easy",
+    tags: ["Thể tích", "Lăng trụ"],
+    completed: true
+  },
+  {
+    id: 8,
+    title: "Tính góc giữa hai mặt phẳng",
+    category: "pyramid",
+    difficulty: "medium",
+    tags: ["Góc", "Mặt phẳng"],
+    completed: false
+  }
+];
+
+let currentDifficulty = 'easy';
+let currentCategory = 'all';
+
+window.addEventListener('DOMContentLoaded', function() {
+  checkAuth();
+  displayProblems();
+});
+
+function displayProblems() {
+  const filtered = problems.filter(p => {
+    const matchDifficulty = currentDifficulty === 'all' || p.difficulty === currentDifficulty;
+    const matchCategory = currentCategory === 'all' || p.category === currentCategory;
+    return matchDifficulty && matchCategory;
+  });
+
+  const problemsList = document.getElementById('problemsList');
+  
+  if (filtered.length === 0) {
+    problemsList.innerHTML = '<p style="text-align:center;color:var(--ink-3);padding:40px;">Không tìm thấy bài tập phù hợp</p>';
+    return;
+  }
+
+  problemsList.innerHTML = filtered.map(problem => {
+    const difficultyClass = `difficulty-${problem.difficulty}`;
+    const difficultyText = {
+      easy: 'Dễ',
+      medium: 'Trung bình',
+      hard: 'Khó'
+    }[problem.difficulty];
+
+    return `
+      <div class="problem-card" onclick="startProblem(${problem.id})">
+        <div class="problem-number">#${problem.id}</div>
+        
+        <div class="problem-info">
+          <h3 class="problem-title">${problem.title}</h3>
+          <div class="problem-tags">
+            ${problem.tags.map(tag => `<span class="problem-tag">${tag}</span>`).join('')}
+          </div>
+        </div>
+        
+        <div class="problem-difficulty ${difficultyClass}">
+          ${difficultyText}
+        </div>
+        
+        <div class="problem-status ${problem.completed ? 'status-completed' : 'status-locked'}">
+          ${problem.completed ? '✓' : '🔒'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterDifficulty(difficulty) {
+  currentDifficulty = difficulty;
+  
+  document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  displayProblems();
+}
+
+function filterByCategory(category) {
+  currentCategory = category;
+  displayProblems();
+}
+
+function startProblem(id) {
+  const problem = problems.find(p => p.id === id);
+  if (problem && problem.completed) {
+    window.location.href = 'solver.html';
+  } else {
+    alert('Bài tập này đang được khóa. Hãy hoàn thành các bài trước đó!');
+  }
+}
+</script>
+
+</body>
+</html>

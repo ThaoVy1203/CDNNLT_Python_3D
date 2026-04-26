@@ -183,7 +183,7 @@ function continueAsGuest() {
 // ═══════════════════════════════════════════════════════════
 // CHECK AUTH ON PAGE LOAD
 // ═══════════════════════════════════════════════════════════
-function checkAuth() {
+function checkAuthOld() {
   const currentUser = getCurrentUser();
   
   // Update UI based on user status
@@ -260,7 +260,12 @@ function getHistory() {
 // ═══════════════════════════════════════════════════════════
 initDemoAccounts();
 
-// Check auth on page load
+// Check auth on page load - only for pages that don't have custom checkAuth
 if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', checkAuth);
+  window.addEventListener('DOMContentLoaded', function() {
+    // Only run checkAuthOld if page doesn't use topbar.js
+    if (typeof initTopbar === 'undefined' && typeof checkAuth === 'undefined') {
+      checkAuthOld();
+    }
+  });
 }

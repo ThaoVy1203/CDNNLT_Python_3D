@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch sử giải bài - Geo3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../css/history.css">
+</head>
+<body>
+
+<div id="topbar-container"></div>
+<script src="../js/auth.js"></script>
+<script src="../js/topbar.js"></script>
+<script>
+  document.getElementById('topbar-container').innerHTML = renderTopbar('history');
+  window.addEventListener('DOMContentLoaded', function() {
+    initTopbar();
+    loadHistory();
+  });
+</script>
+
+<div class="history-container">
+  <div class="history-header">
+    <h1 class="history-title">Lịch sử giải bài</h1>
+    <p class="history-subtitle">Xem lại các bài toán bạn đã giải trước đây</p>
+  </div>
+
+  <!-- Statistics -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-number" id="totalSolved">0</div>
+      <div class="stat-label">Tổng số bài</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="thisWeek">0</div>
+      <div class="stat-label">Tuần này</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="thisMonth">0</div>
+      <div class="stat-label">Tháng này</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="avgTime">0s</div>
+      <div class="stat-label">Thời gian TB</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="history-filters">
+    <button class="filter-btn active" onclick="filterHistory('all')">Tất cả</button>
+    <button class="filter-btn" onclick="filterHistory('week')">Tuần này</button>
+    <button class="filter-btn" onclick="filterHistory('month')">Tháng này</button>
+    <button class="filter-btn" onclick="filterHistory('completed')">Hoàn thành</button>
+  </div>
+
+  <!-- History List -->
+  <div class="history-grid" id="historyList">
+    <!-- Will be populated by JavaScript -->
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-history" id="emptyState" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <h3>Chưa có lịch sử</h3>
+    <p>Bạn chưa giải bài toán nào. Hãy bắt đầu giải bài đầu tiên!</p>
+    <button class="btn-filled" onclick="window.location.href='solver.html'">
+      Bắt đầu giải bài
+    </button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
+    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+  </div>
+  <div style="font-size:12px;color:var(--ink-3)">
+    © 2024 Geo3D · Made with ❤️ for students
+  </div>
+</footer>
+
+<script>
+let currentFilter = 'all';
+let allHistory = [];
+
+// Load history on page load
+window.addEventListener('DOMContentLoaded', function() {
+  const user = checkAuth();
+  
+  if (!user) {
+    // Redirect to login if not authenticated
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  loadHistory();
+});
+
+function loadHistory() {
+  allHistory = getHistory();
+  
+  if (allHistory.length === 0) {
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('historyList').style.display = 'none';
+  } else {
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('historyList').style.display = 'grid';
+    displayHistory(allHistory);
+  }
+  
+  updateStatistics();
+}
+
+function displayHistory(history) {
+  const historyList = document.getElementById('historyList');
+  
+  if (history.length === 0) {
+    historyList.innerHTML = '<p style="text-align:center;color:var(--ink-3);padding:40px;">Không tìm thấy bài toán nào</p>';
+    return;
+  }
+  
+  historyList.innerHTML = history.map((item, index) => {
+    const date = new Date(item.timestamp);
+    const dateStr = date.toLocaleDateString('vi-VN');
+    const timeStr = date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+    
+    return `
+      <div class="history-card" onclick="viewProblem(${index})">
+        <div class="history-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        
+        <div class="history-content">
+          <h3 class="history-problem-title">${item.title || 'Bài toán hình học không gian'}</h3>
+          <p class="history-problem-desc">${item.description || 'Hình chóp S.ABCD với các điều kiện cho trước'}</p>
+          
+          <div class="history-meta">
+            <div class="history-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>${item.solveTime || '3 phút'}</span>
+            </div>
+            <div class="history-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span>${item.type || 'Hình chóp'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="history-actions">
+          <div class="history-date">${dateStr} ${timeStr}</div>
+          <span class="history-status status-completed">✓ Hoàn thành</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateStatistics() {
+  const history = allHistory;
+  
+  // Total solved
+  document.getElementById('totalSolved').textContent = history.length;
+  
+  // This week
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const thisWeek = history.filter(item => new Date(item.timestamp) > weekAgo).length;
+  document.getElementById('thisWeek').textContent = thisWeek;
+  
+  // This month
+  const monthAgo = new Date();
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const thisMonth = history.filter(item => new Date(item.timestamp) > monthAgo).length;
+  document.getElementById('thisMonth').textContent = thisMonth;
+  
+  // Average time (mock data)
+  document.getElementById('avgTime').textContent = '3m';
+}
+
+function filterHistory(filter) {
+  currentFilter = filter;
+  
+  // Update active button
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  let filtered = allHistory;
+  
+  if (filter === 'week') {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    filtered = allHistory.filter(item => new Date(item.timestamp) > weekAgo);
+  } else if (filter === 'month') {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    filtered = allHistory.filter(item => new Date(item.timestamp) > monthAgo);
+  } else if (filter === 'completed') {
+    filtered = allHistory.filter(item => item.status === 'completed' || true);
+  }
+  
+  displayHistory(filtered);
+}
+
+function viewProblem(index) {
+  // In a real app, this would navigate to the problem detail page
+  alert('Xem chi tiết bài toán #' + (index + 1) + '\n\nTính năng đang được phát triển!');
+}
+</script>
+
+</body>
+</html>

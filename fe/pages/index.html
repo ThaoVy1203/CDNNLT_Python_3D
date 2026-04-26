@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Geo3D - Hệ thống giải hình học không gian bằng AI. Chụp ảnh đề bài, nhận lời giải chi tiết với mô hình 3D tương tác trong vài giây.">
+<meta name="keywords" content="hình học không gian, giải toán, AI, mô hình 3D, học toán, luyện thi">
+<meta name="author" content="Geo3D Team">
+<meta property="og:title" content="Geo3D — Giải hình học không gian bằng AI">
+<meta property="og:description" content="Chụp ảnh đề bài, AI tự động phân tích và dựng mô hình 3D. Nhận lời giải chi tiết trong vài giây.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Geo3D — Giải hình học không gian bằng AI">
+<meta name="twitter:description" content="Chụp ảnh đề bài, AI tự động phân tích và dựng mô hình 3D. Nhận lời giải chi tiết trong vài giây.">
+<title>Geo3D — Hệ thống giải hình học không gian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../css/home.css">
+</head>
+<body>
+
+<div id="topbar-container"></div>
+<script src="../js/auth.js"></script>
+<script src="../js/topbar.js"></script>
+<script src="../js/home.js"></script>
+<script>
+  document.getElementById('topbar-container').innerHTML = renderTopbar('home');
+  window.addEventListener('DOMContentLoaded', initTopbar);
+</script>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Hình học không gian thế hệ mới</div>
+    <h1>Giải bài 3D<br>từ <em>một tấm ảnh</em></h1>
+    <p class="hero-sub">AI nhận diện đề bài, dựng mô hình không gian, hướng dẫn từng bước — giúp học sinh thực sự hiểu, không chỉ chép đáp án.</p>
+    <div class="hero-actions">
+      <button class="btn-hero" onclick="window.location.href='solver.html'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Bắt đầu giải bài
+      </button>
+      <button class="btn-ghost" onclick="document.querySelector('.how-it-works').scrollIntoView({behavior: 'smooth'})">Xem demo →</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">5<em>k+</em></div>
+        <div class="stat-label">Bài toán đã giải</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">98<em>%</em></div>
+        <div class="stat-label">Độ chính xác</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num"><em>&lt;</em>3s</div>
+        <div class="stat-label">Thời gian phân tích</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-preview">
+    <video autoplay loop muted playsinline class="hero-video-float" disableRemotePlayback>
+      <source src="../assets/images/video.mp4" type="video/mp4">
+    </video>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <div class="app-wrapper">
+    <div class="section-header">
+      <div class="section-badge">Quy trình làm việc</div>
+      <h2 class="section-title">Giải toán chỉ với 3 bước đơn giản</h2>
+      <p class="section-subtitle">Từ ảnh đề bài đến lời giải hoàn chỉnh trong vài giây</p>
+    </div>
+    
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="step-icon">📸</div>
+        <h3 class="step-title">Chụp ảnh đề bài</h3>
+        <p class="step-desc">Chụp hoặc tải lên ảnh đề bài hình học không gian của bạn</p>
+      </div>
+      
+      <div class="step-arrow">→</div>
+      
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="step-icon">🤖</div>
+        <h3 class="step-title">AI phân tích</h3>
+        <p class="step-desc">Gemini AI tự động nhận diện và dựng mô hình 3D tương tác</p>
+      </div>
+      
+      <div class="step-arrow">→</div>
+      
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="step-icon">✨</div>
+        <h3 class="step-title">Nhận lời giải</h3>
+        <p class="step-desc">Xem lời giải chi tiết với hình minh họa và hướng dẫn từng bước</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<div class="app-wrapper">
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon">📸</div>
+      <h3>Nhận diện AI</h3>
+      <p>Chụp ảnh đề bài, AI tự động phân tích và trích xuất thông tin hình học</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎨</div>
+      <h3>Mô hình 3D</h3>
+      <p>Dựng lại hình học không gian với khả năng xoay, zoom, quan sát mọi góc độ</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">📐</div>
+      <h3>Dựng từng bước</h3>
+      <p>Hướng dẫn chi tiết cách vẽ hình, giúp hiểu rõ quy trình dựng hình học</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">💡</div>
+      <h3>Lời giải chi tiết</h3>
+      <p>Phân tích, gợi ý và trình bày lời giải đầy đủ với hình minh họa trực quan</p>
+    </div>
+  </div>
+</div>
+
+<!-- HERO IMAGE SHOWCASE -->
+<section class="hero-showcase">
+  <div class="showcase-container">
+    <div class="showcase-content">
+      <div class="showcase-badge">✨ Công nghệ AI tiên tiến</div>
+      <h2 class="showcase-title">Giải toán hình học không gian<br>từ ảnh chụp</h2>
+      <p class="showcase-text">
+        Chỉ cần chụp ảnh đề bài, hệ thống AI của chúng tôi sẽ tự động nhận diện, 
+        phân tích và dựng mô hình 3D chính xác trong vài giây.
+      </p>
+      <div class="showcase-features">
+        <div class="showcase-feature-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Nhận diện tự động bằng Gemini AI</span>
+        </div>
+        <div class="showcase-feature-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Dựng mô hình 3D tương tác</span>
+        </div>
+        <div class="showcase-feature-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Lời giải từng bước chi tiết</span>
+        </div>
+        <div class="showcase-feature-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Hỗ trợ đa dạng dạng bài toán</span>
+        </div>
+      </div>
+      <button class="btn-hero" onclick="window.location.href='solver.html'">
+        Thử ngay miễn phí
+      </button>
+    </div>
+    <div class="showcase-image">
+      <div class="showcase-image-wrapper">
+        <img src="../assets/images/banner.jpg" alt="Giải toán hình học không gian với Geo3D" loading="lazy" />
+        <div class="showcase-image-overlay"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO VIDEO SECTION -->
+<section class="demo-video-section">
+  <div class="app-wrapper">
+    <div class="section-header">
+      <div class="section-badge">Xem demo</div>
+      <h2 class="section-title">Trải nghiệm Geo3D trong hành động</h2>
+      <p class="section-subtitle">Xem cách Geo3D giải quyết bài toán hình học không gian một cách nhanh chóng và chính xác</p>
+    </div>
+    
+    <div class="demo-video-wrapper">
+      <div class="demo-video-container">
+        <video muted disableRemotePlayback preload="metadata" poster="../assets/images/banner.jpg">
+          <source src="../assets/images/video.mp4" type="video/mp4">
+          Trình duyệt của bạn không hỗ trợ video.
+        </video>
+        <div class="demo-video-overlay">
+          <button class="demo-play-btn" aria-label="Play demo video">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="demo-video-info">
+        <div class="demo-info-item">
+          <div class="demo-info-icon">⚡</div>
+          <div class="demo-info-text">
+            <h4>Nhanh chóng</h4>
+            <p>Phân tích và giải bài trong vài giây</p>
+          </div>
+        </div>
+        <div class="demo-info-item">
+          <div class="demo-info-icon">🎯</div>
+          <div class="demo-info-text">
+            <h4>Chính xác</h4>
+            <p>Độ chính xác lên đến 98%</p>
+          </div>
+        </div>
+        <div class="demo-info-item">
+          <div class="demo-info-icon">📚</div>
+          <div class="demo-info-text">
+            <h4>Dễ hiểu</h4>
+            <p>Lời giải chi tiết từng bước</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE GEO3D -->
+<section class="why-choose">
+  <div class="app-wrapper">
+    <div class="section-header">
+      <div class="section-badge">Tại sao chọn Geo3D</div>
+      <h2 class="section-title">Học thông minh hơn, không chỉ học nhiều hơn</h2>
+    </div>
+    
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">⚡</div>
+        <h3>Tiết kiệm thời gian</h3>
+        <p>Giải quyết bài toán trong vài giây thay vì hàng giờ loay hoay</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">🎯</div>
+        <h3>Hiểu sâu hơn</h3>
+        <p>Mô hình 3D tương tác giúp hình dung không gian một cách trực quan</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">📈</div>
+        <h3>Cải thiện điểm số</h3>
+        <p>Học đúng phương pháp, nắm vững kiến thức, tự tin trong kỳ thi</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">🔄</div>
+        <h3>Luyện tập không giới hạn</h3>
+        <p>Giải không giới hạn bài toán, rèn luyện kỹ năng mọi lúc mọi nơi</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <h2 class="testimonials-title">Học sinh nói gì về Geo3D</h2>
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <p class="testimonial-text">"Trước đây mình rất sợ hình học không gian, nhưng với Geo3D, mình có thể xoay mô hình 3D và hiểu rõ từng bước dựng hình. Điểm thi của mình đã tăng từ 5 lên 8!"</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">N</div>
+        <div class="testimonial-info">
+          <div class="testimonial-name">Nguyễn Minh Anh</div>
+          <div class="testimonial-role">Học sinh lớp 12A1</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="testimonial-card">
+      <p class="testimonial-text">"AI nhận diện đề bài rất nhanh và chính xác. Mình chỉ cần chụp ảnh là có ngay lời giải chi tiết. Tiết kiệm được rất nhiều thời gian ôn tập!"</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">T</div>
+        <div class="testimonial-info">
+          <div class="testimonial-name">Trần Hoàng Long</div>
+          <div class="testimonial-role">Học sinh lớp 11A3</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="testimonial-card">
+      <p class="testimonial-text">"Phần dựng hình từng bước giúp mình hiểu cách vẽ hình chính xác. Không còn bị mất điểm vì vẽ sai hình nữa. Cảm ơn Geo3D rất nhiều!"</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">L</div>
+        <div class="testimonial-info">
+          <div class="testimonial-name">Lê Thị Mai</div>
+          <div class="testimonial-role">Học sinh lớp 12A5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+  <div class="cta-card">
+    <div class="cta-content">
+      <h2 class="cta-title">Sẵn sàng chinh phục hình học không gian?</h2>
+      <p class="cta-subtitle">Tham gia cùng hàng nghìn học sinh đang sử dụng Geo3D để học tập hiệu quả hơn</p>
+      <button class="btn-hero" onclick="window.location.href='register.html'">
+        Bắt đầu miễn phí ngay
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
+    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+  </div>
+  <div style="font-size:12px;color:var(--ink-3)">
+    © 2024 Geo3D · Made with ❤️ for students
+  </div>
+</footer>
+
+</body>
+</html>
