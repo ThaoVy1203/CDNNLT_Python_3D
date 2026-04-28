@@ -1,6 +1,6 @@
 import pymssql
 from typing import Optional
-from .config import DatabaseConfig
+from app.core.config import settings
 
 class DatabaseConnection:
     _instance: Optional['DatabaseConnection'] = None
@@ -13,10 +13,10 @@ class DatabaseConnection:
     def get_connection(self):
         try:
             conn = pymssql.connect(
-                server=DatabaseConfig.SERVER,
-                database=DatabaseConfig.DATABASE,
-                user=DatabaseConfig.USERNAME,
-                password=DatabaseConfig.PASSWORD,
+                server=settings.DB_SERVER,
+                database=settings.DB_NAME,
+                user=settings.DB_USER,
+                password=settings.DB_PASSWORD,
                 as_dict=False
             )
             return conn
@@ -30,7 +30,7 @@ class DatabaseConnection:
             cursor.execute(query, params)
             columns = [column[0] for column in cursor.description] if cursor.description else []
             results = cursor.fetchall()
-            conn.commit()  # Commit transaction for INSERT/UPDATE queries
+            conn.commit()
             return [dict(zip(columns, row)) for row in results]
         finally:
             conn.close()

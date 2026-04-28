@@ -1,19 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from models.bai_toan import BaiToanCreate
-from repositories.bai_toan_repository import BaiToanRepository
+from app.models.bai_toan import BaiToanCreate
+from app.repositories.bai_toan_repository import BaiToanRepository
 from typing import List
 
 router = APIRouter(prefix="/bai-toan", tags=["Bài toán"])
 repo = BaiToanRepository()
-
-@router.post("/", response_model=dict)
-def create_bai_toan(bai_toan: BaiToanCreate):
-    try:
-        ma_bai_toan = repo.create(bai_toan)
-        return {"message": "Tạo bài toán thành công", "maBaiToan": ma_bai_toan}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
 @router.get("/", response_model=List[dict])
 def get_all_bai_toan():
     try:

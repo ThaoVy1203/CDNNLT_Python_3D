@@ -1,5 +1,5 @@
-from database.connection import DatabaseConnection
-from models.bai_toan import BaiToanCreate
+from app.core.database import DatabaseConnection
+from app.models.bai_toan import BaiToanCreate
 from typing import List, Optional
 
 class BaiToanRepository:
@@ -18,6 +18,22 @@ class BaiToanRepository:
             bai_toan.deBaiTho,
             bai_toan.loaiHinh,
             bai_toan.tomTatDe
+        ))
+        return int(result[0]['id'])
+    
+    def create_from_dict(self, data: dict) -> int:
+        """Tạo bài toán từ dict (dùng cho AI upload)"""
+        query = """
+        INSERT INTO BAITOAN (maNguoiDung, duongDan, deBaiTho, loaiHinh, tomTatDe)
+        VALUES (%s, %s, %s, %s, %s);
+        SELECT SCOPE_IDENTITY() as id;
+        """
+        result = self.db.execute_query(query, (
+            data.get("maNguoiDung"),
+            data.get("duongDan"),
+            data.get("deBaiTho"),
+            data.get("loaiHinh"),
+            data.get("tomTatDe")
         ))
         return int(result[0]['id'])
     

@@ -1,5 +1,5 @@
-from database.connection import DatabaseConnection
-from models.nguoi_dung import NguoiDungCreate, NguoiDungResponse
+from app.core.database import DatabaseConnection
+from app.models.nguoi_dung import NguoiDungCreate
 from typing import List, Optional
 
 class NguoiDungRepository:

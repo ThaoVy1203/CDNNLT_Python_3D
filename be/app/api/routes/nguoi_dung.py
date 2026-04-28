@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from models.nguoi_dung import NguoiDungCreate, NguoiDungResponse
-from repositories.nguoi_dung_repository import NguoiDungRepository
+from app.models.nguoi_dung import NguoiDungCreate
+from app.repositories.nguoi_dung_repository import NguoiDungRepository
 from typing import List
 
 router = APIRouter(prefix="/nguoi-dung", tags=["Người dùng"])

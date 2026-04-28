@@ -52,8 +52,27 @@ CREATE TABLE LOIGIAI (
 	maBaiToan INT,
     cacBuocGiai NVARCHAR(MAX),       -- JSON mảng các bước
     ketQuaCuoi NVARCHAR(MAX),
-    congThucSuDung VARCHAR(MAX),   -- JSON danh sách công thức
+    congThucSuDung NVARCHAR(MAX),   -- JSON danh sách công thức
     ngayTao DATETIME DEFAULT GETDATE(),
 	FOREIGN KEY (maBaiToan) REFERENCES BAITOAN(maBaiToan)
 );
+
+CREATE TABLE DUNGHINH3D (
+    maDungHinh INT IDENTITY(1,1) PRIMARY KEY,
+    maBaiToan INT,
+    cacBuocVe NVARCHAR(MAX),        -- JSON: Thứ tự các bước vẽ
+    hamThreeJS NVARCHAR(MAX),       -- JSON: Danh sách hàm Three.js cần dùng
+    thamSo NVARCHAR(MAX),           -- JSON: Tham số cho từng hàm
+    codeThreeJS NVARCHAR(MAX),      -- Code Three.js đầy đủ
+    huongDanVe NVARCHAR(MAX),       -- Text: Hướng dẫn chi tiết
+    ngayTao DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (maBaiToan) REFERENCES BAITOAN(maBaiToan)
+);
 GO
+select * from NGUOIDUNG
+SELECT * FROM BAITOAN;
+SELECT * FROM DULIEUHINHHOC;
+SELECT * FROM LOIGIAI;
+SELECT * FROM DUNGHINH3D;
+delete from DUNGHINH3D
+where maDungHinh = 4
