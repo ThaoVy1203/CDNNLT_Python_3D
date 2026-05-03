@@ -159,12 +159,30 @@ class GeminiClient:
         
         try:
             response_text = response.text
+            
+            # Extract JSON from markdown code blocks
             if "```json" in response_text:
                 json_str = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
                 json_str = response_text.split("```")[1].split("```")[0].strip()
             else:
                 json_str = response_text.strip()
+            
+            # Fix incomplete JSON - add closing brackets if missing
+            open_braces = json_str.count('{')
+            close_braces = json_str.count('}')
+            open_brackets = json_str.count('[')
+            close_brackets = json_str.count(']')
+            
+            # Add missing closing brackets
+            if open_braces > close_braces:
+                json_str += '}' * (open_braces - close_braces)
+            if open_brackets > close_brackets:
+                json_str += ']' * (open_brackets - close_brackets)
+            
+            # Fix unterminated strings - find last quote and close it
+            if json_str.count('"') % 2 != 0:
+                json_str += '"'
             
             # Fix: Thay thế biến 'a' bằng giá trị số để parse được JSON
             import re
@@ -177,6 +195,7 @@ class GeminiClient:
             json_str = re.sub(r',\s*a,', ', 1.0,', json_str)
             json_str = re.sub(r',\s*a\]', ', 1.0]', json_str)
             json_str = re.sub(r'\[a\]', '[1.0]', json_str)
+            json_str = re.sub(r':\s*"a"', ': "1.0"', json_str)
             
             data = json.loads(json_str)
             extraction = GeometryExtraction(**data)

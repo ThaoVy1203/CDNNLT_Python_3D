@@ -664,150 +664,40 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../js/api.js"></script>
 <script src="../js/script.js"></script>
 <script>
-// Construction steps navigation
-let currentStep = 3;
-const totalSteps = 5;
-let isPlaying = false;
-let playInterval = null;
+// ═══════════════════════════════════════════════════════════
+// GLOBAL STATE (specific to solver page)
+// ═══════════════════════════════════════════════════════════
+let currentProblemId = null;
+let currentProblemData = null;
 
-function goToStep(step) {
-  if (step < 1 || step > totalSteps) return;
-  
-  currentStep = step;
-  updateStepDisplay();
-}
+// Solver-specific construction steps state (avoid conflict with script.js)
+let solverCurrentStep = 3;
+const solverTotalSteps = 5;
+let solverIsPlaying = false;
+let solverPlayInterval = null;
 
-function nextStep() {
-  if (currentStep < totalSteps) {
-    currentStep++;
-    updateStepDisplay();
-  }
-}
-
-function prevStep() {
-  if (currentStep > 1) {
-    currentStep--;
-    updateStepDisplay();
-  }
-}
-
-function updateStepDisplay() {
-  // Hide all steps
-  document.querySelectorAll('.construction-step').forEach(step => {
-    step.style.display = 'none';
-    step.classList.remove('active');
-  });
-  
-  // Show current step
-  const currentStepEl = document.getElementById(`step-${currentStep}`);
-  if (currentStepEl) {
-    currentStepEl.style.display = 'block';
-    currentStepEl.classList.add('active');
-  }
-  
-  // Update progress bar
-  const progress = (currentStep / totalSteps) * 100;
-  const progFill = document.getElementById('progFill');
-  if (progFill) {
-    progFill.style.width = progress + '%';
-  }
-  
-  // Update step label
-  const stepLabel = document.getElementById('stepLabel');
-  if (stepLabel) {
-    stepLabel.textContent = `${currentStep} / ${totalSteps}`;
-  }
-  
-  // Update sidebar step items
-  document.querySelectorAll('.step-item').forEach((item, index) => {
-    item.classList.remove('done', 'active', 'faded');
-    if (index + 1 < currentStep) {
-      item.classList.add('done');
-      item.querySelector('.si-num').textContent = '✓';
-    } else if (index + 1 === currentStep) {
-      item.classList.add('active');
-      item.querySelector('.si-num').textContent = currentStep;
-    } else {
-      item.classList.add('faded');
-      item.querySelector('.si-num').textContent = index + 1;
+// Add CSS for animations
+if (!document.getElementById('solver-animations')) {
+  const style = document.createElement('style');
+  style.id = 'solver-animations';
+  style.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-  });
+  `;
+  document.head.appendChild(style);
 }
 
-function togglePlay() {
-  const playBtn = document.getElementById('playBtn');
-  if (!playBtn) return;
-  
-  isPlaying = !isPlaying;
-  
-  if (isPlaying) {
-    playBtn.innerHTML = '⏸';
-    playInterval = setInterval(() => {
-      if (currentStep < totalSteps) {
-        nextStep();
-      } else {
-        togglePlay(); // Stop when reaching the end
-      }
-    }, 2000); // Change step every 2 seconds
-  } else {
-    playBtn.innerHTML = '▶';
-    if (playInterval) {
-      clearInterval(playInterval);
-      playInterval = null;
-    }
-  }
-}
+// ═══════════════════════════════════════════════════════════
+// FILE UPLOAD HANDLING
+// ═══════════════════════════════════════════════════════════
 
-function seekProgress(event) {
-  const track = event.currentTarget;
-  const rect = track.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const percentage = x / rect.width;
-  const step = Math.max(1, Math.min(totalSteps, Math.ceil(percentage * totalSteps)));
-  goToStep(step);
-}
-
-// Unlock solution functionality
-const userAnalysisInput = document.getElementById('userAnalysis');
-const unlockBtn = document.getElementById('unlockBtn');
-
-if (userAnalysisInput && unlockBtn) {
-  userAnalysisInput.addEventListener('input', function() {
-    const text = this.value.trim();
-    if (text.length >= 50) {
-      unlockBtn.disabled = false;
-      unlockBtn.style.opacity = '1';
-      unlockBtn.style.cursor = 'pointer';
-      unlockBtn.innerHTML = '🔓 Mở khóa lời giải';
-    } else {
-      unlockBtn.disabled = true;
-      unlockBtn.style.opacity = '0.5';
-      unlockBtn.style.cursor = 'not-allowed';
-      unlockBtn.innerHTML = `🔒 Mở khóa lời giải (${text.length}/50)`;
-    }
-  });
-}
-
-function unlockSolution() {
-  const text = userAnalysisInput.value.trim();
-  if (text.length >= 50) {
-    document.getElementById('solutionLocked').style.display = 'none';
-    document.getElementById('solutionContent').style.display = 'block';
-    
-    // Smooth scroll to solution
-    setTimeout(() => {
-      document.getElementById('solutionContent').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
-  }
-}
-
-// File upload handling
-function handleFileSelect(event) {
+// File upload handling with real API integration
+async function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
   
@@ -837,54 +727,390 @@ function handleFileSelect(event) {
       </svg>
     </div>
     <h3>Đang xử lý ảnh...</h3>
-    <p>AI đang phân tích đề bài của bạn</p>
+    <p>AI đang phân tích đề bài của bạn<span id="loading-dots">...</span></p>
   `;
   
-  // Read and preview image
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    // Simulate AI processing (in real app, this would call backend API)
-    setTimeout(() => {
-      const imagePreview = file.type.startsWith('image/') 
-        ? `<img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border);" alt="Preview">`
-        : '';
+  // Animate loading dots
+  let dotCount = 0;
+  const dotInterval = setInterval(() => {
+    const dotsEl = document.getElementById('loading-dots');
+    if (dotsEl) {
+      dotCount = (dotCount + 1) % 4;
+      dotsEl.textContent = '.'.repeat(dotCount);
+    }
+  }, 500);
+  
+  try {
+    // Get user ID if logged in (from auth.js)
+    const userId = typeof getCurrentUser === 'function' ? getCurrentUser()?.id : null;
+    
+    // Call real API to upload and analyze
+    const response = await apiService.uploadAndAnalyze(file, userId);
+    
+    clearInterval(dotInterval);
+    
+    if (response.success) {
+      // Store problem data globally
+      currentProblemId = response.data.maBaiToan;
+      currentProblemData = response.data;
       
-      uploadZone.innerHTML = `
-        <div class="upload-icon" style="background: var(--teal-bg); border-color: var(--teal);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+      const extraction = response.data.extraction || {};
+      const problemText = extraction.problem_text || 'Đề bài đã được phân tích thành công';
+      const problemType = extraction.problem_type || 'Hình học không gian';
+      
+      // Read and preview image
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imagePreview = file.type.startsWith('image/') 
+          ? `<img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border);" alt="Preview">`
+          : '';
+        
+        uploadZone.innerHTML = `
+          <div class="upload-icon" style="background: var(--teal-bg); border-color: var(--teal);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 style="color: var(--teal);">Đã phân tích thành công!</h3>
+          <p>File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</p>
+          ${imagePreview}
+          <button class="btn-line" style="margin-top: 12px;" onclick="document.getElementById('imageInput').click()">
+            Chọn ảnh khác
+          </button>
+        `;
+        
+        // Update recognized result with real data
+        const problemTextEl = recognizedCard.querySelector('.problem-text');
+        if (problemTextEl) {
+          problemTextEl.innerHTML = problemText;
+        }
+        
+        // Show recognized result
+        recognizedCard.style.display = 'block';
+        
+        // Show sidebar info
+        document.getElementById('geometry-info').style.display = 'block';
+        document.getElementById('info-divider').style.display = 'block';
+        document.getElementById('similar-problems').style.display = 'block';
+        document.getElementById('next-step-btn').style.display = 'block';
+        
+        // Hide upload tips
+        const uploadTips = document.getElementById('upload-tips');
+        if (uploadTips) uploadTips.style.display = 'none';
+        
+        // Smooth scroll to result
+        setTimeout(() => {
+          recognizedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      };
+      
+      reader.readAsDataURL(file);
+      
+    } else {
+      throw new Error(response.message || 'Không thể phân tích ảnh');
+    }
+    
+  } catch (error) {
+    clearInterval(dotInterval);
+    console.error('Upload error:', error);
+    
+    uploadZone.innerHTML = `
+      <div class="upload-icon" style="background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.3);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <h3 style="color: #dc2626;">Lỗi phân tích</h3>
+      <p>${error.message || 'Không thể kết nối đến server. Vui lòng thử lại.'}</p>
+      <button class="btn-filled" style="margin-top: 12px;" onclick="document.getElementById('imageInput').click()">
+        Thử lại
+      </button>
+    `;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONSTRUCTION STEPS NAVIGATION
+// ═══════════════════════════════════════════════════════════
+
+function goToStep(step) {
+  if (step < 1 || step > solverTotalSteps) return;
+  
+  solverCurrentStep = step;
+  updateStepDisplay();
+}
+
+function nextStep() {
+  if (solverCurrentStep < solverTotalSteps) {
+    solverCurrentStep++;
+    updateStepDisplay();
+  }
+}
+
+function prevStep() {
+  if (solverCurrentStep > 1) {
+    solverCurrentStep--;
+    updateStepDisplay();
+  }
+}
+
+function updateStepDisplay() {
+  // Hide all steps
+  document.querySelectorAll('.construction-step').forEach(step => {
+    step.style.display = 'none';
+    step.classList.remove('active');
+  });
+  
+  // Show current step
+  const currentStepEl = document.getElementById(`step-${solverCurrentStep}`);
+  if (currentStepEl) {
+    currentStepEl.style.display = 'block';
+    currentStepEl.classList.add('active');
+  }
+  
+  // Update progress bar
+  const progress = (solverCurrentStep / solverTotalSteps) * 100;
+  const progFill = document.getElementById('progFill');
+  if (progFill) {
+    progFill.style.width = progress + '%';
+  }
+  
+  // Update step label
+  const stepLabel = document.getElementById('stepLabel');
+  if (stepLabel) {
+    stepLabel.textContent = `${solverCurrentStep} / ${solverTotalSteps}`;
+  }
+  
+  // Update sidebar step items
+  document.querySelectorAll('.step-item').forEach((item, index) => {
+    item.classList.remove('done', 'active', 'faded');
+    if (index + 1 < solverCurrentStep) {
+      item.classList.add('done');
+      item.querySelector('.si-num').textContent = '✓';
+    } else if (index + 1 === solverCurrentStep) {
+      item.classList.add('active');
+      item.querySelector('.si-num').textContent = solverCurrentStep;
+    } else {
+      item.classList.add('faded');
+      item.querySelector('.si-num').textContent = index + 1;
+    }
+  });
+}
+
+function togglePlay() {
+  const playBtn = document.getElementById('playBtn');
+  if (!playBtn) return;
+  
+  solverIsPlaying = !solverIsPlaying;
+  
+  if (solverIsPlaying) {
+    playBtn.innerHTML = '⏸';
+    solverPlayInterval = setInterval(() => {
+      if (solverCurrentStep < solverTotalSteps) {
+        nextStep();
+      } else {
+        togglePlay(); // Stop when reaching the end
+      }
+    }, 2000); // Change step every 2 seconds
+  } else {
+    playBtn.innerHTML = '▶';
+    if (solverPlayInterval) {
+      clearInterval(solverPlayInterval);
+      solverPlayInterval = null;
+    }
+  }
+}
+
+function seekProgress(event) {
+  const track = event.currentTarget;
+  const rect = track.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const percentage = x / rect.width;
+  const step = Math.max(1, Math.min(solverTotalSteps, Math.ceil(percentage * solverTotalSteps)));
+  goToStep(step);
+}
+
+// Unlock solution functionality
+const userAnalysisInput = document.getElementById('userAnalysis');
+const unlockBtn = document.getElementById('unlockBtn');
+
+if (userAnalysisInput && unlockBtn) {
+  userAnalysisInput.addEventListener('input', function() {
+    const text = this.value.trim();
+    if (text.length >= 50) {
+      unlockBtn.disabled = false;
+      unlockBtn.style.opacity = '1';
+      unlockBtn.style.cursor = 'pointer';
+      unlockBtn.innerHTML = '🔓 Mở khóa lời giải';
+    } else {
+      unlockBtn.disabled = true;
+      unlockBtn.style.opacity = '0.5';
+      unlockBtn.style.cursor = 'not-allowed';
+      unlockBtn.innerHTML = `🔒 Mở khóa lời giải (${text.length}/50)`;
+    }
+  });
+}
+
+function unlockSolution() {
+  const text = userAnalysisInput.value.trim();
+  if (text.length >= 50) {
+    // Call API to solve problem if not already solved
+    if (currentProblemId && !currentProblemData?.solution) {
+      solveProblemWithAPI();
+    } else {
+      // Just show the solution if already loaded
+      document.getElementById('solutionLocked').style.display = 'none';
+      document.getElementById('solutionContent').style.display = 'block';
+      
+      // Smooth scroll to solution
+      setTimeout(() => {
+        document.getElementById('solutionContent').scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
+  }
+}
+
+// Solve problem with API
+async function solveProblemWithAPI() {
+  if (!currentProblemId) {
+    alert('Vui lòng tải ảnh đề bài trước!');
+    return;
+  }
+  
+  // Show loading state
+  const solutionLocked = document.getElementById('solutionLocked');
+  solutionLocked.innerHTML = `
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" style="margin-bottom: 12px; animation: spin 1s linear infinite;">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 6v6l4 2"></path>
+    </svg>
+    <p style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-bottom: 6px;">Đang giải toán...</p>
+    <p style="font-size: 12px; color: var(--ink-3);">AI đang phân tích và tìm lời giải</p>
+  `;
+  
+  try {
+    const response = await apiService.solveProblem(currentProblemId);
+    
+    if (response.success) {
+      // Store solution data
+      currentProblemData.solution = response.data.solution;
+      
+      // Update solution content with real data
+      const solution = response.data.solution;
+      const steps = solution.steps || [];
+      const result = solution.result || '';
+      
+      // Build solution HTML
+      let solutionHTML = `
+        <div style="padding: 16px; background: var(--teal-bg); border: 1px solid rgba(42,122,98,.2); border-radius: 8px; margin: 20px 0;">
+          <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Tuyệt vời! Bạn đã phân tích hướng giải. Dưới đây là lời giải chi tiết:</p>
         </div>
-        <h3 style="color: var(--teal);">Đã tải lên thành công!</h3>
-        <p>File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</p>
-        ${imagePreview}
-        <button class="btn-line" style="margin-top: 12px;" onclick="document.getElementById('imageInput').click()">
-          Chọn ảnh khác
-        </button>
       `;
       
-      // Show recognized result
-      recognizedCard.style.display = 'block';
+      // Add each step
+      steps.forEach((step, index) => {
+        solutionHTML += `
+          <div class="solution-step gold">
+            <div class="ss-label">Bước ${index + 1} — ${step.title || 'Giải'}</div>
+            <p>${step.content || step}</p>
+          </div>
+        `;
+      });
       
-      // Show sidebar info
-      document.getElementById('geometry-info').style.display = 'block';
-      document.getElementById('info-divider').style.display = 'block';
-      document.getElementById('similar-problems').style.display = 'block';
-      document.getElementById('next-step-btn').style.display = 'block';
+      // Add final result
+      if (result) {
+        solutionHTML += `
+          <div class="solution-step gold" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
+            <div class="ss-label">Kết quả cuối cùng</div>
+            <p style="font-weight: 600; color: var(--gold);">${result}</p>
+          </div>
+        `;
+      }
       
-      // Hide upload tips
-      const uploadTips = document.getElementById('upload-tips');
-      if (uploadTips) uploadTips.style.display = 'none';
+      document.getElementById('solutionContent').innerHTML = solutionHTML;
       
-      // Smooth scroll to result
+      // Hide locked, show content
+      document.getElementById('solutionLocked').style.display = 'none';
+      document.getElementById('solutionContent').style.display = 'block';
+      
+      // Smooth scroll to solution
       setTimeout(() => {
-        recognizedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
-    }, 2000);
-  };
-  
-  reader.readAsDataURL(file);
+        document.getElementById('solutionContent').scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+      
+    } else {
+      throw new Error(response.message || 'Không thể giải toán');
+    }
+    
+  } catch (error) {
+    console.error('Solve error:', error);
+    solutionLocked.innerHTML = `
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="margin-bottom: 12px;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      <p style="font-size: 14px; color: #dc2626; font-weight: 500; margin-bottom: 6px;">Lỗi giải toán</p>
+      <p style="font-size: 12px; color: var(--ink-3);">${error.message || 'Không thể kết nối đến server'}</p>
+      <button class="btn-filled" onclick="solveProblemWithAPI()" style="margin-top: 16px;">
+        Thử lại
+      </button>
+    `;
+  }
 }
+
+// Generate 3D rendering when needed
+async function generate3DRendering() {
+  if (!currentProblemId) {
+    console.log('No problem ID available for 3D rendering');
+    return;
+  }
+  
+  // Check if already generated
+  if (currentProblemData?.threejs) {
+    console.log('3D rendering already generated');
+    return;
+  }
+  
+  try {
+    const response = await apiService.render3D(currentProblemId);
+    
+    if (response.success) {
+      currentProblemData.threejs = response.data.threejs;
+      console.log('3D rendering generated successfully');
+      // Could update the 3D view here if needed
+    }
+  } catch (error) {
+    console.error('3D rendering error:', error);
+    // Don't show error to user, just log it
+  }
+}
+
+// Override showTab to trigger API calls when needed
+const originalShowTab = window.showTab;
+window.showTab = function(index) {
+  // Call original function
+  if (originalShowTab) {
+    originalShowTab(index);
+  }
+  
+  // Trigger API calls based on tab
+  if (index === 1 && currentProblemId) {
+    // Generate 3D when moving to model view
+    generate3DRendering();
+  } else if (index === 3 && currentProblemId && !currentProblemData?.solution) {
+    // Pre-load solution when moving to hints panel (optional)
+    // User still needs to unlock it by writing analysis
+  }
+};
 
 // Drag and drop support
 const uploadZone = document.querySelector('.upload-zone');
