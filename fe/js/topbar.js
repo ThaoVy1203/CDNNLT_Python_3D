@@ -1,18 +1,30 @@
 // Topbar component - shared across all pages
 function renderTopbar(activePage = '') {
+  // Check if user is logged in
+  const currentUser = getCurrentUser();
+  
+  // Build nav items - only show History and Practice if logged in
+  let navItems = `
+    <li><a href="index.html" class="${activePage === 'home' ? 'active' : ''}">Trang chủ</a></li>
+    <li><a href="solver.html" class="${activePage === 'solver' ? 'active' : ''}">Giải bài</a></li>`;
+  
+  if (currentUser) {
+    navItems += `
+    <li><a href="history.html" class="${activePage === 'history' ? 'active' : ''}">Lịch sử</a></li>
+    <li><a href="practice.html" class="${activePage === 'practice' ? 'active' : ''}">Luyện tập</a></li>`;
+  }
+  
+  navItems += `
+    <li><a href="docs.html" class="${activePage === 'docs' ? 'active' : ''}">Tài liệu</a></li>`;
+  
   return `
 <header class="topbar">
   <div class="logo">Geo<em>3D</em></div>
   <nav><ul class="nav">
-    <li><a href="index.html" class="${activePage === 'home' ? 'active' : ''}">Trang chủ</a></li>
-    <li><a href="solver.html" class="${activePage === 'solver' ? 'active' : ''}">Giải bài</a></li>
-    <li><a href="history.html" class="${activePage === 'history' ? 'active' : ''}">Lịch sử</a></li>
-    <li><a href="practice.html" class="${activePage === 'practice' ? 'active' : ''}">Luyện tập</a></li>
-    <li><a href="docs.html" class="${activePage === 'docs' ? 'active' : ''}">Tài liệu</a></li>
+    ${navItems}
   </ul></nav>
   <div class="topbar-right">
-    <button class="btn-line" id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
-    <button class="btn-filled" id="registerBtn" onclick="window.location.href='register.html'">Dùng miễn phí</button>
+    <button class="btn-filled" id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
     
     <!-- User Profile Dropdown -->
     <div class="user-dropdown" id="userDropdown" style="display:none;">
@@ -105,18 +117,15 @@ function handleLogout(e) {
 function initTopbar() {
   const currentUser = getCurrentUser();
   const loginBtn = document.getElementById('loginBtn');
-  const registerBtn = document.getElementById('registerBtn');
   const userDropdown = document.getElementById('userDropdown');
   
   if (currentUser) {
-    // User is logged in - show dropdown, hide login/register buttons
+    // User is logged in - show dropdown, hide login button
     if (loginBtn) loginBtn.style.display = 'none';
-    if (registerBtn) registerBtn.style.display = 'none';
     if (userDropdown) userDropdown.style.display = 'block';
   } else {
-    // User is not logged in - show login/register buttons, hide dropdown
+    // User is not logged in - show login button, hide dropdown
     if (loginBtn) loginBtn.style.display = 'inline-block';
-    if (registerBtn) registerBtn.style.display = 'inline-block';
     if (userDropdown) userDropdown.style.display = 'none';
   }
   

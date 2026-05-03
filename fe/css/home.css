@@ -246,8 +246,19 @@ body::after {
 }
 
 .feat-icon {
-  font-size: 32px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bg2), var(--indigo-bg));
+  border-radius: 12px;
   transition: transform 0.3s ease;
+}
+
+.feat-icon svg {
+  color: var(--gold);
 }
 
 .feat:hover .feat-icon {
@@ -661,27 +672,23 @@ body::after {
 }
 
 .step-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  display: inline-block;
-  animation: float 3s ease-in-out infinite;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bg2), var(--indigo-bg));
+  border-radius: 16px;
+  transition: transform 0.3s ease;
 }
 
-.step-card:nth-child(1) .step-icon {
-  animation-delay: 0s;
+.step-icon svg {
+  color: var(--gold);
 }
 
-.step-card:nth-child(3) .step-icon {
-  animation-delay: 0.5s;
-}
-
-.step-card:nth-child(5) .step-icon {
-  animation-delay: 1s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+.step-card:hover .step-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .step-title {
@@ -747,10 +754,19 @@ body::after {
 }
 
 .benefit-icon {
-  font-size: 40px;
-  margin-bottom: 16px;
-  display: inline-block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bg2), var(--indigo-bg));
+  border-radius: 12px;
   transition: transform 0.3s ease;
+}
+
+.benefit-icon svg {
+  color: var(--gold);
 }
 
 .benefit-card:hover .benefit-icon {
@@ -1177,8 +1193,18 @@ html {
 }
 
 .demo-info-icon {
-  font-size: 32px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bg2), var(--indigo-bg));
+  border-radius: 10px;
+}
+
+.demo-info-icon svg {
+  color: var(--gold);
 }
 
 .demo-info-text h4 {

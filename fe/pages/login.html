@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Đăng nhập - Geo3D</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
@@ -34,102 +35,66 @@
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 420px;
-  padding: 40px;
+  padding: 48px 40px;
 }
 .auth-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 .auth-header .logo {
   font-family: var(--serif);
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 500;
   color: var(--ink);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .auth-header .logo em {
   color: var(--gold);
   font-style: italic;
 }
 .auth-header h2 {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 500;
   color: var(--ink);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .auth-header p {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink-3);
+  line-height: 1.6;
 }
-.form-group {
-  margin-bottom: 16px;
-}
-.form-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-2);
-  margin-bottom: 6px;
-}
-.form-input {
+.btn-google {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border-md);
-  border-radius: 6px;
-  font-family: var(--sans);
-  font-size: 13px;
+  padding: 14px;
+  background: var(--white);
   color: var(--ink);
-  transition: all .2s;
-}
-.form-input:focus {
-  outline: none;
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px var(--gold-bg);
-}
-.form-input::placeholder {
-  color: var(--ink-4);
-}
-.btn-submit {
-  width: 100%;
-  padding: 11px;
-  background: var(--gold);
-  color: var(--white);
-  border: none;
-  border-radius: 6px;
+  border: 1.5px solid var(--border-md);
+  border-radius: 8px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all .2s;
-  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
-.btn-submit:hover {
-  background: var(--gold-lt);
-}
-.btn-guest {
-  width: 100%;
-  padding: 11px;
-  background: transparent;
-  color: var(--ink-2);
-  border: 1px solid var(--border-md);
-  border-radius: 6px;
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: all .2s;
-  margin-top: 10px;
-}
-.btn-guest:hover {
+.btn-google:hover {
   border-color: var(--gold);
-  color: var(--gold);
+  background: rgba(160,120,64,0.05);
+  transform: translateY(-1px);
+}
+.btn-google svg {
+  width: 20px;
+  height: 20px;
 }
 .divider {
   display: flex;
   align-items: center;
-  margin: 20px 0;
+  margin: 28px 0;
   color: var(--ink-4);
-  font-size: 11px;
+  font-size: 12px;
 }
 .divider::before,
 .divider::after {
@@ -139,16 +104,39 @@
   background: var(--border);
 }
 .divider::before {
-  margin-right: 12px;
+  margin-right: 16px;
 }
 .divider::after {
-  margin-left: 12px;
+  margin-left: 16px;
+}
+.btn-guest {
+  width: 100%;
+  padding: 14px;
+  background: var(--white);
+  color: var(--ink);
+  border: 1.5px solid var(--border-md);
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-guest:hover {
+  border-color: var(--indigo);
+  background: rgba(67,56,202,0.05);
+  transform: translateY(-1px);
 }
 .auth-footer {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 32px;
   font-size: 12px;
   color: var(--ink-3);
+  line-height: 1.6;
 }
 .auth-footer a {
   color: var(--gold);
@@ -158,34 +146,36 @@
 .auth-footer a:hover {
   text-decoration: underline;
 }
-.alert {
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 12px;
+.features-list {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+.features-list h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
   margin-bottom: 16px;
-  display: none;
+  text-align: center;
 }
-@media (max-width: 860px) {
-  .auth-container {
-    grid-template-columns: 1fr;
-  }
-  .auth-left {
-    display: none;
-  }
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
-.alert-error {
-  background: rgba(184,64,64,0.1);
-  border: 1px solid rgba(184,64,64,0.2);
-  color: var(--red);
-}
-.alert-success {
-  background: var(--teal-bg);
-  border: 1px solid rgba(42,122,98,0.2);
-  color: var(--teal);
+.feature-item svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 @media (max-width: 860px) {
   .auth-card {
-    padding: 32px 24px;
+    padding: 40px 28px;
   }
 }
 </style>
@@ -196,38 +186,131 @@
   <div class="auth-card">
     <div class="auth-header">
       <div class="logo">Geo<em>3D</em></div>
-      <h2>Đăng nhập</h2>
-      <p>Chào mừng trở lại!</p>
+      <h2>Đăng nhập để tiếp tục</h2>
+      <p>Lưu lịch sử giải bài và truy cập tính năng luyện tập</p>
     </div>
 
-    <div id="alert" class="alert"></div>
-
-    <form id="loginForm" onsubmit="handleLogin(event)">
-      <div class="form-group">
-        <label class="form-label">Email hoặc tên đăng nhập</label>
-        <input type="text" class="form-input" id="username" placeholder="Nhập email hoặc username" required>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Mật khẩu</label>
-        <input type="password" class="form-input" id="password" placeholder="Nhập mật khẩu" required>
-      </div>
-
-      <button type="submit" class="btn-submit">Đăng nhập</button>
-    </form>
+    <!-- Google Sign-In Button (Custom Style) -->
+    <button class="btn-google" onclick="handleGoogleSignIn()">
+      <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Đăng nhập bằng Google
+    </button>
 
     <div class="divider">hoặc</div>
 
     <button class="btn-guest" onclick="continueAsGuest()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
       Tiếp tục với tư cách khách
     </button>
 
+    <div class="features-list">
+      <h3>Lợi ích khi đăng nhập</h3>
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Lưu lịch sử giải bài và xem lại bất cứ lúc nào</span>
+      </div>
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Truy cập kho bài tập luyện tập theo chủ đề</span>
+      </div>
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Đồng bộ dữ liệu trên mọi thiết bị</span>
+      </div>
+    </div>
+
     <div class="auth-footer">
-      Chưa có tài khoản? <a href="register.html">Đăng ký ngay</a>
+      Bằng cách đăng nhập, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> và <a href="#">Chính sách bảo mật</a> của chúng tôi.
     </div>
   </div>
 </div>
 
 <script src="../js/auth.js"></script>
+<script src="../js/config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+let googleInitialized = false;
+
+// Initialize Google Sign-In when page loads
+window.onload = function() {
+  // Wait for Google library to load
+  const checkGoogleLoaded = setInterval(() => {
+    if (typeof google !== 'undefined' && !googleInitialized) {
+      clearInterval(checkGoogleLoaded);
+      googleInitialized = true;
+      
+      // Initialize Google Sign-In
+      google.accounts.id.initialize({
+        client_id: CONFIG.GOOGLE_CLIENT_ID,
+        callback: handleGoogleCallback,
+        auto_select: false,
+        cancel_on_tap_outside: true
+      });
+    }
+  }, 100);
+};
+
+// Google Sign-In Handler (for manual trigger)
+function handleGoogleSignIn() {
+  if (googleInitialized) {
+    google.accounts.id.prompt();
+  } else {
+    console.error('Google Sign-In chưa được khởi tạo');
+  }
+}
+
+// Handle Google Sign-In callback
+function handleGoogleCallback(response) {
+  // Decode JWT token to get user info
+  const userInfo = parseJwt(response.credential);
+  
+  // Create user object
+  const user = {
+    id: userInfo.sub,
+    email: userInfo.email,
+    name: userInfo.name,
+    picture: userInfo.picture,
+    provider: 'google'
+  };
+  
+  // Save to localStorage
+  localStorage.setItem('geo3d_current_user', JSON.stringify(user));
+  
+  // Redirect to home or solver page
+  window.location.href = 'solver.html';
+}
+
+// Parse JWT token
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  return JSON.parse(jsonPayload);
+}
+
+// Continue as guest
+function continueAsGuest() {
+  // Clear any existing user data
+  localStorage.removeItem('geo3d_current_user');
+  // Redirect to solver page
+  window.location.href = 'solver.html';
+}
+</script>
 </body>
 </html>

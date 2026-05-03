@@ -2,7 +2,8 @@
 // API SERVICE - Backend Integration
 // ═══════════════════════════════════════════════════════════
 
-const API_BASE_URL = 'http://localhost:8000';
+// Load config if available, otherwise use default
+const API_BASE_URL = typeof CONFIG !== 'undefined' ? CONFIG.API_BASE_URL : 'http://localhost:8000';
 
 class ApiService {
   constructor() {
