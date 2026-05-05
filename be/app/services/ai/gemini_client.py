@@ -90,8 +90,9 @@ class GeminiClient:
         # Khởi tạo client mới
         self.client = genai.Client(api_key=self.api_key)
         
-        # Sử dụng Gemini 2.5 Flash
-        self.model_name = 'gemini-2.5-flash'
+        # Đọc model từ environment variable hoặc dùng mặc định
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        print(f"🤖 Using Gemini model: {self.model_name}")
         
         self.generation_config = types.GenerateContentConfig(
             temperature=1.0,
@@ -168,6 +169,15 @@ class GeminiClient:
             else:
                 json_str = response_text.strip()
             
+            # Fix: Replace LaTeX escape sequences with Unicode
+            import re
+            # Replace \frac{a}{b} with a/b
+            json_str = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'(\1)/(\2)', json_str)
+            # Replace \sqrt{x} with √x
+            json_str = re.sub(r'\\sqrt\{([^}]+)\}', r'√\1', json_str)
+            # Replace remaining backslashes (except valid JSON escapes)
+            json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'', json_str)
+            
             # Fix incomplete JSON - add closing brackets if missing
             open_braces = json_str.count('{')
             close_braces = json_str.count('}')
@@ -185,7 +195,6 @@ class GeminiClient:
                 json_str += '"'
             
             # Fix: Thay thế biến 'a' bằng giá trị số để parse được JSON
-            import re
             # Thay thế a/số bằng 1.0/số (ví dụ: a/2 -> 0.5)
             json_str = re.sub(r'\ba/2\b', '0.5', json_str)
             json_str = re.sub(r'\ba/3\b', '0.333', json_str)
@@ -232,8 +241,16 @@ Phân tích và trả về JSON.
             else:
                 json_str = response_text.strip()
             
-            # Fix: Xử lý escape characters và biến 'a'
+            # Fix: Replace LaTeX escape sequences with Unicode
             import re
+            # Replace \frac{a}{b} with a/b
+            json_str = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'(\1)/(\2)', json_str)
+            # Replace \sqrt{x} with √x
+            json_str = re.sub(r'\\sqrt\{([^}]+)\}', r'√\1', json_str)
+            # Replace remaining backslashes (except valid JSON escapes)
+            json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'', json_str)
+            
+            # Fix: Xử lý biến 'a'
             # Thay thế a/số bằng giá trị số
             json_str = re.sub(r'\ba/2\b', '0.5', json_str)
             json_str = re.sub(r'\ba/3\b', '0.333', json_str)
@@ -242,9 +259,6 @@ Phân tích và trả về JSON.
             json_str = re.sub(r':\s*\[a,', ': [1.0,', json_str)
             json_str = re.sub(r',\s*a,', ', 1.0,', json_str)
             json_str = re.sub(r',\s*a\]', ', 1.0]', json_str)
-            
-            # KHÔNG xử lý escape characters - để JSON parser tự xử lý
-            # json_str = json_str.replace('\\\\', '\\')  # BỎ dòng này
             
             data = json.loads(json_str)
             return GeometryExtraction(**data)

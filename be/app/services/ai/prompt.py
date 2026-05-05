@@ -26,6 +26,12 @@ Trích xuất các thông tin sau từ bài toán hình học:
    - Format: [{"type": "vuông góc", "entities": ["AB", "CD"]}]
    - Các loại: "vuông góc", "song song", "bằng nhau", "thuộc"
 
+**YÊU CẦU QUAN TRỌNG VỀ FORMAT:**
+- KHÔNG sử dụng ký hiệu LaTeX (như \frac, \sqrt) trong JSON
+- Dùng ký hiệu Unicode: √ (căn), ² (bình phương), ³ (lập phương), π, ∠, ⊥, ∥
+- Ví dụ: thay vì "\frac{a\sqrt{3}}{4}" hãy viết "a√3/4" hoặc "(a√3)/4"
+- Ví dụ: thay vì "a^2" hãy viết "a²"
+
 Trả về JSON với cấu trúc trên.
 """
 
@@ -153,15 +159,47 @@ def build_extraction_prompt(additional_context: str = "") -> str:
 # ============================================================
 
 SOLVE_PROBLEM_PROMPT = """
-Bạn là giáo viên toán chuyên về hình học không gian.
-Hãy giải chi tiết bài toán sau:
+Bạn là giáo viên toán chuyên về hình học không gian, đang hướng dẫn học sinh THPT.
+
+Hãy giải bài toán sau theo PHONG CÁCH HÌNH HỌC HỌC SINH:
 
 {problem_text}
 
 YÊU CẦU QUAN TRỌNG:
-- Trong JSON, các công thức LaTeX phải escape đúng: dùng \\\\ thay vì \\
-- Ví dụ: "\\\\frac{{a}}{{2}}" thay vì "\\frac{{a}}{{2}}"
-- Hoặc dùng text thuần không có LaTeX
+
+1. **ƯU TIÊN HÌNH HỌC THUẦN TÚY:**
+   - Sử dụng các quan hệ hình học: vuông góc, song song, trung điểm, hình chiếu
+   - Áp dụng định lý: Pythagore, định lý 3 đường vuông góc, công thức khoảng cách
+   - CHỈ dùng tọa độ hóa khi THỰC SỰ cần thiết (bài toán phức tạp)
+
+2. **NGẮN GỌN VÀ RÕ RÀNG:**
+   - Tối đa 5-7 bước cho bài toán thông thường
+   - Mỗi bước giải thích rõ ràng, logic
+   - Không lặp lại các phép tính đơn giản
+
+3. **ĐỊNH DẠNG:**
+   - KHÔNG dùng LaTeX trong JSON
+   - Dùng Unicode: √, ², ³, π, ∠, ⊥, ∥, ≈
+   - Ví dụ: "a√3/4" thay vì LaTeX
+   - Ví dụ: "SA²" thay vì "SA^2"
+
+4. **CẤU TRÚC LỜI GIẢI:**
+   - Bước 1: Phân tích đề bài, vẽ hình, xác định yếu tố cần tìm
+   - Bước 2-4: Áp dụng định lý, tính toán các đại lượng trung gian
+   - Bước cuối: Kết luận đáp án
+
+VÍ DỤ LỜI GIẢI TỐT (ngắn gọn, hình học):
+{{
+  "steps": [
+    "Bước 1: Gọi N là trung điểm AB. Do BC ∥ (SMN) nên d(BC, SM) = d(BC, (SMN)) = d(B, (SMN)) = d(A, (SMN))",
+    "Bước 2: Dựng AH ⊥ SN tại H. Vì SA ⊥ (ABCD) nên AH ⊥ (SMN). Do đó d(A, (SMN)) = AH = a√3/4",
+    "Bước 3: Trong tam giác vuông SAN, áp dụng công thức: 1/AH² = 1/AN² + 1/AS². Với AN = a/2, ta có: 1/(a√3/4)² = 1/(a/2)² + 1/AS²",
+    "Bước 4: Giải phương trình: 16/(3a²) = 4/a² + 1/AS² ⇒ AS² = 3a²/4 ⇒ SA = a√3/2",
+    "Bước 5: Thể tích khối chóp: V = (1/3) × S_đáy × h = (1/3) × a² × (a√3/2) = a³√3/6"
+  ],
+  "result": "V = a³√3/6",
+  "formulas_used": ["Công thức khoảng cách từ điểm đến mặt phẳng", "Định lý 3 đường vuông góc", "Công thức thể tích khối chóp"]
+}}
 
 Trả về JSON với format:
 {{
@@ -220,4 +258,51 @@ def build_drawing_guide_prompt(problem_text: str, shape_type: str) -> str:
     return DRAWING_GUIDE_PROMPT.format(
         problem_text=problem_text,
         shape_type=shape_type
+    )
+
+
+# ============================================================
+# PROMPTS CHO ĐÁNH GIÁ Ý TƯỞNG NGƯỜI DÙNG
+# ============================================================
+
+EVALUATION_PROMPT = """
+Bạn là giáo viên toán đang đánh giá ý tưởng giải toán của học sinh.
+
+ĐỀ BÀI:
+{problem_text}
+
+Ý TƯỞNG CỦA HỌC SINH:
+{user_approach}
+
+YÊU CẦU:
+1. Đánh giá xem học sinh có hiểu đề bài không
+2. Kiểm tra xem ý tưởng có logic và đúng hướng không
+3. Cho điểm từ 0-10 (10 là hoàn hảo)
+4. Quyết định có nên mở khóa lời giải không (điểm >= 6)
+
+Trả về JSON:
+{{
+  "should_unlock": true/false,
+  "score": 0-10,
+  "feedback": "Phản hồi chi tiết cho học sinh (2-3 câu)"
+}}
+
+QUY TẮC ĐÁNH GIÁ:
+- Điểm 8-10: Ý tưởng rất tốt, đúng hướng, đề cập đầy đủ các bước
+- Điểm 6-7: Ý tưởng đúng hướng nhưng thiếu chi tiết
+- Điểm 4-5: Có một số ý đúng nhưng còn nhiều thiếu sót
+- Điểm 0-3: Chưa hiểu đề hoặc ý tưởng sai hoàn toàn
+
+FEEDBACK NÊN:
+- Khuyến khích nếu đúng hướng
+- Gợi ý cụ thể nếu còn thiếu
+- Động viên nếu sai để học sinh thử lại
+"""
+
+
+def build_evaluation_prompt(problem_text: str, user_approach: str) -> str:
+    """Xây dựng prompt để đánh giá ý tưởng của người dùng"""
+    return EVALUATION_PROMPT.format(
+        problem_text=problem_text,
+        user_approach=user_approach
     )

@@ -17,7 +17,7 @@ class DatabaseConnection:
                 database=settings.DB_NAME,
                 user=settings.DB_USER,
                 password=settings.DB_PASSWORD,
-                as_dict=False
+                as_dict=True  # Cần True để lấy kết quả dạng dict
             )
             return conn
         except pymssql.Error as e:
@@ -28,10 +28,10 @@ class DatabaseConnection:
         try:
             cursor = conn.cursor()
             cursor.execute(query, params)
-            columns = [column[0] for column in cursor.description] if cursor.description else []
+            # Với as_dict=True, fetchall() trả về list of dict
             results = cursor.fetchall()
             conn.commit()
-            return [dict(zip(columns, row)) for row in results]
+            return results
         finally:
             conn.close()
     

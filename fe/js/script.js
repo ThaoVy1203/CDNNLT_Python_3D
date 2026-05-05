@@ -143,6 +143,12 @@ function init3DScene() {
   const canvas = document.getElementById('threejs-canvas');
   const container = document.getElementById('canvas3d');
   
+  // Check if elements exist
+  if (!container || !canvas) {
+    console.warn('3D canvas not found');
+    return;
+  }
+  
   // Scene setup
   window.scene3d = new THREE.Scene();
   window.scene3d.background = new THREE.Color(0xf5f0e8);
@@ -320,6 +326,12 @@ let playInterval = null;
 function initConstructionScene() {
   const canvas = document.getElementById('construction-canvas');
   const container = document.getElementById('canvas-construction');
+  
+  // Check if elements exist
+  if (!container || !canvas) {
+    console.warn('Construction canvas not found');
+    return;
+  }
   
   window.constructionScene = new THREE.Scene();
   window.constructionScene.background = new THREE.Color(0xf5f0e8);
@@ -505,7 +517,16 @@ function seekConstruction(event) {
 // ═══════════════════════════════════════════════════════════
 function initResultScene() {
   const canvas = document.getElementById('result-canvas');
+  if (!canvas) {
+    console.warn('Result canvas not found');
+    return;
+  }
+  
   const container = canvas.parentElement;
+  if (!container) {
+    console.warn('Result canvas container not found');
+    return;
+  }
   
   window.resultScene = new THREE.Scene();
   window.resultScene.background = new THREE.Color(0xf5f0e8);

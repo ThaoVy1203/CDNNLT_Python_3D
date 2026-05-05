@@ -9,8 +9,8 @@ class DuLieuHinhHocRepository:
         """Tạo dữ liệu hình học từ dict"""
         query = """
         INSERT INTO DULIEUHINHHOC (maBaiToan, toaDoDiem, cacCanh, cacQuanHe)
+        OUTPUT INSERTED.id
         VALUES (%s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
         result = self.db.execute_query(query, (
             data.get("maBaiToan"),
@@ -18,7 +18,7 @@ class DuLieuHinhHocRepository:
             data.get("cacCanh"),
             data.get("cacQuanHe")
         ))
-        return int(result[0]['id'])
+        return result[0]['id']
     
     def get_by_bai_toan(self, ma_bai_toan: int) -> Optional[dict]:
         """Lấy dữ liệu hình học theo mã bài toán"""

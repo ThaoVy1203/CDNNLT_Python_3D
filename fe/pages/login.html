@@ -255,10 +255,11 @@ window.onload = function() {
       
       // Initialize Google Sign-In
       google.accounts.id.initialize({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        callback: handleGoogleCallback,
-        auto_select: false,
-        cancel_on_tap_outside: true
+      client_id: CONFIG.GOOGLE_CLIENT_ID,
+      callback: handleGoogleCallback,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      use_fedcm_for_prompt: false  // ← thêm dòng này
       });
     }
   }, 100);
@@ -266,11 +267,28 @@ window.onload = function() {
 
 // Google Sign-In Handler (for manual trigger)
 function handleGoogleSignIn() {
-  if (googleInitialized) {
-    google.accounts.id.prompt();
-  } else {
-    console.error('Google Sign-In chưa được khởi tạo');
-  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    scope: 'email profile',
+    callback: (tokenResponse) => {
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+      })
+      .then(r => r.json())
+      .then(userInfo => {
+        const user = {
+          id: userInfo.sub,
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture,
+          provider: 'google'
+        };
+        localStorage.setItem('geo3d_current_user', JSON.stringify(user));
+        window.location.href = 'solver.html';
+      });
+    }
+  });
+  client.requestAccessToken();
 }
 
 // Handle Google Sign-In callback

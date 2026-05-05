@@ -9,8 +9,8 @@ class DungHinh3DRepository:
         """Tạo dữ liệu dựng hình 3D từ dict"""
         query = """
         INSERT INTO DUNGHINH3D (maBaiToan, cacBuocVe, hamThreeJS, thamSo, codeThreeJS, huongDanVe)
+        OUTPUT INSERTED.maDungHinh
         VALUES (%s, %s, %s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
         result = self.db.execute_query(query, (
             data.get("maBaiToan"),
@@ -20,7 +20,7 @@ class DungHinh3DRepository:
             data.get("codeThreeJS"),
             data.get("huongDanVe")
         ))
-        return int(result[0]['id'])
+        return result[0]['maDungHinh']
     
     def get_by_bai_toan(self, ma_bai_toan: int) -> Optional[dict]:
         """Lấy dữ liệu dựng hình theo mã bài toán"""

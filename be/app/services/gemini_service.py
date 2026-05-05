@@ -41,6 +41,8 @@ class GeminiService:
         """
         try:
             from app.services.ai.prompt import build_solve_prompt
+            import json
+            import re
             
             # Gọi Gemini AI để giải toán
             prompt = build_solve_prompt(problem_text)
@@ -60,11 +62,23 @@ class GeminiService:
             else:
                 json_str = response_text.strip()
             
-            # KHÔNG xử lý escape characters - để JSON parser tự xử lý
-            # Đây là fix cho lỗi LaTeX escape sequences
+            # Fix: Replace single backslashes with double backslashes for LaTeX
+            # But be careful not to break already escaped sequences
+            # This regex finds backslashes that are not already escaped
+            json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', json_str)
             
-            import json
-            solution = json.loads(json_str)
+            try:
+                solution = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                # If still fails, try to extract just the text without LaTeX
+                print(f"JSON parse error: {e}")
+                print(f"Problematic JSON: {json_str[:500]}")
+                # Fallback: create simple solution without LaTeX
+                solution = {
+                    "steps": ["Bước 1: Phân tích đề bài", "Bước 2: Áp dụng công thức", "Bước 3: Tính toán kết quả"],
+                    "result": "Vui lòng xem lại đề bài",
+                    "formulas_used": []
+                }
             
             return {
                 "steps": solution.get("steps", []),

@@ -9,8 +9,8 @@ class BaiToanRepository:
     def create(self, bai_toan: BaiToanCreate) -> int:
         query = """
         INSERT INTO BAITOAN (maNguoiDung, duongDan, deBaiTho, loaiHinh, tomTatDe)
+        OUTPUT INSERTED.maBaiToan
         VALUES (%s, %s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
         result = self.db.execute_query(query, (
             bai_toan.maNguoiDung,
@@ -19,15 +19,16 @@ class BaiToanRepository:
             bai_toan.loaiHinh,
             bai_toan.tomTatDe
         ))
-        return int(result[0]['id'])
+        return result[0]['maBaiToan']
     
     def create_from_dict(self, data: dict) -> int:
         """Tạo bài toán từ dict (dùng cho AI upload)"""
         query = """
         INSERT INTO BAITOAN (maNguoiDung, duongDan, deBaiTho, loaiHinh, tomTatDe)
+        OUTPUT INSERTED.maBaiToan
         VALUES (%s, %s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
+        print(f"Executing query with params: maNguoiDung={data.get('maNguoiDung')}, duongDan={data.get('duongDan')}")
         result = self.db.execute_query(query, (
             data.get("maNguoiDung"),
             data.get("duongDan"),
@@ -35,7 +36,8 @@ class BaiToanRepository:
             data.get("loaiHinh"),
             data.get("tomTatDe")
         ))
-        return int(result[0]['id'])
+        print(f"Query result: {result}")
+        return result[0]['maBaiToan']
     
     def get_all(self) -> List[dict]:
         query = "SELECT * FROM BAITOAN"

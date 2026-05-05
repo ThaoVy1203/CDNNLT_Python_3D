@@ -9,8 +9,8 @@ class LoiGiaiRepository:
         """Tạo lời giải từ dict"""
         query = """
         INSERT INTO LOIGIAI (maBaiToan, cacBuocGiai, ketQuaCuoi, congThucSuDung)
+        OUTPUT INSERTED.maLoiGiai
         VALUES (%s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
         result = self.db.execute_query(query, (
             data.get("maBaiToan"),
@@ -18,7 +18,7 @@ class LoiGiaiRepository:
             data.get("ketQuaCuoi"),
             data.get("congThucSuDung")
         ))
-        return int(result[0]['id'])
+        return result[0]['maLoiGiai']
     
     def get_by_bai_toan(self, ma_bai_toan: int) -> Optional[dict]:
         """Lấy lời giải theo mã bài toán"""

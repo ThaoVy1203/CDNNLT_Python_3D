@@ -9,8 +9,8 @@ class NguoiDungRepository:
     def create(self, nguoi_dung: NguoiDungCreate) -> int:
         query = """
         INSERT INTO NGUOIDUNG (tenDangNhap, email, matKhau, vaiTro)
+        OUTPUT INSERTED.maNguoiDung
         VALUES (%s, %s, %s, %s);
-        SELECT SCOPE_IDENTITY() as id;
         """
         result = self.db.execute_query(query, (
             nguoi_dung.tenDangNhap,
@@ -18,7 +18,7 @@ class NguoiDungRepository:
             nguoi_dung.matKhau,
             nguoi_dung.vaiTro
         ))
-        return int(result[0]['id'])
+        return result[0]['maNguoiDung']
     
     def get_all(self) -> List[dict]:
         query = "SELECT * FROM NGUOIDUNG"

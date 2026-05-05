@@ -45,12 +45,9 @@ async def upload_and_save_problem(
     - Cả 2 đều trả về maBaiToan để dùng ở bước 2, 3
     """
     # Parse ma_nguoi_dung
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None  # Đổi thành str thay vì int
     if ma_nguoi_dung and ma_nguoi_dung.strip():
-        try:
-            user_id = int(ma_nguoi_dung.strip())
-        except ValueError:
-            raise HTTPException(status_code=400, detail="ma_nguoi_dung phải là số nguyên")
+        user_id = str(ma_nguoi_dung.strip())  # Giữ dạng string
 
     try:
         # Phân tích ảnh bằng Gemini AI
@@ -84,28 +81,36 @@ async def upload_and_save_problem(
         # Nếu không có user_id thì maNguoiDung = None (guest record)
         print("Step 2: Saving to BAITOAN...")
         try:
-            ma_bai_toan = bai_toan_repo.create_from_dict({
-                "maNguoiDung": user_id,  # None nếu không đăng nhập
+            data_to_save = {
+                "maNguoiDung": user_id,  # None nếu không đăng nhập, hoặc Google ID
                 "duongDan": file.filename,
                 "deBaiTho": extraction.get("problem_text", ""),
                 "loaiHinh": extraction.get("problem_type", ""),
                 "tomTatDe": ", ".join(extraction.get("questions", []))
-            })
+            }
+            print(f"Data to save: maNguoiDung={data_to_save['maNguoiDung']}, duongDan={data_to_save['duongDan']}, loaiHinh={data_to_save['loaiHinh']}")
+            print(f"deBaiTho length: {len(data_to_save['deBaiTho'])}, tomTatDe length: {len(data_to_save['tomTatDe'])}")
+            ma_bai_toan = bai_toan_repo.create_from_dict(data_to_save)
         except Exception as e:
-            if "FOREIGN KEY" in str(e) or "FK__BAITOAN" in str(e):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Người dùng ID={user_id} không tồn tại. Vui lòng kiểm tra lại."
-                )
-            raise
+            import traceback
+            print(f"ERROR saving to BAITOAN: {e}")
+            print(traceback.format_exc())
+            # Bỏ check FOREIGN KEY - cho phép lưu dù user không tồn tại
+            raise HTTPException(status_code=500, detail=f"Lỗi lưu bài toán: {str(e)}")
 
         print("Step 3: Saving to DULIEUHINHHOC...")
-        du_lieu_id = du_lieu_repo.create_from_dict({
-            "maBaiToan": ma_bai_toan,
-            "toaDoDiem": json.dumps(visualization.get("points", {}), ensure_ascii=False),
-            "cacCanh": json.dumps(visualization.get("edges", []), ensure_ascii=False),
-            "cacQuanHe": json.dumps(extraction.get("relationships", []), ensure_ascii=False)
-        })
+        try:
+            du_lieu_id = du_lieu_repo.create_from_dict({
+                "maBaiToan": ma_bai_toan,
+                "toaDoDiem": json.dumps(visualization.get("points", {}), ensure_ascii=False),
+                "cacCanh": json.dumps(visualization.get("edges", []), ensure_ascii=False),
+                "cacQuanHe": json.dumps(extraction.get("relationships", []), ensure_ascii=False)
+            })
+        except Exception as e:
+            import traceback
+            print(f"ERROR saving to DULIEUHINHHOC: {e}")
+            print(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=f"Lỗi lưu dữ liệu hình học: {str(e)}")
 
         return {
             "success": True,
@@ -422,3 +427,60 @@ async def get_drawing_guide(ma_bai_toan: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evaluate-approach")
+async def evaluate_user_approach(request: dict):
+    """Đánh giá ý tưởng giải toán của người dùng bằng AI"""
+    try:
+        problem_id = request.get("problemId")
+        user_approach = request.get("userApproach", "")
+        problem_text = request.get("problemText", "")
+        
+        if not user_approach or len(user_approach) < 10:
+            return {
+                "success": False,
+                "message": "Ý tưởng quá ngắn"
+            }
+        
+        # Use Gemini AI to evaluate
+        from app.services.ai.prompt import build_evaluation_prompt
+        
+        prompt = build_evaluation_prompt(problem_text, user_approach)
+        
+        response = gemini_service.gemini_client.client.models.generate_content(
+            model=gemini_service.gemini_client.model_name,
+            contents=prompt,
+            config=gemini_service.gemini_client.generation_config
+        )
+        
+        # Parse AI response
+        response_text = response.text.strip()
+        
+        # Extract JSON from response
+        if "```json" in response_text:
+            json_str = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            json_str = response_text.split("```")[1].split("```")[0].strip()
+        else:
+            json_str = response_text
+        
+        evaluation = json.loads(json_str)
+        
+        return {
+            "success": True,
+            "evaluation": {
+                "shouldUnlock": evaluation.get("should_unlock", False),
+                "feedback": evaluation.get("feedback", ""),
+                "score": evaluation.get("score", 0)
+            }
+        }
+        
+    except Exception as e:
+        print(f"Evaluation error: {e}")
+        # Fallback response
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
