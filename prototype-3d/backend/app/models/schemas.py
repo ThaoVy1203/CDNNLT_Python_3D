@@ -24,6 +24,8 @@ class Point3D(BaseModel):
 class Edge(BaseModel):
     start: str
     end: str
+    style: Optional[str] = "solid"  # solid, dashed, dotted
+    type: Optional[str] = "main"    # main, auxiliary
 
 class Face(BaseModel):
     vertices: List[str]
@@ -33,6 +35,7 @@ class Step(BaseModel):
     description: str
     objects: List[str]
     highlight: Optional[List[str]] = []
+    annotations: Optional[Dict] = None  # Annotations cho step này
 
 class SolveResponse(BaseModel):
     points: Dict[str, List[float]]

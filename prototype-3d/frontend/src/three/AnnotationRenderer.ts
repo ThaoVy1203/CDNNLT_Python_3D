@@ -142,32 +142,31 @@ export class AnnotationRenderer {
   }
   
   private renderPerpendicularSymbol(annotation: PerpendicularAnnotation) {
-    const [start, end] = annotation.line.split('-');
-    const startPos = this.points[start];
-    const endPos = this.points[end];
+    // Lấy vertex (điểm giao của 2 cạnh vuông góc)
+    const vertexPos = this.points[annotation.vertex];
+    if (!vertexPos) return;
     
-    if (!startPos || !endPos) return;
+    const vertex = new THREE.Vector3(...vertexPos);
     
-    const startVec = new THREE.Vector3(...startPos);
-    const endVec = new THREE.Vector3(...endPos);
-    const direction = new THREE.Vector3().subVectors(endVec, startVec).normalize();
+    // Lấy 2 cạnh vuông góc
+    const [start1, end1] = annotation.line1.split('-');
+    const [start2, end2] = annotation.line2.split('-');
     
-    // Vị trí ký hiệu gần điểm end
-    const symbolPos = endVec.clone().add(direction.clone().multiplyScalar(-0.2));
+    const start1Pos = this.points[start1];
+    const end1Pos = this.points[end1];
+    const start2Pos = this.points[start2];
+    const end2Pos = this.points[end2];
     
-    // Vẽ hình vuông nhỏ nếu yêu cầu
-    if (annotation.showSquare !== false) {  // Mặc định là true
-      this.drawRightAngleSquare(symbolPos, direction);
+    if (!start1Pos || !end1Pos || !start2Pos || !end2Pos) return;
+    
+    // Tính vector hướng của 2 cạnh (từ vertex ra ngoài)
+    const dir1 = new THREE.Vector3(...end1Pos).sub(new THREE.Vector3(...start1Pos)).normalize();
+    const dir2 = new THREE.Vector3(...end2Pos).sub(new THREE.Vector3(...start2Pos)).normalize();
+    
+    // Vẽ hình vuông nhỏ tại vertex
+    if (annotation.showSquare !== false) {
+      this.drawRightAngleSquare(vertex, dir1, dir2);
     }
-    
-    // Thêm text symbol
-    const textPos = symbolPos.clone();
-    textPos.x += 0.15;
-    textPos.y += 0.15;
-    
-    const sprite = this.createTextSprite(annotation.symbol, '#3d52a0', 0.25);
-    sprite.position.copy(textPos);
-    this.annotations.add(sprite);
   }
   
   private renderAxis(annotation: AxisAnnotation) {
@@ -255,39 +254,52 @@ export class AnnotationRenderer {
     canvas.width = 256;
     canvas.height = 128;
     
-    // Background (optional - để dễ đọc)
-    context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    // Nền trong suốt
+    context.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Text
+    // Text với viền để dễ đọc
     context.font = 'Bold 36px Arial';
-    context.fillStyle = color;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
+    
+    // Vẽ viền trắng cho text (để dễ đọc trên nền bất kỳ)
+    context.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    context.lineWidth = 4;
+    context.strokeText(text, canvas.width / 2, canvas.height / 2);
+    
+    // Vẽ text chính
+    context.fillStyle = color;
     context.fillText(text, canvas.width / 2, canvas.height / 2);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
+    const material = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      depthTest: false  // Luôn hiển thị phía trước
+    });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(scale * 2, scale, 1);
     
     return sprite;
   }
   
-  private drawRightAngleSquare(position: THREE.Vector3, direction: THREE.Vector3) {
-    const size = 0.1;
-    const perpDir = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
+  private drawRightAngleSquare(vertex: THREE.Vector3, dir1: THREE.Vector3, dir2: THREE.Vector3) {
+    const size = 0.15;  // Kích thước hình vuông
     
+    // Vẽ hình vuông từ vertex theo 2 hướng vuông góc
     const points = [
-      position.clone(),
-      position.clone().add(direction.clone().multiplyScalar(size)),
-      position.clone().add(direction.clone().multiplyScalar(size)).add(perpDir.clone().multiplyScalar(size)),
-      position.clone().add(perpDir.clone().multiplyScalar(size)),
-      position.clone()
+      vertex.clone(),
+      vertex.clone().add(dir1.clone().multiplyScalar(size)),
+      vertex.clone().add(dir1.clone().multiplyScalar(size)).add(dir2.clone().multiplyScalar(size)),
+      vertex.clone().add(dir2.clone().multiplyScalar(size)),
+      vertex.clone()
     ];
     
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: 0x3d52a0, linewidth: 2 });
+    const material = new THREE.LineBasicMaterial({ 
+      color: 0xd62828,  // Màu đỏ cho ký hiệu vuông góc
+      linewidth: 2 
+    });
     const line = new THREE.Line(geometry, material);
     this.annotations.add(line);
   }

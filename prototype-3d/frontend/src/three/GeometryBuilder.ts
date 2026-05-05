@@ -135,14 +135,28 @@ export class GeometryBuilder {
     canvas.width = 128;
     canvas.height = 128;
     
+    // Nền trong suốt
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
     context.font = 'Bold 48px Arial';
-    context.fillStyle = '#3d52a0';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
+    
+    // Viền trắng
+    context.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    context.lineWidth = 4;
+    context.strokeText(text, 64, 64);
+    
+    // Text chính
+    context.fillStyle = '#3d52a0';
     context.fillText(text, 64, 64);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
+    const material = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      depthTest: false
+    });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(0.3, 0.3, 1);
     

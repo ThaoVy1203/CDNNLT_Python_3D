@@ -100,13 +100,55 @@ class SymPySolver:
             {"vertices": ["S", "D", "A"]}
         ]
         
-        # Tạo annotations mặc định
+        # Tạo annotations
         annotations = {
             "edges": [],
             "points": [],
             "perpendicular": [],
             "angles": []
         }
+        
+        # Thêm độ dài cạnh đáy
+        annotations["edges"].append({
+            "edge": "A-B",
+            "label": "a"
+        })
+        annotations["edges"].append({
+            "edge": "B-C",
+            "label": "a"
+        })
+        annotations["edges"].append({
+            "edge": "C-D",
+            "label": "a"
+        })
+        annotations["edges"].append({
+            "edge": "D-A",
+            "label": "a"
+        })
+        
+        # Thêm chiều cao
+        annotations["edges"].append({
+            "edge": "S-A",
+            "label": "a√2" if h == 1.414 else f"{h:.2f}"
+        })
+        
+        # Thêm annotation cho điểm đặc biệt
+        if special_points and isinstance(special_points, list):
+            for sp in special_points:
+                if sp.get("type") == "midpoint" and sp["name"] in points:
+                    annotations["points"].append({
+                        "point": sp["name"],
+                        "label": f"Trung điểm {sp['segment'][0]}{sp['segment'][1]}",
+                        "showCoordinates": False
+                    })
+        
+        # Thêm ký hiệu vuông góc tại A (SA ⊥ đáy)
+        annotations["perpendicular"].append({
+            "vertex": "A",           # Điểm giao
+            "line1": "S-A",          # Cạnh thứ nhất (đứng)
+            "line2": "A-B",          # Cạnh thứ hai (nằm ngang trên đáy)
+            "showSquare": True
+        })
         
         return {
             "points": points,

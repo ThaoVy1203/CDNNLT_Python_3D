@@ -66,9 +66,28 @@ class StepsGenerator:
             
             # Phân bổ perpendicular annotations
             for perp_ann in all_annotations.get("perpendicular", []):
-                line_name = perp_ann.get("line")
-                line_reverse = "-".join(reversed(line_name.split("-")))
-                if line_name in step_objects or line_reverse in step_objects:
+                # Format mới: vertex, line1, line2
+                vertex_name = perp_ann.get("vertex")
+                line1_name = perp_ann.get("line1")
+                line2_name = perp_ann.get("line2")
+                
+                # Kiểm tra nếu vertex hoặc một trong 2 lines có trong step
+                should_add = False
+                
+                if vertex_name and vertex_name in step_objects:
+                    should_add = True
+                
+                if not should_add and line1_name:
+                    line1_reverse = "-".join(reversed(line1_name.split("-")))
+                    if line1_name in step_objects or line1_reverse in step_objects:
+                        should_add = True
+                
+                if not should_add and line2_name:
+                    line2_reverse = "-".join(reversed(line2_name.split("-")))
+                    if line2_name in step_objects or line2_reverse in step_objects:
+                        should_add = True
+                
+                if should_add:
                     step_annotations["perpendicular"].append(perp_ann)
             
             # Phân bổ angle annotations

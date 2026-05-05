@@ -89,7 +89,7 @@ async def get_mock_data(shape_type: str):
                 {
                     "name": "M",
                     "type": "midpoint",
-                    "segment": ["A", "B"]
+                    "segment": ["C", "D"]  # M là trung điểm CD theo đề bài 2
                 }
             ]
         }

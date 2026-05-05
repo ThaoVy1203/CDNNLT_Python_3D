@@ -42,10 +42,9 @@ export interface PointAnnotation {
 }
 
 export interface PerpendicularAnnotation {
-  line: string;
-  plane?: string;
-  symbol: string;
-  type?: string;
+  vertex: string;        // Điểm giao của 2 cạnh vuông góc
+  line1: string;         // Cạnh thứ nhất
+  line2: string;         // Cạnh thứ hai (vuông góc với line1)
   showSquare?: boolean;  // Hiển thị hình vuông nhỏ tại góc vuông
 }
 
