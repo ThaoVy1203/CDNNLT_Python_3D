@@ -1,0 +1,71 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🚀 CHẠY PROTOTYPE - HƯỚNG DẪN NHANH                       ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+📍 BẠN ĐANG Ở: d:\Vy\CDNNLT\CK_NNLT_3D\prototype-3d
+
+═══════════════════════════════════════════════════════════════
+
+⚡ BƯỚC 1: CHẠY BACKEND (Terminal 1)
+
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8001
+
+✅ Backend: http://localhost:8001
+
+═══════════════════════════════════════════════════════════════
+
+⚡ BƯỚC 2: CHẠY FRONTEND (Terminal 2 - MỚI)
+
+cd frontend
+npm install
+npm run dev
+
+✅ Frontend: http://localhost:5174
+
+═══════════════════════════════════════════════════════════════
+
+🎮 BƯỚC 3: SỬ DỤNG
+
+1. Mở browser: http://localhost:5174
+2. Chọn hình: Pyramid / Prism / Cube
+3. Click "Tải hình"
+4. Click ▶ để xem animation
+5. Dùng chuột xoay/zoom hình 3D
+
+═══════════════════════════════════════════════════════════════
+
+📚 TÀI LIỆU
+
+- CHAY_NGAY.md       → Hướng dẫn nhanh nhất
+- HUONG_DAN_CHAY.md  → Hướng dẫn chi tiết
+- DEMO.md            → Hướng dẫn demo
+- SUMMARY.md         → Tổng kết dự án
+- README.md          → Tổng quan
+
+═══════════════════════════════════════════════════════════════
+
+🆘 GẶP LỖI?
+
+1. Check Python version: python --version (cần 3.10+)
+2. Check Node version: node --version (cần 18+)
+3. Đọc file HUONG_DAN_CHAY.md phần "Xử lý lỗi"
+
+═══════════════════════════════════════════════════════════════
+
+✅ CHECKLIST
+
+□ Backend chạy tại port 8001
+□ Frontend chạy tại port 5174
+□ Có thể tải hình thành công
+□ Animation hoạt động
+□ Có thể xoay/zoom hình 3D
+
+═══════════════════════════════════════════════════════════════
+
+🎉 CHÚC BẠN THÀNH CÔNG!
