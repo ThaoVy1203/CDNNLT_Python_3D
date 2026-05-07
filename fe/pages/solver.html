@@ -61,6 +61,40 @@
   window.addEventListener('DOMContentLoaded', initTopbar);
 </script>
 
+<!-- Three.js and OrbitControls - LOCAL FILES (most reliable) -->
+<script src="../js/three.min.js"></script>
+<script src="../js/OrbitControls.js"></script>
+
+<!-- Verify loading -->
+<script>
+if (typeof THREE === 'undefined') {
+  console.error('❌ THREE.js failed to load from local files');
+  alert('Lỗi: Không thể load Three.js. Vui lòng kiểm tra file fe/js/three.min.js');
+} else {
+  console.log('✅ THREE.js loaded from local files, version:', THREE.REVISION);
+}
+</script>
+
+<!-- Three.js Viewer Manager -->
+<script src="../js/three-viewer.js"></script>
+
+<!-- Debug: Log when scripts are loaded -->
+<script>
+console.log('=== Script Loading Check ===');
+console.log('THREE available:', typeof THREE !== 'undefined');
+if (typeof THREE !== 'undefined') {
+  console.log('THREE.REVISION:', THREE.REVISION);
+  console.log('THREE.OrbitControls available:', typeof THREE.OrbitControls !== 'undefined');
+  
+  // Extra debug for OrbitControls
+  if (typeof THREE.OrbitControls === 'undefined') {
+    console.error('❌ THREE.OrbitControls is undefined!');
+    console.log('Available THREE properties:', Object.keys(THREE).filter(k => k.includes('Control')));
+  }
+}
+console.log('ThreeViewerManager available:', typeof ThreeViewerManager !== 'undefined');
+</script>
+
 <!-- MAIN APP -->
 <div class="app-wrapper" style="padding-top: 32px;">
 
@@ -180,7 +214,9 @@
           </svg>
           <p style="margin-top:12px;color:var(--ink-2);font-size:13px;">Đang tải mô hình 3D...</p>
         </div>
-        <div style="position:absolute;bottom:12px;right:14px;font-size:10px;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;background:rgba(255,255,255,0.8);padding:4px 10px;border-radius:4px;border:1px solid var(--border)">Kéo để xoay · Cuộn để zoom</div>
+        <div style="position:absolute;bottom:12px;right:14px;font-size:10px;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;background:rgba(255,255,255,0.8);padding:4px 10px;border-radius:4px;border:1px solid var(--border)">
+          Kéo để xoay · Cuộn để zoom · Chuột phải để pan · R: reset · F: fit
+        </div>
       </div>
     </div>
     <div class="p-side">
@@ -591,11 +627,11 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Load config and API before main script -->
 <script src="../js/config.js"></script>
 <script src="../js/api.js"></script>
-<script src="../js/three-viewer.js"></script>
+
+<!-- Main solver script -->
 <script>
 // ═══════════════════════════════════════════════════════════
 // GLOBAL STATE (specific to solver page)
@@ -644,6 +680,54 @@ function showTab(index) {
   if (nav) {
     nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  
+  // CRITICAL FIX: Resize canvas when switching to 3D panels
+  // Canvas needs to be visible to get correct dimensions
+  setTimeout(() => {
+    if (index === 1 && viewer1) {
+      // Panel 1 - Full 3D model
+      const canvas1 = document.getElementById('threeCanvas1');
+      if (canvas1 && viewer1.renderer && viewer1.camera) {
+        const container = canvas1.parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        console.log('📐 Resizing canvas1 to:', width, 'x', height);
+        
+        viewer1.camera.aspect = width / height;
+        viewer1.camera.updateProjectionMatrix();
+        viewer1.renderer.setSize(width, height);
+        
+        // Re-enable controls to ensure they work
+        if (viewer1.controls) {
+          viewer1.controls.enabled = true;
+          viewer1.controls.update();
+          console.log('✓ Canvas1 resized and controls enabled');
+        }
+      }
+    } else if (index === 2 && viewer2) {
+      // Panel 2 - Step-by-step construction
+      const canvas2 = document.getElementById('threeCanvas2');
+      if (canvas2 && viewer2.renderer && viewer2.camera) {
+        const container = canvas2.parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        console.log('📐 Resizing canvas2 to:', width, 'x', height);
+        
+        viewer2.camera.aspect = width / height;
+        viewer2.camera.updateProjectionMatrix();
+        viewer2.renderer.setSize(width, height);
+        
+        // Re-enable controls to ensure they work
+        if (viewer2.controls) {
+          viewer2.controls.enabled = true;
+          viewer2.controls.update();
+          console.log('✓ Canvas2 resized and controls enabled');
+        }
+      }
+    }
+  }, 100); // Small delay to ensure panel is visible
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2001,11 +2085,85 @@ window.showTab = function(index) {
   }
 };
 
+// Keyboard shortcuts for 3D viewer
+document.addEventListener('keydown', function(e) {
+  // Only work when on Panel 1 or Panel 2
+  const activePanel = document.querySelector('.panel.active');
+  if (!activePanel) return;
+  
+  const panelId = activePanel.id;
+  const viewer = panelId === 'panel-1' ? viewer1 : panelId === 'panel-2' ? viewer2 : null;
+  
+  if (!viewer || !viewer.controls) return;
+  
+  // R key - Reset camera
+  if (e.key === 'r' || e.key === 'R') {
+    viewer.resetCamera();
+    console.log('🔄 Camera reset (R key)');
+  }
+  
+  // F key - Focus/Fit camera
+  if (e.key === 'f' || e.key === 'F') {
+    viewer.fitCamera();
+    console.log('🎯 Camera fit to geometry (F key)');
+  }
+  
+  // G key - Toggle grid
+  if (e.key === 'g' || e.key === 'G') {
+    if (viewer.grid) {
+      viewer.grid.visible = !viewer.grid.visible;
+      console.log('📐 Grid toggled (G key):', viewer.grid.visible);
+    }
+  }
+  
+  // A key - Toggle axes
+  if (e.key === 'a' || e.key === 'A') {
+    if (viewer.axes) {
+      viewer.axes.visible = !viewer.axes.visible;
+      console.log('📊 Axes toggled (A key):', viewer.axes.visible);
+    }
+  }
+});
+
 // Add toolbar button handlers for Panel 1
 document.addEventListener('DOMContentLoaded', function() {
   const toolbarButtons = document.querySelectorAll('#panel-1 .canvas-toolbar .ctrl');
   
   if (toolbarButtons.length > 0) {
+    // Rotate button (index 0) - Already enabled by default
+    if (toolbarButtons[0]) {
+      toolbarButtons[0].addEventListener('click', function() {
+        if (viewer1 && viewer1.controls) {
+          viewer1.controls.enableRotate = !viewer1.controls.enableRotate;
+          this.classList.toggle('active');
+          console.log('Rotate:', viewer1.controls.enableRotate);
+        }
+      });
+    }
+    
+    // Zoom button (index 1)
+    if (toolbarButtons[1]) {
+      toolbarButtons[1].addEventListener('click', function() {
+        if (viewer1 && viewer1.controls) {
+          viewer1.controls.enableZoom = !viewer1.controls.enableZoom;
+          this.classList.toggle('active');
+          console.log('Zoom:', viewer1.controls.enableZoom);
+        }
+      });
+    }
+    
+    // Front view button (index 2) - Reset camera
+    if (toolbarButtons[2]) {
+      toolbarButtons[2].addEventListener('click', function() {
+        if (viewer1) {
+          viewer1.resetCamera();
+          // Flash active state
+          this.classList.add('active');
+          setTimeout(() => this.classList.remove('active'), 300);
+        }
+      });
+    }
+    
     // Grid toggle (index 3)
     if (toolbarButtons[3]) {
       toolbarButtons[3].addEventListener('click', function() {
@@ -2016,7 +2174,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
-    // Axes toggle (index 4)
+    // Axes/Symbols toggle (index 4)
     if (toolbarButtons[4]) {
       toolbarButtons[4].addEventListener('click', function() {
         this.classList.toggle('active');
@@ -2037,12 +2195,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const isOn = toggle.classList.contains('on');
         
         // Handle different toggles
-        if (index === 3 && viewer1) {
+        if (index === 0 && viewer1) {
+          // Point labels toggle
+          // TODO: Implement point labels visibility
+          console.log('Point labels:', isOn);
+        } else if (index === 1 && viewer1) {
+          // Perpendicular symbols toggle
+          // TODO: Implement perpendicular symbols visibility
+          console.log('Perpendicular symbols:', isOn);
+        } else if (index === 2 && viewer1) {
+          // Highlight toggle
+          // TODO: Implement highlight
+          console.log('Highlight:', isOn);
+        } else if (index === 3 && viewer1) {
           // Grid toggle
           viewer1.setShowGrid(isOn);
-        } else if (index === 2 && viewer1) {
-          // Axes toggle
-          viewer1.setShowAxes(isOn);
         }
       }
     });

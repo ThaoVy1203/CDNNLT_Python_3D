@@ -85,16 +85,48 @@
       directional.position.set(5, 10, 5);
       this.scene.add(directional);
 
-      // Controls
+      // Controls - Enhanced for better user experience
       if (typeof THREE.OrbitControls !== 'undefined') {
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        
+        // Enable damping for smooth rotation
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
+        
+        // Set distance limits
         this.controls.minDistance = 1;
         this.controls.maxDistance = 20;
-        console.log('OrbitControls initialized');
+        
+        // Enable zoom
+        this.controls.enableZoom = true;
+        this.controls.zoomSpeed = 1.0;
+        
+        // Enable rotation
+        this.controls.enableRotate = true;
+        this.controls.rotateSpeed = 1.0;
+        
+        // Enable panning
+        this.controls.enablePan = true;
+        this.controls.panSpeed = 0.8;
+        
+        // Set key bindings
+        this.controls.keys = {
+          LEFT: 37,  // Arrow Left
+          UP: 38,    // Arrow Up
+          RIGHT: 39, // Arrow Right
+          BOTTOM: 40 // Arrow Down
+        };
+        
+        // Mouse buttons
+        this.controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN
+        };
+        
+        console.log('✓ OrbitControls initialized with full interaction');
       } else {
-        console.warn('OrbitControls not available');
+        console.warn('⚠️ OrbitControls not available');
       }
 
       // Helpers
@@ -828,6 +860,29 @@
 
     setShowAxes(show) {
       if (this.axes) this.axes.visible = show;
+    }
+
+    resetCamera() {
+      // Reset camera to default position
+      if (this.camera && this.controls) {
+        this.camera.position.set(3, 3, 3);
+        this.camera.lookAt(0, 0, 0);
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+        console.log('✓ Camera reset to default position');
+      }
+    }
+
+    focusOnGeometry() {
+      // Auto-focus camera on the geometry
+      this.fitCamera();
+    }
+
+    enableControls(enable) {
+      if (this.controls) {
+        this.controls.enabled = enable;
+        console.log(enable ? '✓ Controls enabled' : '⚠️ Controls disabled');
+      }
     }
 
     clearObjects() {
