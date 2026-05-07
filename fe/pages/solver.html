@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../css/three-viewer.css">
 <!-- KaTeX DISABLED: AI uses Unicode (√, ², ³) instead of LaTeX to avoid rendering Vietnamese text as math
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -170,42 +171,15 @@
         <button class="ctrl">◫ Trục đo</button>
         <button class="ctrl">✦ Ký hiệu</button>
       </div>
-      <div class="canvas-wrap">
-        <svg viewBox="0 0 480 290" width="480" height="290" style="position:relative;z-index:1">
-          <defs>
-            <pattern id="g1" width="28" height="28" patternUnits="userSpaceOnUse">
-              <circle cx="14" cy="14" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="480" height="290" fill="url(#g1)"/>
-          <polygon points="110,230 270,230 330,170 170,170" fill="rgba(61,82,160,0.07)" stroke="rgba(61,82,160,0.3)" stroke-width="1.3"/>
-          <line x1="220" y1="85" x2="110" y2="230" stroke="rgba(61,82,160,0.45)" stroke-width="1.4"/>
-          <line x1="220" y1="85" x2="270" y2="230" stroke="rgba(61,82,160,0.45)" stroke-width="1.4"/>
-          <line x1="220" y1="85" x2="330" y2="170" stroke="rgba(61,82,160,0.45)" stroke-width="1.4"/>
-          <line x1="220" y1="85" x2="170" y2="170" stroke="rgba(61,82,160,0.22)" stroke-width="1.4" stroke-dasharray="5,4"/>
-          <line x1="110" y1="230" x2="170" y2="170" stroke="rgba(61,82,160,0.22)" stroke-width="1.4" stroke-dasharray="5,4"/>
-          <line x1="220" y1="85" x2="220" y2="230" stroke="rgba(42,122,98,0.5)" stroke-width="1.5" stroke-dasharray="7,4"/>
-          <rect x="220" y="219" width="10" height="10" fill="none" stroke="rgba(42,122,98,0.7)" stroke-width="1.2"/>
-          <line x1="220" y1="85" x2="190" y2="230" stroke="#a07840" stroke-width="2.8"/>
-          <line x1="220" y1="230" x2="190" y2="230" stroke="rgba(160,120,64,0.4)" stroke-width="1.3" stroke-dasharray="4,3"/>
-          <circle cx="110" cy="230" r="4" fill="rgba(61,82,160,0.8)"/>
-          <circle cx="270" cy="230" r="4" fill="rgba(61,82,160,0.8)"/>
-          <circle cx="330" cy="170" r="4" fill="rgba(61,82,160,0.8)"/>
-          <circle cx="170" cy="170" r="3.5" fill="rgba(61,82,160,0.35)"/>
-          <circle cx="220" cy="85" r="5.5" fill="#a07840"/>
-          <circle cx="190" cy="230" r="5" fill="#a07840"/>
-          <circle cx="220" cy="230" r="4" fill="rgba(42,122,98,0.7)"/>
-          <text x="95" y="248" font-size="14" font-weight="500" fill="rgba(61,82,160,0.85)" font-family="Outfit,sans-serif">A</text>
-          <text x="274" y="248" font-size="14" font-weight="500" fill="rgba(61,82,160,0.85)" font-family="Outfit,sans-serif">B</text>
-          <text x="337" y="170" font-size="14" font-weight="500" fill="rgba(61,82,160,0.85)" font-family="Outfit,sans-serif">C</text>
-          <text x="155" y="165" font-size="14" font-weight="500" fill="rgba(61,82,160,0.4)" font-family="Outfit,sans-serif">D</text>
-          <text x="212" y="73" font-size="14" font-weight="500" fill="#a07840" font-family="Outfit,sans-serif">S</text>
-          <text x="175" y="248" font-size="13" fill="#a07840" font-family="Outfit,sans-serif">M</text>
-          <text x="228" y="248" font-size="11" fill="rgba(42,122,98,0.7)" font-family="Outfit,sans-serif">A'</text>
-          <text x="228" y="165" font-size="11" fill="rgba(42,122,98,0.7)" font-family="Outfit,sans-serif">SA⊥đáy</text>
-          <path d="M190,218 Q181,209 189,200" fill="none" stroke="#a07840" stroke-width="1.8"/>
-          <text x="166" y="207" font-size="13" fill="#a07840" font-family="JetBrains Mono,monospace">α</text>
-        </svg>
+      <div class="canvas-wrap" style="position: relative; height: 400px;">
+        <canvas id="threeCanvas1" style="width: 100%; height: 100%; display: block;"></canvas>
+        <div id="canvas1Loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <p style="margin-top:12px;color:var(--ink-2);font-size:13px;">Đang tải mô hình 3D...</p>
+        </div>
         <div style="position:absolute;bottom:12px;right:14px;font-size:10px;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;background:rgba(255,255,255,0.8);padding:4px 10px;border-radius:4px;border:1px solid var(--border)">Kéo để xoay · Cuộn để zoom</div>
       </div>
     </div>
@@ -254,150 +228,18 @@
   <div class="panel two-col" id="panel-2">
     <div class="p-main" style="padding-bottom:0">
       <p class="label" style="padding:32px 32px 0;margin:0 -32px 18px">Bước 03 — Mô phỏng dựng hình</p>
-      <div class="canvas-wrap" id="constructionCanvas" style="height:260px;margin-bottom:0;border-radius:0;border-left:none;border-right:none;border-bottom:none">
-        <!-- Step 1: Base ABCD -->
-        <svg viewBox="0 0 440 240" width="440" height="240" class="construction-step" id="step-1">
-          <defs>
-            <pattern id="g1" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="13" cy="13" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="440" height="240" fill="url(#g1)"/>
-          <polygon points="90,195 235,195 288,145 143,145" fill="rgba(61,82,160,0.12)" stroke="rgba(61,82,160,0.5)" stroke-width="2"/>
-          <circle cx="90" cy="195" r="4" fill="rgba(61,82,160,0.9)"/>
-          <circle cx="235" cy="195" r="4" fill="rgba(61,82,160,0.9)"/>
-          <circle cx="288" cy="145" r="4" fill="rgba(61,82,160,0.9)"/>
-          <circle cx="143" cy="145" r="4" fill="rgba(61,82,160,0.9)"/>
-          <text x="76" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.9)" font-family="Outfit,sans-serif">A</text>
-          <text x="239" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.9)" font-family="Outfit,sans-serif">B</text>
-          <text x="293" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.9)" font-family="Outfit,sans-serif">C</text>
-          <text x="129" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.9)" font-family="Outfit,sans-serif">D</text>
-          <rect x="12" y="12" width="110" height="24" rx="4" fill="rgba(160,120,64,0.1)" stroke="rgba(160,120,64,0.25)" stroke-width="1"/>
-          <text x="22" y="28" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">Bước 1 / 5</text>
-        </svg>
-
-        <!-- Step 2: Add SA -->
-        <svg viewBox="0 0 440 240" width="440" height="240" class="construction-step" id="step-2">
-          <defs>
-            <pattern id="g2a" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="13" cy="13" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="440" height="240" fill="url(#g2a)"/>
-          <polygon points="90,195 235,195 288,145 143,145" fill="rgba(61,82,160,0.07)" stroke="rgba(61,82,160,0.3)" stroke-width="1.2"/>
-          <line x1="188" y1="60" x2="90" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="235" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="288" y2="145" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="143" y2="145" stroke="rgba(61,82,160,0.18)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="90" y1="195" x2="90" y2="60" stroke="rgba(42,122,98,0.6)" stroke-width="2.5" stroke-dasharray="6,4"/>
-          <line x1="90" y1="195" x2="188" y2="60" stroke="#a07840" stroke-width="3"/>
-          <rect x="90" y="184" width="10" height="10" fill="none" stroke="rgba(42,122,98,0.6)" stroke-width="1.2"/>
-          <circle cx="90" cy="195" r="4" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="235" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="288" cy="145" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="188" cy="60" r="5" fill="#a07840"/>
-          <text x="76" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">A</text>
-          <text x="239" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">B</text>
-          <text x="293" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">C</text>
-          <text x="180" y="49" font-size="13" font-weight="500" fill="#a07840" font-family="Outfit,sans-serif">S</text>
-          <rect x="12" y="12" width="110" height="24" rx="4" fill="rgba(160,120,64,0.1)" stroke="rgba(160,120,64,0.25)" stroke-width="1"/>
-          <text x="22" y="28" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">Bước 2 / 5</text>
-        </svg>
-
-        <!-- Step 3: Add M -->
-        <svg viewBox="0 0 440 240" width="440" height="240" class="construction-step active" id="step-3">
-          <defs>
-            <pattern id="g2" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="13" cy="13" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="440" height="240" fill="url(#g2)"/>
-          <polygon points="90,195 235,195 288,145 143,145" fill="rgba(61,82,160,0.07)" stroke="rgba(61,82,160,0.3)" stroke-width="1.2"/>
-          <line x1="188" y1="60" x2="90" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="235" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="288" y2="145" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="143" y2="145" stroke="rgba(61,82,160,0.18)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="188" y1="60" x2="188" y2="195" stroke="rgba(42,122,98,0.45)" stroke-width="1.4" stroke-dasharray="6,4"/>
-          <rect x="188" y="184" width="10" height="10" fill="none" stroke="rgba(42,122,98,0.6)" stroke-width="1.2"/>
-          <circle cx="162" cy="195" r="9" fill="rgba(160,120,64,0.12)" stroke="rgba(160,120,64,0.4)" stroke-width="1.5"/>
-          <circle cx="162" cy="195" r="4" fill="#a07840"/>
-          <circle cx="90" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="235" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="288" cy="145" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="188" cy="60" r="5" fill="#a07840"/>
-          <text x="76" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">A</text>
-          <text x="239" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">B</text>
-          <text x="293" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">C</text>
-          <text x="180" y="49" font-size="13" font-weight="500" fill="#a07840" font-family="Outfit,sans-serif">S</text>
-          <text x="148" y="213" font-size="12" fill="#a07840" font-family="Outfit,sans-serif">M</text>
-          <rect x="12" y="12" width="110" height="24" rx="4" fill="rgba(160,120,64,0.1)" stroke="rgba(160,120,64,0.25)" stroke-width="1"/>
-          <text x="22" y="28" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">Bước 3 / 5</text>
-        </svg>
-
-        <!-- Step 4: Add SM line -->
-        <svg viewBox="0 0 440 240" width="440" height="240" class="construction-step" id="step-4">
-          <defs>
-            <pattern id="g4" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="13" cy="13" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="440" height="240" fill="url(#g4)"/>
-          <polygon points="90,195 235,195 288,145 143,145" fill="rgba(61,82,160,0.07)" stroke="rgba(61,82,160,0.3)" stroke-width="1.2"/>
-          <line x1="188" y1="60" x2="90" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="235" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="288" y2="145" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="143" y2="145" stroke="rgba(61,82,160,0.18)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="188" y1="60" x2="188" y2="195" stroke="rgba(42,122,98,0.45)" stroke-width="1.4" stroke-dasharray="6,4"/>
-          <rect x="188" y="184" width="10" height="10" fill="none" stroke="rgba(42,122,98,0.6)" stroke-width="1.2"/>
-          <circle cx="162" cy="195" r="9" fill="rgba(160,120,64,0.12)" stroke="rgba(160,120,64,0.4)" stroke-width="1.5"/>
-          <circle cx="162" cy="195" r="4" fill="#a07840"/>
-          <line x1="188" y1="60" x2="162" y2="195" stroke="#a07840" stroke-width="2.8"/>
-          <circle cx="90" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="235" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="288" cy="145" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="188" cy="60" r="5" fill="#a07840"/>
-          <text x="76" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">A</text>
-          <text x="239" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">B</text>
-          <text x="293" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">C</text>
-          <text x="180" y="49" font-size="13" font-weight="500" fill="#a07840" font-family="Outfit,sans-serif">S</text>
-          <text x="148" y="213" font-size="12" fill="#a07840" font-family="Outfit,sans-serif">M</text>
-          <rect x="12" y="12" width="110" height="24" rx="4" fill="rgba(160,120,64,0.1)" stroke="rgba(160,120,64,0.25)" stroke-width="1"/>
-          <text x="22" y="28" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">Bước 4 / 5</text>
-        </svg>
-
-        <!-- Step 5: Add angle -->
-        <svg viewBox="0 0 440 240" width="440" height="240" class="construction-step" id="step-5">
-          <defs>
-            <pattern id="g5" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="13" cy="13" r=".7" fill="rgba(60,50,30,0.07)"/>
-            </pattern>
-          </defs>
-          <rect width="440" height="240" fill="url(#g5)"/>
-          <polygon points="90,195 235,195 288,145 143,145" fill="rgba(61,82,160,0.07)" stroke="rgba(61,82,160,0.3)" stroke-width="1.2"/>
-          <line x1="188" y1="60" x2="90" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="235" y2="195" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="288" y2="145" stroke="rgba(61,82,160,0.4)" stroke-width="1.3"/>
-          <line x1="188" y1="60" x2="143" y2="145" stroke="rgba(61,82,160,0.18)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="188" y1="60" x2="188" y2="195" stroke="rgba(42,122,98,0.45)" stroke-width="1.4" stroke-dasharray="6,4"/>
-          <line x1="162" y1="195" x2="188" y2="195" stroke="rgba(42,122,98,0.6)" stroke-width="2"/>
-          <rect x="188" y="184" width="10" height="10" fill="none" stroke="rgba(42,122,98,0.6)" stroke-width="1.2"/>
-          <circle cx="162" cy="195" r="9" fill="rgba(160,120,64,0.12)" stroke="rgba(160,120,64,0.4)" stroke-width="1.5"/>
-          <circle cx="162" cy="195" r="4" fill="#a07840"/>
-          <line x1="188" y1="60" x2="162" y2="195" stroke="#a07840" stroke-width="2.8"/>
-          <path d="M162,180 Q168,175 172,182" fill="none" stroke="#a07840" stroke-width="1.8"/>
-          <text x="168" y="175" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">α</text>
-          <circle cx="90" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="235" cy="195" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="288" cy="145" r="3.5" fill="rgba(61,82,160,0.75)"/>
-          <circle cx="188" cy="60" r="5" fill="#a07840"/>
-          <text x="76" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">A</text>
-          <text x="239" y="212" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">B</text>
-          <text x="293" y="144" font-size="13" font-weight="500" fill="rgba(61,82,160,0.8)" font-family="Outfit,sans-serif">C</text>
-          <text x="180" y="49" font-size="13" font-weight="500" fill="#a07840" font-family="Outfit,sans-serif">S</text>
-          <text x="148" y="213" font-size="12" fill="#a07840" font-family="Outfit,sans-serif">M</text>
-          <rect x="12" y="12" width="110" height="24" rx="4" fill="rgba(160,120,64,0.1)" stroke="rgba(160,120,64,0.25)" stroke-width="1"/>
-          <text x="22" y="28" font-size="11" fill="#a07840" font-family="JetBrains Mono,monospace">Bước 5 / 5</text>
-        </svg>
+      <div class="canvas-wrap" id="constructionCanvas" style="height:400px;margin-bottom:0;border-radius:0;border-left:none;border-right:none;border-bottom:none;position:relative;">
+        <canvas id="threeCanvas2" style="width: 100%; height: 100%; display: block;"></canvas>
+        <div id="canvas2Loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <p style="margin-top:12px;color:var(--ink-2);font-size:13px;">Đang tải animation...</p>
+        </div>
+        <div id="stepIndicator" style="position:absolute;top:12px;left:12px;padding:6px 14px;background:rgba(160,120,64,0.1);border:1px solid rgba(160,120,64,0.25);border-radius:4px;">
+          <span style="font-size:11px;color:#a07840;font-family:'JetBrains Mono',monospace;font-weight:500;">Bước <span id="currentStepNum">1</span> / <span id="totalStepsNum">5</span></span>
+        </div>
       </div>
       <div class="playback">
         <button class="pctrl" onclick="goToStep(1)">⏮</button>
@@ -411,36 +253,13 @@
         <span class="time-label" id="stepLabel">3 / 5</span>
       </div>
     </div>
-    <div class="p-side">
+    <div class="p-side" id="panel2-sidebar">
       <p class="label">Các bước dựng hình</p>
-      <div class="step-item done" onclick="goToStep(1)" style="cursor: pointer;">
-        <div class="si-num">✓</div>
-        <div class="si-content">
-          <h4>Vẽ đáy ABCD</h4>
-          <p>Hình vuông cạnh a trong mặt phẳng cơ sở</p>
+      <div id="steps-container">
+        <!-- Steps will be loaded dynamically from DUNGHINH3D.cacBuocVe -->
+        <div style="padding: 20px; text-align: center; color: var(--ink-3); font-size: 13px;">
+          <p>📊 Đang tải các bước dựng hình từ database...</p>
         </div>
-      </div>
-      <div class="step-item done" onclick="goToStep(2)" style="cursor: pointer;">
-        <div class="si-num">✓</div>
-        <div class="si-content">
-          <h4>Dựng SA ⊥ đáy</h4>
-          <p>SA tại A, SA = a√2 vuông góc mp(ABCD)</p>
-        </div>
-      </div>
-      <div class="step-item active" onclick="goToStep(3)" style="cursor: pointer;">
-        <div class="si-num">3</div>
-        <div class="si-content">
-          <h4>Xác định M — trung điểm AB</h4>
-          <p>AM = a/2, điểm chân hình chiếu SM lên đáy</p>
-        </div>
-      </div>
-      <div class="step-item faded" onclick="goToStep(4)" style="cursor: pointer;">
-        <div class="si-num">4</div>
-        <div class="si-content"><h4>Nối SM</h4><p>Đường thẳng cần tính góc với đáy</p></div>
-      </div>
-      <div class="step-item faded" onclick="goToStep(5)" style="cursor: pointer;">
-        <div class="si-num">5</div>
-        <div class="si-content"><h4>Dựng hình chiếu</h4><p>Chiếu S xuống đáy → xác định góc α</p></div>
       </div>
       <div class="panel-footer" style="margin:16px -24px -26px">
         <button class="btn-back" onclick="showTab(1)">← Quay lại</button>
@@ -772,10 +591,11 @@
   </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/api.js"></script>
-<script src="../js/script.js"></script>
+<script src="../js/three-viewer.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════
 // GLOBAL STATE (specific to solver page)
@@ -785,7 +605,7 @@ let currentProblemData = null;
 
 // Solver-specific construction steps state (avoid conflict with script.js)
 let solverCurrentStep = 3;
-const solverTotalSteps = 5;
+let solverTotalSteps = 5; // Changed from const to let
 let solverIsPlaying = false;
 let solverPlayInterval = null;
 
@@ -800,6 +620,30 @@ if (!document.getElementById('solver-animations')) {
     }
   `;
   document.head.appendChild(style);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION - Base implementation
+// ═══════════════════════════════════════════════════════════
+function showTab(index) {
+  // Hide all panels
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-tab').forEach(t => {
+    t.classList.remove('active');
+  });
+  
+  // Show selected panel
+  const panel = document.getElementById('panel-' + index);
+  const tab = document.getElementById('tab-' + index);
+  
+  if (panel) panel.classList.add('active');
+  if (tab) tab.classList.add('active');
+  
+  // Scroll to top of tabs
+  const nav = document.querySelector('.step-nav');
+  if (nav) {
+    nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -864,9 +708,24 @@ async function handleFileSelect(event) {
       currentProblemId = response.data.maBaiToan;
       currentProblemData = response.data;
       
+      // Extract data first before using
       const extraction = response.data.extraction || {};
       const problemText = extraction.problem_text || 'Đề bài đã được phân tích thành công';
       const problemType = extraction.problem_type || 'Hình học không gian';
+      
+      console.log('✅ Problem uploaded successfully. ID:', currentProblemId);
+      console.log('📊 Problem data:', {
+        maBaiToan: currentProblemId,
+        extraction: extraction,
+        hasVisualization: !!response.data.visualization
+      });
+      
+      // Auto-load 3D geometry after successful upload
+      // This will call /render-3d/{id} API to generate and save to DUNGHINH3D table
+      setTimeout(() => {
+        console.log('🎨 Auto-loading 3D geometry from backend (will save to DUNGHINH3D)...');
+        load3DGeometry(currentProblemId);
+      }, 1000); // Increased delay to ensure DB save is complete
       
       // Read and preview image
       const reader = new FileReader();
@@ -1610,6 +1469,585 @@ if (uploadZone) {
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS VIEWER INTEGRATION
+// ═══════════════════════════════════════════════════════════
+
+let viewer1 = null; // Panel 1 - Full 3D model
+let viewer2 = null; // Panel 2 - Step-by-step construction
+let geometry3DData = null;
+
+// Initialize Three.js viewers when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('=== DOM Content Loaded ===');
+  
+  // Wait for Three.js to load
+  if (typeof THREE === 'undefined') {
+    console.error('❌ Three.js not loaded');
+    return;
+  }
+  console.log('✓ Three.js loaded, version:', THREE.REVISION);
+  
+  // Check OrbitControls
+  if (typeof THREE.OrbitControls === 'undefined') {
+    console.warn('⚠️ OrbitControls not loaded');
+  } else {
+    console.log('✓ OrbitControls loaded');
+  }
+  
+  // Check ThreeViewerManager
+  if (typeof ThreeViewerManager === 'undefined') {
+    console.error('❌ ThreeViewerManager not loaded');
+    return;
+  }
+  console.log('✓ ThreeViewerManager loaded');
+  
+  // Initialize viewers after a short delay to ensure canvas elements are ready
+  setTimeout(function() {
+    console.log('Initializing Three.js viewers...');
+    initThreeViewers();
+    
+    // NOTE: Mock data is DISABLED. All 3D data now comes from DUNGHINH3D table.
+    // Data will be loaded automatically when user:
+    // 1. Uploads an image in Step 1 (calls load3DGeometry after upload)
+    // 2. Navigates to Panel 1 or Panel 2 (calls load3DGeometry if not loaded yet)
+    console.log('✅ Three.js viewers initialized. Waiting for problem data from database...');
+  }, 200);
+});
+
+function initThreeViewers() {
+  try {
+    // Initialize Panel 1 viewer (full model)
+    const canvas1 = document.getElementById('threeCanvas1');
+    if (canvas1) {
+      console.log('Canvas1 found:', canvas1);
+      console.log('Canvas1 dimensions:', canvas1.clientWidth, 'x', canvas1.clientHeight);
+      
+      viewer1 = new window.ThreeViewerManager();
+      viewer1.init('threeCanvas1');
+      console.log('✓ Panel 1 viewer initialized');
+      
+      // Handle resize for canvas1
+      const resizeCanvas1 = () => {
+        if (viewer1 && viewer1.renderer && viewer1.camera) {
+          const container = canvas1.parentElement;
+          const width = container.clientWidth;
+          const height = container.clientHeight;
+          
+          viewer1.camera.aspect = width / height;
+          viewer1.camera.updateProjectionMatrix();
+          viewer1.renderer.setSize(width, height);
+        }
+      };
+      
+      // Resize on window resize
+      window.addEventListener('resize', resizeCanvas1);
+      
+      // Initial resize after a short delay
+      setTimeout(resizeCanvas1, 100);
+    } else {
+      console.error('❌ Canvas1 (threeCanvas1) not found');
+    }
+    
+    // Initialize Panel 2 viewer (step-by-step)
+    const canvas2 = document.getElementById('threeCanvas2');
+    if (canvas2) {
+      console.log('Canvas2 found:', canvas2);
+      console.log('Canvas2 dimensions:', canvas2.clientWidth, 'x', canvas2.clientHeight);
+      
+      viewer2 = new window.ThreeViewerManager();
+      viewer2.init('threeCanvas2');
+      console.log('✓ Panel 2 viewer initialized');
+      
+      // Handle resize for canvas2
+      const resizeCanvas2 = () => {
+        if (viewer2 && viewer2.renderer && viewer2.camera) {
+          const container = canvas2.parentElement;
+          const width = container.clientWidth;
+          const height = container.clientHeight;
+          
+          viewer2.camera.aspect = width / height;
+          viewer2.camera.updateProjectionMatrix();
+          viewer2.renderer.setSize(width, height);
+        }
+      };
+      
+      // Resize on window resize
+      window.addEventListener('resize', resizeCanvas2);
+      
+      // Initial resize after a short delay
+      setTimeout(resizeCanvas2, 100);
+    } else {
+      console.error('❌ Canvas2 (threeCanvas2) not found');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing Three.js viewers:', error);
+    console.error('Error stack:', error.stack);
+  }
+}
+
+// Load mock 3D data for testing (hình chóp S.ABCD)
+// DEPRECATED: This function is removed. All data now comes from DUNGHINH3D table in database.
+// To test: Upload an image in Step 1, then navigate to Step 2 or 3 to see 3D model from database.
+
+// Load 3D geometry data from API (DUNGHINH3D table)
+async function load3DGeometry(problemId) {
+  if (!problemId) {
+    console.log('❌ No problem ID for 3D rendering');
+    return;
+  }
+  
+  // Show loading indicators
+  const loading1 = document.getElementById('canvas1Loading');
+  const loading2 = document.getElementById('canvas2Loading');
+  if (loading1) loading1.style.display = 'block';
+  if (loading2) loading2.style.display = 'block';
+  
+  try {
+    console.log('📊 Loading 3D geometry from DUNGHINH3D table for problem:', problemId);
+    
+    // Call API to get 3D geometry data from DUNGHINH3D table
+    const response = await apiService.render3D(problemId);
+    
+    console.log('✅ API response:', response);
+    
+    if (response.success && response.data) {
+      // Extract geometry data from response
+      // API returns: { geometry: {...}, threejs: {...} }
+      const geometryData = response.data.geometry;
+      
+      console.log('📐 Geometry data from DUNGHINH3D:', geometryData);
+      
+      // Validate geometry data structure
+      if (!geometryData || !geometryData.points || !geometryData.steps) {
+        console.error('❌ Invalid geometry data structure:', geometryData);
+        throw new Error('Dữ liệu hình học không hợp lệ từ DUNGHINH3D table');
+      }
+      
+      // Store globally
+      geometry3DData = geometryData;
+      
+      // Update total steps count from database
+      solverTotalSteps = geometryData.steps.length;
+      const totalStepsNum = document.getElementById('totalStepsNum');
+      if (totalStepsNum) {
+        totalStepsNum.textContent = solverTotalSteps;
+      }
+      
+      console.log('📊 Total steps from DUNGHINH3D:', solverTotalSteps);
+      
+      // Load into Panel 1 viewer (show complete model)
+      if (viewer1) {
+        console.log('🎨 Loading geometry into Panel 1 (complete model)...');
+        viewer1.loadGeometry(geometryData);
+        // Show all steps in panel 1 (complete model)
+        if (geometryData.steps && geometryData.steps.length > 0) {
+          viewer1.goToStep(geometryData.steps.length - 1);
+        }
+        console.log('✅ Panel 1 viewer loaded successfully');
+      } else {
+        console.warn('⚠️ Panel 1 viewer not initialized');
+      }
+      
+      // Load into Panel 2 viewer (step-by-step construction)
+      if (viewer2) {
+        console.log('🎨 Loading geometry into Panel 2 (step-by-step)...');
+        viewer2.loadGeometry(geometryData);
+        viewer2.goToStep(0); // Start from first step
+        
+        // Update step indicator
+        updateStepIndicator();
+        
+        // Update sidebar steps dynamically from DUNGHINH3D.cacBuocVe
+        updateSidebarSteps(geometryData.steps);
+        console.log('✅ Panel 2 viewer loaded successfully');
+      } else {
+        console.warn('⚠️ Panel 2 viewer not initialized');
+      }
+      
+      console.log('✅ 3D geometry loaded successfully from DUNGHINH3D table');
+      
+      // Hide loading indicators
+      if (loading1) loading1.style.display = 'none';
+      if (loading2) loading2.style.display = 'none';
+      
+    } else {
+      throw new Error(response.message || 'Không thể tải dữ liệu 3D từ DUNGHINH3D table');
+    }
+  } catch (error) {
+    console.error('❌ Error loading 3D geometry from DUNGHINH3D:', error);
+    
+    // Show error in loading indicators
+    if (loading1) {
+      loading1.innerHTML = `
+        <p style="color: var(--ink-3); font-size: 12px;">
+          ⚠️ Không thể tải mô hình 3D từ database<br>
+          <span style="font-size: 11px;">${error.message}</span>
+        </p>
+      `;
+    }
+    if (loading2) {
+      loading2.innerHTML = `
+        <p style="color: var(--ink-3); font-size: 12px;">
+          ⚠️ Không thể tải animation từ database<br>
+          <span style="font-size: 11px;">${error.message}</span>
+        </p>
+      `;
+    }
+    
+    // Keep loading indicators visible to show error
+    setTimeout(() => {
+      if (loading1) loading1.style.display = 'none';
+      if (loading2) loading2.style.display = 'none';
+    }, 5000);
+  }
+}
+
+// Update sidebar steps dynamically from API data (DUNGHINH3D.cacBuocVe)
+function updateSidebarSteps(steps) {
+  if (!steps || steps.length === 0) {
+    console.warn('No steps data to update sidebar');
+    return;
+  }
+  
+  console.log('📊 Updating sidebar with', steps.length, 'steps from DUNGHINH3D.cacBuocVe');
+  
+  const stepsContainer = document.getElementById('steps-container');
+  if (!stepsContainer) {
+    console.error('Steps container not found');
+    return;
+  }
+  
+  // Clear loading message
+  stepsContainer.innerHTML = '';
+  
+  // Add new steps from database (DUNGHINH3D.cacBuocVe)
+  steps.forEach((step, index) => {
+    const stepNum = index + 1;
+    const stepDiv = document.createElement('div');
+    stepDiv.className = 'step-item';
+    
+    // Set initial state
+    if (stepNum === 1) {
+      stepDiv.classList.add('active');
+    } else {
+      stepDiv.classList.add('faded');
+    }
+    
+    stepDiv.onclick = () => goToStep(stepNum);
+    stepDiv.style.cursor = 'pointer';
+    
+    // Extract description and objects from step data
+    const description = step.description || step.title || `Bước ${stepNum}`;
+    const objects = step.objects || [];
+    
+    // Format objects text - show point names and edge names
+    let objectsText = '';
+    if (objects.length > 0) {
+      const points = objects.filter(obj => obj.length === 1 || !obj.includes('-'));
+      const edges = objects.filter(obj => obj.includes('-'));
+      
+      if (points.length > 0) {
+        objectsText = 'Điểm: ' + points.slice(0, 5).join(', ');
+      }
+      if (edges.length > 0) {
+        if (objectsText) objectsText += ' | ';
+        objectsText += 'Cạnh: ' + edges.slice(0, 3).join(', ');
+      }
+      
+      // Truncate if too long
+      if (objectsText.length > 50) {
+        objectsText = objectsText.substring(0, 47) + '...';
+      }
+    }
+    
+    stepDiv.innerHTML = `
+      <div class="si-num">${stepNum}</div>
+      <div class="si-content">
+        <h4>${description}</h4>
+        <p>${objectsText || 'Xem chi tiết trong canvas'}</p>
+      </div>
+    `;
+    
+    stepsContainer.appendChild(stepDiv);
+  });
+  
+  // Update total steps count
+  solverTotalSteps = steps.length;
+  const totalStepsNum = document.getElementById('totalStepsNum');
+  if (totalStepsNum) {
+    totalStepsNum.textContent = solverTotalSteps;
+  }
+  
+  // Update current step display
+  const currentStepNum = document.getElementById('currentStepNum');
+  if (currentStepNum) {
+    currentStepNum.textContent = '1';
+  }
+  
+  console.log('✅ Sidebar updated with', steps.length, 'steps from DUNGHINH3D database');
+}
+
+// Update step indicator in Panel 2
+function updateStepIndicator() {
+  if (!geometry3DData || !geometry3DData.steps) return;
+  if (!viewer2) return;
+  
+  const currentStepNum = document.getElementById('currentStepNum');
+  const totalStepsNum = document.getElementById('totalStepsNum');
+  
+  if (currentStepNum) {
+    currentStepNum.textContent = viewer2.currentStep + 1;
+  }
+  
+  if (totalStepsNum) {
+    totalStepsNum.textContent = geometry3DData.steps.length;
+  }
+  
+  // Update progress bar
+  const progress = ((viewer2.currentStep + 1) / geometry3DData.steps.length) * 100;
+  const progFill = document.getElementById('progFill');
+  if (progFill) {
+    progFill.style.width = progress + '%';
+  }
+  
+  // Update step label
+  const stepLabel = document.getElementById('stepLabel');
+  if (stepLabel) {
+    stepLabel.textContent = `${viewer2.currentStep + 1} / ${geometry3DData.steps.length}`;
+  }
+}
+
+// Override existing step navigation functions to work with Three.js
+const originalGoToStep = window.goToStep;
+window.goToStep = function(step) {
+  // Call original function for SVG fallback
+  if (originalGoToStep) {
+    originalGoToStep(step);
+  }
+  
+  // Update Three.js viewer in Panel 2
+  if (viewer2 && geometry3DData) {
+    viewer2.goToStep(step - 1); // Convert to 0-based index
+    updateStepIndicator();
+    
+    // Update sidebar step items
+    const stepItems = document.querySelectorAll('#panel-2 .step-item');
+    stepItems.forEach((item, index) => {
+      item.classList.remove('done', 'active', 'faded');
+      const numEl = item.querySelector('.si-num');
+      
+      if (index + 1 < step) {
+        item.classList.add('done');
+        if (numEl) numEl.textContent = '✓';
+      } else if (index + 1 === step) {
+        item.classList.add('active');
+        if (numEl) numEl.textContent = step;
+      } else {
+        item.classList.add('faded');
+        if (numEl) numEl.textContent = index + 1;
+      }
+    });
+  }
+  
+  solverCurrentStep = step;
+  updateStepDisplay();
+};
+
+const originalNextStep = window.nextStep;
+window.nextStep = function() {
+  if (viewer2 && geometry3DData) {
+    if (viewer2.currentStep < geometry3DData.steps.length - 1) {
+      viewer2.nextStep();
+      updateStepIndicator();
+      solverCurrentStep = viewer2.currentStep + 1;
+      updateStepDisplay();
+    }
+  } else if (originalNextStep) {
+    originalNextStep();
+  }
+};
+
+const originalPrevStep = window.prevStep;
+window.prevStep = function() {
+  if (viewer2 && geometry3DData) {
+    if (viewer2.currentStep > 0) {
+      viewer2.prevStep();
+      updateStepIndicator();
+      solverCurrentStep = viewer2.currentStep + 1;
+      updateStepDisplay();
+    }
+  } else if (originalPrevStep) {
+    originalPrevStep();
+  }
+};
+
+const originalTogglePlay = window.togglePlay;
+window.togglePlay = function() {
+  if (viewer2) {
+    viewer2.togglePlay(2000); // 2 seconds per step
+    
+    // Update play button
+    const playBtn = document.getElementById('playBtn');
+    if (playBtn) {
+      playBtn.innerHTML = viewer2.isPlaying ? '⏸' : '▶';
+    }
+  } else if (originalTogglePlay) {
+    originalTogglePlay();
+  }
+};
+
+// Override showTab to load 3D when switching to panels 1 or 2
+const originalShowTab2 = window.showTab;
+window.showTab = function(index) {
+  // Call original function
+  if (originalShowTab2) {
+    originalShowTab2(index);
+  } else if (originalShowTab) {
+    originalShowTab(index);
+  }
+  
+  // Resize viewers when switching tabs to ensure proper rendering
+  setTimeout(() => {
+    if (index === 1 && viewer1) {
+      const canvas1 = document.getElementById('threeCanvas1');
+      if (canvas1 && viewer1.renderer && viewer1.camera) {
+        const container = canvas1.parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        viewer1.camera.aspect = width / height;
+        viewer1.camera.updateProjectionMatrix();
+        viewer1.renderer.setSize(width, height);
+        
+        console.log('✓ Resized viewer1:', width, 'x', height);
+      }
+    } else if (index === 2 && viewer2) {
+      const canvas2 = document.getElementById('threeCanvas2');
+      if (canvas2 && viewer2.renderer && viewer2.camera) {
+        const container = canvas2.parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        viewer2.camera.aspect = width / height;
+        viewer2.camera.updateProjectionMatrix();
+        viewer2.renderer.setSize(width, height);
+        
+        console.log('✓ Resized viewer2:', width, 'x', height);
+      }
+    }
+  }, 100);
+  
+  // Load 3D geometry when switching to panel 1 or 2
+  if (index === 1 || index === 2) {
+    if (currentProblemId && !geometry3DData) {
+      // PRIORITY 1: Load from DUNGHINH3D table if we have problem ID but no geometry yet
+      console.log('📊 Loading 3D geometry from DUNGHINH3D table...');
+      load3DGeometry(currentProblemId);
+    } else if (!currentProblemId && !geometry3DData) {
+      // PRIORITY 2: Show message to upload problem first
+      console.log('⚠️ No problem uploaded yet. Please upload an image first.');
+      
+      // Show friendly message in canvas
+      const loading1 = document.getElementById('canvas1Loading');
+      const loading2 = document.getElementById('canvas2Loading');
+      
+      if (loading1) {
+        loading1.style.display = 'block';
+        loading1.innerHTML = `
+          <p style="color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px;">
+            📤 Vui lòng tải ảnh đề bài ở Bước 1 trước<br>
+            <span style="font-size: 11px; margin-top: 8px; display: block;">
+              Dữ liệu 3D sẽ được lấy từ bảng DUNGHINH3D trong database
+            </span>
+          </p>
+        `;
+      }
+      
+      if (loading2) {
+        loading2.style.display = 'block';
+        loading2.innerHTML = `
+          <p style="color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px;">
+            📤 Vui lòng tải ảnh đề bài ở Bước 1 trước<br>
+            <span style="font-size: 11px; margin-top: 8px; display: block;">
+              Các bước dựng hình sẽ được lấy từ DUNGHINH3D.cacBuocVe
+            </span>
+          </p>
+        `;
+      }
+      
+      // Update sidebar message
+      const stepsContainer = document.getElementById('steps-container');
+      if (stepsContainer) {
+        stepsContainer.innerHTML = `
+          <div style="padding: 20px; text-align: center; color: var(--ink-3); font-size: 13px;">
+            <p>📤 Vui lòng tải ảnh đề bài ở Bước 1</p>
+            <p style="font-size: 11px; margin-top: 8px;">Các bước dựng hình sẽ được load từ DUNGHINH3D.cacBuocVe</p>
+          </div>
+        `;
+      }
+    } else if (geometry3DData) {
+      console.log('✅ 3D geometry already loaded from DUNGHINH3D table');
+      // Ensure viewers are showing the data
+      if (viewer1 && index === 1) {
+        viewer1.goToStep(geometry3DData.steps.length - 1);
+      }
+      if (viewer2 && index === 2) {
+        viewer2.goToStep(viewer2.currentStep || 0);
+        updateStepIndicator();
+      }
+    }
+  }
+};
+
+// Add toolbar button handlers for Panel 1
+document.addEventListener('DOMContentLoaded', function() {
+  const toolbarButtons = document.querySelectorAll('#panel-1 .canvas-toolbar .ctrl');
+  
+  if (toolbarButtons.length > 0) {
+    // Grid toggle (index 3)
+    if (toolbarButtons[3]) {
+      toolbarButtons[3].addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (viewer1) {
+          viewer1.setShowGrid(this.classList.contains('active'));
+        }
+      });
+    }
+    
+    // Axes toggle (index 4)
+    if (toolbarButtons[4]) {
+      toolbarButtons[4].addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (viewer1) {
+          viewer1.setShowAxes(this.classList.contains('active'));
+        }
+      });
+    }
+  }
+  
+  // Add toggle handlers for Panel 1 sidebar
+  const toggleRows = document.querySelectorAll('#panel-1 .toggle-row');
+  toggleRows.forEach((row, index) => {
+    row.addEventListener('click', function() {
+      const toggle = this.querySelector('.toggle');
+      if (toggle) {
+        toggle.classList.toggle('on');
+        const isOn = toggle.classList.contains('on');
+        
+        // Handle different toggles
+        if (index === 3 && viewer1) {
+          // Grid toggle
+          viewer1.setShowGrid(isOn);
+        } else if (index === 2 && viewer1) {
+          // Axes toggle
+          viewer1.setShowAxes(isOn);
+        }
+      }
+    });
+  });
+});
 
 </script>
 </body>

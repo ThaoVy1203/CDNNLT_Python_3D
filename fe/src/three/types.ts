@@ -1,5 +1,5 @@
 /**
- * TypeScript types cho geometry data
+ * TypeScript types cho geometry 3D rendering
  */
 
 export interface Point3D {
@@ -11,8 +11,8 @@ export interface Point3D {
 export interface Edge {
   start: string;
   end: string;
-  style?: 'solid' | 'dashed' | 'dotted';  // Kiểu đường: liền, đứt, chấm
-  type?: 'main' | 'auxiliary' | 'height' | 'projection';  // Loại cạnh
+  style?: 'solid' | 'dashed' | 'dotted';
+  type?: 'main' | 'auxiliary' | 'height' | 'projection';
 }
 
 export interface Face {
@@ -24,28 +24,28 @@ export interface Step {
   description: string;
   objects: string[];
   highlight?: string[];
-  annotations?: Annotations;  // Annotations cho step này
+  annotations?: Annotations;
 }
 
 export interface EdgeAnnotation {
   edge: string;
   label: string;
   type: 'length' | 'special';
-  style?: 'solid' | 'dashed' | 'dotted';  // Kiểu đường: liền, đứt, chấm
+  style?: 'solid' | 'dashed' | 'dotted';
 }
 
 export interface PointAnnotation {
   point: string;
   label: string;
   type: 'midpoint' | 'special' | 'projection' | 'intersection';
-  showCoordinates?: boolean;  // Hiển thị tọa độ như C(z=a√3)
+  showCoordinates?: boolean;
 }
 
 export interface PerpendicularAnnotation {
-  vertex: string;        // Điểm giao của 2 cạnh vuông góc
-  line1: string;         // Cạnh thứ nhất
-  line2: string;         // Cạnh thứ hai (vuông góc với line1)
-  showSquare?: boolean;  // Hiển thị hình vuông nhỏ tại góc vuông
+  vertex: string;
+  line1: string;
+  line2: string;
+  showSquare?: boolean;
 }
 
 export interface AngleAnnotation {
@@ -77,8 +77,8 @@ export interface ArcAnnotation {
 }
 
 export interface AxisAnnotation {
-  name: string;  // 'X', 'Y', 'Z'
-  color: string;  // Màu trục
+  name: string;
+  color: string;
   length: number;
   showLabel?: boolean;
 }
@@ -86,7 +86,7 @@ export interface AxisAnnotation {
 export interface DashedLineAnnotation {
   start: string;
   end: string;
-  type: 'height' | 'projection' | 'auxiliary';  // Đường cao, hình chiếu, phụ
+  type: 'height' | 'projection' | 'auxiliary';
 }
 
 export interface Annotations {
@@ -97,8 +97,8 @@ export interface Annotations {
   parallel?: ParallelAnnotation[];
   equal?: EqualAnnotation[];
   arcs?: ArcAnnotation[];
-  axes?: AxisAnnotation[];  // Trục tọa độ
-  dashedLines?: DashedLineAnnotation[];  // Đường đứt nét
+  axes?: AxisAnnotation[];
+  dashedLines?: DashedLineAnnotation[];
 }
 
 export interface GeometryData {
@@ -111,10 +111,4 @@ export interface GeometryData {
     position: [number, number, number];
     lookAt: [number, number, number];
   };
-}
-
-export interface SolveRequest {
-  shape_type: string;
-  constraints: Record<string, any>;
-  description?: string;  // Mô tả đề bài để parse annotations
 }

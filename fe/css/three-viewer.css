@@ -1,0 +1,169 @@
+/**
+ * Three.js Viewer Styles
+ */
+
+/* Canvas container */
+.canvas-wrap {
+  position: relative;
+  background: #f5f0e8;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading indicator */
+.canvas-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
+
+.canvas-loading svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Step indicator for Panel 2 */
+#stepIndicator {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 14px;
+  background: rgba(160, 120, 64, 0.1);
+  border: 1px solid rgba(160, 120, 64, 0.25);
+  border-radius: 4px;
+  z-index: 5;
+}
+
+#stepIndicator span {
+  font-size: 11px;
+  color: #a07840;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+/* Toolbar buttons */
+.canvas-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+}
+
+.canvas-toolbar .ctrl {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.canvas-toolbar .ctrl:hover {
+  background: var(--indigo-bg);
+  border-color: var(--indigo);
+  color: var(--indigo);
+}
+
+.canvas-toolbar .ctrl.active {
+  background: var(--indigo);
+  border-color: var(--indigo);
+  color: white;
+}
+
+/* Playback controls */
+.playback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  background: white;
+  border-top: 1px solid var(--border);
+}
+
+.playback .pctrl {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.playback .pctrl:hover {
+  background: var(--indigo-bg);
+  border-color: var(--indigo);
+  color: var(--indigo);
+}
+
+.playback .play-main {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--indigo) 0%, #5b7fd8 100%);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(61, 82, 160, 0.25);
+}
+
+.playback .play-main:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(61, 82, 160, 0.35);
+}
+
+.playback .progress-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(61, 82, 160, 0.1);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.playback .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo) 0%, #5b7fd8 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.playback .time-label {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Spin animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

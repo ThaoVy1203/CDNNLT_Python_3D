@@ -29,7 +29,7 @@ export class MaterialLibrary {
     
     // Edge material
     this.materials.set('edge', new THREE.LineBasicMaterial({
-      color: 0x0000ff,
+      color: 0x3d52a0,
       linewidth: 2,
     }));
     
@@ -40,9 +40,9 @@ export class MaterialLibrary {
     
     // Face material
     this.materials.set('face', new THREE.MeshStandardMaterial({
-      color: 0x00ff00,
+      color: 0x3d52a0,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.15,
       side: THREE.DoubleSide,
       metalness: 0.1,
       roughness: 0.8,

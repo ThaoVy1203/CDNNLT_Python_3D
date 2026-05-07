@@ -5,7 +5,7 @@ load_dotenv()
 
 class Settings:
     # Database
-    DB_SERVER: str = os.getenv("DB_SERVER", "localhost")
+    DB_SERVER: str = os.getenv("DB_SERVER", "NGOTHITHAOVY")
     DB_NAME: str = os.getenv("DB_NAME", "dbCDNNLT")
     DB_USER: str = os.getenv("DB_USER", "sa")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "123456")

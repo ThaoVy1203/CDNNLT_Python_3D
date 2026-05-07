@@ -3,8 +3,8 @@ Geometry API - Endpoints cho phân tích và giải toán hình học
 
 Flow 3 bước (giống nhau cho cả guest và logged-in):
   Bước 1: POST /upload-and-save      → Phân tích ảnh
-  Bước 2: POST /solve-problem/{id}   → Giải toán
-  Bước 3: POST /render-3d/{id}       → Dựng hình 3D
+  Bước 2: POST /render-3d/{id}       → Dựng hình 3D (TRƯỚC)
+  Bước 3: POST /solve-problem/{id}   → Giải toán (SAU)
 
 Sự khác biệt:
   - Có ma_nguoi_dung → lưu vào DB, có lịch sử
@@ -114,7 +114,7 @@ async def upload_and_save_problem(
 
         return {
             "success": True,
-            "message": "Đã phân tích xong. Bấm 'Giải' để xem đáp án.",
+            "message": "Đã phân tích xong. Bấm 'Dựng hình 3D' để xem mô hình.",
             "saved": user_id is not None,
             "data": {
                 "maBaiToan": ma_bai_toan,
@@ -132,13 +132,13 @@ async def upload_and_save_problem(
 
 
 # ============================================================
-# BƯỚC 2: Giải toán
+# BƯỚC 3: Giải toán (SAU khi dựng hình 3D)
 # ============================================================
 
 @router.post("/solve-problem/{ma_bai_toan}")
 async def solve_problem_with_ai(ma_bai_toan: int):
     """
-    Bước 2: Giải bài toán bằng Gemini AI.
+    Bước 3: Giải bài toán bằng Gemini AI.
     Hoạt động với cả guest (maBaiToan từ bước 1) và logged-in user.
     Kết quả lưu vào LOIGIAI (dù guest hay không).
     """
@@ -203,148 +203,146 @@ async def solve_problem_with_ai(ma_bai_toan: int):
 
 
 # ============================================================
-# BƯỚC 3: Dựng hình 3D
+# BƯỚC 2: Render 3D với GeometrySolver (TRƯỚC khi giải toán)
 # ============================================================
 
 @router.post("/render-3d/{ma_bai_toan}")
-async def generate_threejs_instructions(ma_bai_toan: int):
+async def render_3d_geometry(ma_bai_toan: int):
     """
-    Bước 3: Tạo hướng dẫn dựng hình 3D bằng Three.js.
-    Hoạt động với cả guest (maBaiToan từ bước 1) và logged-in user.
+    Bước 2: Tạo dữ liệu dựng hình 3D từ bài toán đã phân tích.
+    
+    Tích hợp GeometrySolver để render hình học không gian 3D.
+    SỬ DỤNG DỮ LIỆU GEMINI AI EXTRACTION thay vì parse lại text.
+    
+    Returns:
+        - geometry: points, edges, faces, steps, annotations, camera
+        - threejs: code và parameters cho Three.js
     """
     try:
+        from app.services.geometry_solver import GeometrySolver
+        
+        # Lấy thông tin bài toán từ DB
         bai_toan = bai_toan_repo.get_by_id(ma_bai_toan)
         if not bai_toan:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài toán")
-
-        du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
-
+        
         # Kiểm tra cache
         existing = dung_hinh_repo.get_by_bai_toan(ma_bai_toan)
         if existing:
             return {
                 "success": True,
-                "message": "Đã có hướng dẫn dựng hình Three.js",
+                "message": "Đã có dữ liệu dựng hình 3D",
                 "data": {
                     "dungHinhId": existing.get("maDungHinh"),
+                    "geometry": json.loads(existing.get("thamSo", "{}")),
                     "threejs": {
                         "steps": json.loads(existing.get("cacBuocVe", "[]")),
                         "functions": json.loads(existing.get("hamThreeJS", "[]")),
-                        "parameters": json.loads(existing.get("thamSo", "{}")),
                         "code": existing.get("codeThreeJS", ""),
                         "guide": existing.get("huongDanVe", "")
                     },
                     "fromCache": True
                 }
             }
-
-        loai_hinh = bai_toan.get("loaiHinh", "").lower()
-        de_bai = bai_toan.get("deBaiTho", "")
-
-        points_data = {}
+        
+        # Lấy dữ liệu hình học từ DULIEUHINHHOC (Gemini extraction)
+        du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
+        
+        # Prepare extraction data for GeometrySolver
+        extraction_data = {
+            "problem_text": bai_toan.get('deBaiTho', ''),
+            "problem_type": bai_toan.get('loaiHinh', ''),
+            "given_conditions": [],
+            "questions": [],
+            "points": [],
+            "relationships": []
+        }
+        
+        # Parse data from DULIEUHINHHOC if available
         if du_lieu:
             try:
-                points_data = json.loads(du_lieu.get("toaDoDiem", "{}"))
-            except:
-                points_data = {}
-
-        # Tạo hướng dẫn dựng hình bằng Gemini AI
-        try:
-            drawing_guide = await gemini_service.generate_drawing_guide(de_bai, loai_hinh)
-        except Exception as e:
-            drawing_guide = f"HƯỚNG DẪN DỰNG HÌNH {loai_hinh.upper()}\n\nBước 1: Vẽ các điểm theo đề bài\nBước 2: Nối các cạnh\nBước 3: Hoàn thiện hình vẽ"
-
-        threejs_instructions = {
-            "steps": [
-                "1. Khởi tạo Scene, Camera, Renderer",
-                "2. Tạo các điểm (Points) từ tọa độ",
-                "3. Vẽ các cạnh (Lines) nối các điểm",
-                "4. Tạo các mặt (Faces) nếu cần",
-                "5. Thêm ánh sáng (Lights)",
-                "6. Thêm OrbitControls để xoay hình",
-                "7. Render và animate"
-            ],
-            "functions": [
-                "THREE.Scene()",
-                "THREE.PerspectiveCamera(fov, aspect, near, far)",
-                "THREE.WebGLRenderer()",
-                "THREE.Vector3(x, y, z)",
-                "THREE.BufferGeometry()",
-                "THREE.LineBasicMaterial()",
-                "THREE.Line(geometry, material)",
-                "THREE.MeshBasicMaterial()",
-                "THREE.Mesh(geometry, material)",
-                "THREE.AmbientLight(color, intensity)",
-                "THREE.DirectionalLight(color, intensity)",
-                "THREE.OrbitControls(camera, renderer.domElement)"
-            ],
-            "parameters": {
-                "camera": {"fov": 75, "position": [3, 3, 3], "lookAt": [0, 0, 0]},
-                "lights": {
-                    "ambient": {"color": "0x404040", "intensity": 0.6},
-                    "directional": {"color": "0xffffff", "intensity": 0.8, "position": [1, 1, 1]}
-                },
-                "materials": {
-                    "line": {"color": "0x0000ff"},
-                    "face": {"color": "0x00ff00", "transparent": True, "opacity": 0.5}
-                }
-            },
-            "code": f"""const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({{ antialias: true }});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-const points = {json.dumps(points_data, indent=2)};
-const vectors = {{}};
-for (const [name, coords] of Object.entries(points)) {{
-    vectors[name] = new THREE.Vector3(coords[0], coords[1], coords[2]);
-}}
-const edgeMaterial = new THREE.LineBasicMaterial({{ color: 0x0000ff }});
-for (const [name1, vec1] of Object.entries(vectors)) {{
-    for (const [name2, vec2] of Object.entries(vectors)) {{
-        if (name1 < name2) {{
-            const geometry = new THREE.BufferGeometry().setFromPoints([vec1, vec2]);
-            scene.add(new THREE.Line(geometry, edgeMaterial));
-        }}
-    }}
-}}
-scene.add(new THREE.AmbientLight(0x404040, 0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(1, 1, 1);
-scene.add(dirLight);
-camera.position.set(3, 3, 3);
-camera.lookAt(0, 0, 0);
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-function animate() {{ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }}
-animate();
-""",
-            "guide": drawing_guide
+                # Parse toaDoDiem (points from Gemini)
+                toa_do_diem = json.loads(du_lieu.get("toaDoDiem", "{}"))
+                if toa_do_diem:
+                    extraction_data["points"] = list(toa_do_diem.keys())
+                
+                # Parse cacQuanHe (relationships from Gemini)
+                cac_quan_he = json.loads(du_lieu.get("cacQuanHe", "[]"))
+                if cac_quan_he:
+                    extraction_data["relationships"] = cac_quan_he
+            except json.JSONDecodeError as e:
+                print(f"Warning: Could not parse DULIEUHINHHOC data: {e}")
+        
+        # Extract given_conditions and questions from problem_text
+        # This is a simple extraction - Gemini should have done this better
+        problem_text = extraction_data["problem_text"]
+        if problem_text:
+            # Split by sentences
+            sentences = problem_text.split('.')
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                
+                # Check if it's a question
+                if '?' in sentence or 'tính' in sentence.lower() or 'tìm' in sentence.lower():
+                    extraction_data["questions"].append(sentence)
+                # Check if it's a given condition
+                elif '=' in sentence or 'vuông góc' in sentence.lower() or '⊥' in sentence:
+                    extraction_data["given_conditions"].append(sentence)
+                elif 'hình' in sentence.lower() or 'cạnh' in sentence.lower():
+                    extraction_data["given_conditions"].append(sentence)
+                elif 'trung điểm' in sentence.lower() or 'tâm' in sentence.lower():
+                    extraction_data["given_conditions"].append(sentence)
+        
+        print(f"📊 [API] Extraction data prepared:")
+        print(f"   - Problem type: {extraction_data['problem_type']}")
+        print(f"   - Given conditions: {len(extraction_data['given_conditions'])} items")
+        print(f"   - Points: {extraction_data['points']}")
+        print(f"   - Relationships: {len(extraction_data['relationships'])} items")
+        
+        # Solve geometry using Gemini extraction data
+        solver = GeometrySolver()
+        geometry_data = solver.solve_from_extraction(extraction_data, extraction_data['problem_type'])
+        
+        # Tạo hướng dẫn dựng hình
+        guide = _generate_drawing_guide(geometry_data)
+        
+        # Tạo dữ liệu Three.js
+        threejs_data = {
+            "steps": [step["description"] for step in geometry_data.get("steps", [])],
+            "functions": ["THREE.Scene()", "THREE.PerspectiveCamera()", "THREE.WebGLRenderer()", "THREE.OrbitControls()"],
+            "code": "// Three.js code will be generated by frontend",
+            "guide": guide
         }
-
+        
+        # Lưu vào DB (bảng DUNGHINH3D)
         dung_hinh_id = dung_hinh_repo.create_from_dict({
             "maBaiToan": ma_bai_toan,
-            "cacBuocVe": json.dumps(threejs_instructions["steps"], ensure_ascii=False),
-            "hamThreeJS": json.dumps(threejs_instructions["functions"], ensure_ascii=False),
-            "thamSo": json.dumps(threejs_instructions["parameters"], ensure_ascii=False),
-            "codeThreeJS": threejs_instructions["code"],
-            "huongDanVe": drawing_guide
+            "cacBuocVe": json.dumps(geometry_data.get("steps", []), ensure_ascii=False),
+            "hamThreeJS": json.dumps(threejs_data["functions"], ensure_ascii=False),
+            "thamSo": json.dumps(geometry_data, ensure_ascii=False),
+            "codeThreeJS": threejs_data["code"],
+            "huongDanVe": guide
         })
-
+        
+        print(f"✅ [API] 3D geometry saved to DUNGHINH3D with ID: {dung_hinh_id}")
+        
         return {
             "success": True,
-            "message": "Đã tạo hướng dẫn dựng hình Three.js",
+            "message": "Đã tạo dữ liệu dựng hình 3D từ Gemini extraction",
             "data": {
                 "dungHinhId": dung_hinh_id,
-                "threejs": threejs_instructions,
+                "geometry": geometry_data,
+                "threejs": threejs_data,
                 "fromCache": False
             }
         }
-
-    except HTTPException:
-        raise
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Lỗi render 3D: {str(e)}")
 
 
 # ============================================================
@@ -407,17 +405,21 @@ async def get_drawing_guide(ma_bai_toan: int):
         dung_hinh = dung_hinh_repo.get_by_bai_toan(ma_bai_toan)
         if not dung_hinh:
             return {"success": False, "message": "Chưa có hướng dẫn dựng hình", "data": None}
+        
+        # Parse geometry data from thamSo
+        geometry_data = json.loads(dung_hinh.get("thamSo", "{}"))
+        
         return {
             "success": True,
             "message": "Đã tìm thấy hướng dẫn dựng hình",
             "data": {
                 "dungHinhId": dung_hinh.get("maDungHinh"),
                 "maBaiToan": dung_hinh.get("maBaiToan"),
+                "geometry": geometry_data,
                 "guide": dung_hinh.get("huongDanVe", ""),
                 "threejs": {
                     "steps": json.loads(dung_hinh.get("cacBuocVe", "[]")),
                     "functions": json.loads(dung_hinh.get("hamThreeJS", "[]")),
-                    "parameters": json.loads(dung_hinh.get("thamSo", "{}")),
                     "code": dung_hinh.get("codeThreeJS", "")
                 },
                 "ngayTao": dung_hinh.get("ngayTao")
@@ -443,44 +445,96 @@ async def evaluate_user_approach(request: dict):
                 "message": "Ý tưởng quá ngắn"
             }
         
-        # Use Gemini AI to evaluate
-        from app.services.ai.prompt import build_evaluation_prompt
+        # Build evaluation prompt
+        prompt = f"""Bạn là giáo viên toán học. Đánh giá ý tưởng giải toán của học sinh.
+
+ĐỀ BÀI:
+{problem_text}
+
+Ý TƯỞNG CỦA HỌC SINH:
+{user_approach}
+
+Hãy đánh giá:
+1. Học sinh có hiểu đúng đề bài không?
+2. Hướng giải có hợp lý không?
+3. Có đề cập đến các yếu tố quan trọng không?
+
+Trả về JSON với format:
+{{
+  "score": <điểm từ 0-10>,
+  "feedback": "<phản hồi chi tiết>",
+  "should_unlock": <true nếu score >= 6, false nếu không>
+}}
+"""
         
-        prompt = build_evaluation_prompt(problem_text, user_approach)
-        
-        response = gemini_service.gemini_client.client.models.generate_content(
-            model=gemini_service.gemini_client.model_name,
-            contents=prompt,
-            config=gemini_service.gemini_client.generation_config
-        )
-        
-        # Parse AI response
-        response_text = response.text.strip()
-        
-        # Extract JSON from response
-        if "```json" in response_text:
-            json_str = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            json_str = response_text.split("```")[1].split("```")[0].strip()
-        else:
-            json_str = response_text
-        
-        evaluation = json.loads(json_str)
-        
-        return {
-            "success": True,
-            "evaluation": {
-                "shouldUnlock": evaluation.get("should_unlock", False),
-                "feedback": evaluation.get("feedback", ""),
-                "score": evaluation.get("score", 0)
+        try:
+            response = await gemini_service.gemini_client.generate_content_async(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON from response
+            if "```json" in response_text:
+                json_str = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                json_str = response_text.split("```")[1].split("```")[0].strip()
+            else:
+                json_str = response_text
+            
+            evaluation = json.loads(json_str)
+            
+            return {
+                "success": True,
+                "evaluation": {
+                    "shouldUnlock": evaluation.get("should_unlock", False),
+                    "feedback": evaluation.get("feedback", ""),
+                    "score": evaluation.get("score", 0)
+                }
             }
-        }
+        except Exception as e:
+            print(f"Gemini evaluation error: {e}")
+            # Fallback to keyword-based evaluation
+            score = 0
+            keywords = ['pythagore', 'pytago', 'trung điểm', 'vuông góc', 'sin', 'cos', 'tan', 'góc', 'hình chiếu']
+            for keyword in keywords:
+                if keyword in user_approach.lower():
+                    score += 1
+            
+            score = min(10, score * 2)
+            feedback = "Ý tưởng của bạn có đề cập đến một số yếu tố quan trọng." if score >= 6 else "Hãy phân tích kỹ hơn các yếu tố đã cho trong đề bài."
+            
+            return {
+                "success": True,
+                "evaluation": {
+                    "shouldUnlock": score >= 6,
+                    "feedback": feedback,
+                    "score": score
+                }
+            }
         
     except Exception as e:
         print(f"Evaluation error: {e}")
-        # Fallback response
         return {
             "success": False,
             "message": str(e)
         }
+
+
+def _generate_drawing_guide(geometry_data: dict) -> str:
+    """Tạo hướng dẫn dựng hình từ geometry data"""
+    steps = geometry_data.get("steps", [])
+    points = geometry_data.get("points", {})
+    
+    guide = "HƯỚNG DẪN DỰNG HÌNH 3D\n\n"
+    
+    for step in steps:
+        guide += f"Bước {step['order']}: {step['description']}\n"
+        guide += f"   - Các đối tượng: {', '.join(step.get('objects', []))}\n"
+        if step.get('highlight'):
+            guide += f"   - Highlight: {', '.join(step['highlight'])}\n"
+        guide += "\n"
+    
+    guide += "\nTỌA ĐỘ CÁC ĐIỂM:\n"
+    for name, coords in points.items():
+        guide += f"   {name}: ({coords[0]:.2f}, {coords[1]:.2f}, {coords[2]:.2f})\n"
+    
+    return guide
 

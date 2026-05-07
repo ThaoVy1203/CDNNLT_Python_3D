@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:three": "vite build --config vite.config.three.ts",
     "preview": "vite preview"
   },
   "dependencies": {

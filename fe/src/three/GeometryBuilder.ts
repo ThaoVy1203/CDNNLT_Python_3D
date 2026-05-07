@@ -2,7 +2,7 @@
  * Geometry Builder - Build Three.js objects từ geometry data
  */
 import * as THREE from 'three';
-import { GeometryData, Step } from '../types/geometry';
+import { GeometryData } from './types';
 import { MaterialLibrary } from './MaterialLibrary';
 
 export class GeometryBuilder {
@@ -28,20 +28,20 @@ export class GeometryBuilder {
       this.scene.add(point);
     });
     
-    // Build edges với tên chuẩn hóa và style
-    data.edges.forEach((edge, index) => {
+    // Build edges
+    data.edges.forEach((edge) => {
       const edgeName = `${edge.start}-${edge.end}`;
       const line = this.createEdge(
         data.points[edge.start],
         data.points[edge.end],
         edgeName,
-        edge.style || 'solid'  // Mặc định là solid
+        edge.style || 'solid'
       );
       this.objects.set(edgeName, line);
       this.scene.add(line);
     });
     
-    // Build faces (optional)
+    // Build faces
     data.faces.forEach((face, index) => {
       const mesh = this.createFace(face.vertices.map(v => data.points[v]));
       this.objects.set(`face_${index}`, mesh);
@@ -65,7 +65,6 @@ export class GeometryBuilder {
     label.position.set(coords[0], coords[1] + 0.2, coords[2]);
     group.add(label);
     
-    // Initially hidden
     group.visible = false;
     
     return group;
@@ -115,15 +114,10 @@ export class GeometryBuilder {
   }
   
   private createFace(vertices: [number, number, number][]): THREE.Mesh {
-    // Simple face - just for visualization
     const points = vertices.map(v => new THREE.Vector3(v[0], v[1], v[2]));
-    
-    // Create shape (simplified - assumes planar)
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = this.materials.getFaceMaterial();
     const mesh = new THREE.Mesh(geometry, material);
-    
-    // Initially hidden
     mesh.visible = false;
     
     return mesh;
@@ -135,9 +129,7 @@ export class GeometryBuilder {
     canvas.width = 128;
     canvas.height = 128;
     
-    // Nền trong suốt
     context.clearRect(0, 0, canvas.width, canvas.height);
-    
     context.font = 'Bold 48px Arial';
     context.textAlign = 'center';
     context.textBaseline = 'middle';

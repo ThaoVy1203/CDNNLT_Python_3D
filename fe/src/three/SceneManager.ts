@@ -3,9 +3,10 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GeometryData } from '../types/geometry';
+import { GeometryData } from './types';
 import { GeometryBuilder } from './GeometryBuilder';
 import { AnnotationRenderer } from './AnnotationRenderer';
+import { AnnotationAdapter } from './AnnotationAdapter';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -92,6 +93,17 @@ export class SceneManager {
     // Set points cho annotation renderer
     this.annotationRenderer.setPoints(data.points);
     
+    // Render annotations nếu có
+    if (data.annotations) {
+      console.log('[SceneManager] Backend annotations:', data.annotations);
+      
+      // Chuyển đổi từ backend format sang frontend format
+      const frontendAnnotations = AnnotationAdapter.adapt(data.annotations);
+      console.log('[SceneManager] Frontend annotations:', frontendAnnotations);
+      
+      this.annotationRenderer.renderAnnotations(frontendAnnotations);
+    }
+    
     this.fitCamera();
   }
   
@@ -112,11 +124,11 @@ export class SceneManager {
     this.annotationRenderer.clear();
     
     // Tích lũy annotations từ tất cả các steps đến step hiện tại
-    const cumulativeAnnotations = {
-      edges: [] as any[],
-      points: [] as any[],
-      perpendicular: [] as any[],
-      angles: [] as any[]
+    const cumulativeAnnotations: any = {
+      edges: [],
+      points: [],
+      perpendicular: [],
+      angles: []
     };
     
     // Duyệt qua tất cả steps từ 0 đến currentStep
@@ -140,7 +152,7 @@ export class SceneManager {
     }
     
     // Render tất cả annotations tích lũy
-    if (Object.values(cumulativeAnnotations).some(arr => arr.length > 0)) {
+    if (Object.values(cumulativeAnnotations).some((arr: any) => arr.length > 0)) {
       this.annotationRenderer.renderAnnotations(cumulativeAnnotations);
     }
   }
