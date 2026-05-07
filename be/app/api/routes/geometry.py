@@ -17,6 +17,7 @@ from app.repositories.bai_toan_repository import BaiToanRepository
 from app.repositories.du_lieu_hinh_hoc_repository import DuLieuHinhHocRepository
 from app.repositories.loi_giai_repository import LoiGiaiRepository
 from app.repositories.dung_hinh_3d_repository import DungHinh3DRepository
+from app.repositories.nguoi_dung_repository import NguoiDungRepository
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -27,6 +28,7 @@ bai_toan_repo = BaiToanRepository()
 du_lieu_repo = DuLieuHinhHocRepository()
 loi_giai_repo = LoiGiaiRepository()
 dung_hinh_repo = DungHinh3DRepository()
+nguoi_dung_repo = NguoiDungRepository()
 
 # ============================================================
 # BƯỚC 1: Upload và phân tích ảnh
@@ -78,9 +80,19 @@ async def upload_and_save_problem(
             visualization = {"points": {}, "edges": [], "faces": []}
 
         # Lưu vào DB (dù có hay không có user_id đều lưu để có maBaiToan)
-        # Nếu không có user_id thì maNguoiDung = None (guest record)
+        # Nếu có user_id, tự động tạo user nếu chưa tồn tại
         print("Step 2: Saving to BAITOAN...")
         try:
+            # Nếu có user_id, đảm bảo user tồn tại trong DB
+            if user_id:
+                try:
+                    nguoi_dung_repo.get_or_create_google_user(user_id, email='', name='')
+                    print(f"User {user_id} verified/created")
+                except Exception as e:
+                    print(f"Warning: Could not create user {user_id}: {e}")
+                    # Tiếp tục với user_id = None (guest mode)
+                    user_id = None
+            
             data_to_save = {
                 "maNguoiDung": user_id,  # None nếu không đăng nhập, hoặc Google ID
                 "duongDan": file.filename,
@@ -95,7 +107,6 @@ async def upload_and_save_problem(
             import traceback
             print(f"ERROR saving to BAITOAN: {e}")
             print(traceback.format_exc())
-            # Bỏ check FOREIGN KEY - cho phép lưu dù user không tồn tại
             raise HTTPException(status_code=500, detail=f"Lỗi lưu bài toán: {str(e)}")
 
         print("Step 3: Saving to DULIEUHINHHOC...")

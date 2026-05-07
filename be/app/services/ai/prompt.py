@@ -278,7 +278,7 @@ YÊU CẦU:
 1. Đánh giá xem học sinh có hiểu đề bài không
 2. Kiểm tra xem ý tưởng có logic và đúng hướng không
 3. Cho điểm từ 0-10 (10 là hoàn hảo)
-4. Quyết định có nên mở khóa lời giải không (điểm >= 6)
+4. Quyết định có nên mở khóa lời giải không (điểm >= 5)
 
 Trả về JSON:
 {{
@@ -287,16 +287,26 @@ Trả về JSON:
   "feedback": "Phản hồi chi tiết cho học sinh (2-3 câu)"
 }}
 
-QUY TẮC ĐÁNH GIÁ:
-- Điểm 8-10: Ý tưởng rất tốt, đúng hướng, đề cập đầy đủ các bước
-- Điểm 6-7: Ý tưởng đúng hướng nhưng thiếu chi tiết
-- Điểm 4-5: Có một số ý đúng nhưng còn nhiều thiếu sót
-- Điểm 0-3: Chưa hiểu đề hoặc ý tưởng sai hoàn toàn
+QUY TẮC ĐÁNH GIÁ (QUAN TRỌNG - ĐỪNG QUÁ NGHIÊM KHẮC):
+- Điểm 9-10: Ý tưởng xuất sắc, đầy đủ các bước, logic hoàn hảo
+- Điểm 7-8: Ý tưởng rất tốt, đúng hướng, đề cập đủ các bước chính
+- Điểm 5-6: Ý tưởng đúng hướng, có một số bước quan trọng (ĐỦ ĐỂ MỞ KHÓA)
+- Điểm 3-4: Có một vài ý đúng nhưng còn thiếu nhiều
+- Điểm 0-2: Chưa hiểu đề hoặc ý tưởng sai hoàn toàn
+
+TIÊU CHÍ ĐÁNH GIÁ TÍCH CỰC (cho điểm cao):
+- Đề cập đến các điểm, đường quan trọng (N, M, H, SM, BC, AH...)
+- Nói về quan hệ hình học (vuông góc, song song, trung điểm...)
+- Đề cập đến phương pháp (dựng đường, tính khoảng cách, áp dụng định lý...)
+- Có logic từng bước (gọi, suy ra, do đó, vậy...)
+- Đề cập đến công thức hoặc định lý cần dùng
+
+LƯU Ý: Nếu học sinh đã nắm được HƯỚNG GIẢI CHÍNH (dù chưa chi tiết), hãy cho điểm >= 5 để khuyến khích!
 
 FEEDBACK NÊN:
-- Khuyến khích nếu đúng hướng
+- Khuyến khích và động viên nếu đúng hướng
 - Gợi ý cụ thể nếu còn thiếu
-- Động viên nếu sai để học sinh thử lại
+- Tích cực, không quá khắt khe với học sinh
 """
 
 
