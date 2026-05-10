@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.routes import nguoi_dung, bai_toan, geometry
+from app.api.routes import nguoi_dung, bai_toan, geometry, auth
 
 app = FastAPI(
     title=settings.API_TITLE,
@@ -19,6 +19,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(nguoi_dung.router)
 app.include_router(bai_toan.router)
 app.include_router(geometry.router)

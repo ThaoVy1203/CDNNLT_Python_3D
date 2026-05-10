@@ -25,8 +25,22 @@ def get_bai_toan(ma_bai_toan: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/user/{ma_nguoi_dung}", response_model=List[dict])
-def get_bai_toan_by_user(ma_nguoi_dung: int):
+def get_bai_toan_by_user(ma_nguoi_dung: str):
+    """Lấy lịch sử bài toán của người dùng"""
     try:
         return repo.get_by_user(ma_nguoi_dung)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{ma_bai_toan}")
+def delete_bai_toan(ma_bai_toan: int):
+    """Xóa bài toán"""
+    try:
+        success = repo.delete(ma_bai_toan)
+        if not success:
+            raise HTTPException(status_code=404, detail="Không tìm thấy bài toán")
+        return {"success": True, "message": "Đã xóa bài toán"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

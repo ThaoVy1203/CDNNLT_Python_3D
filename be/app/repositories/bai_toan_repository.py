@@ -48,6 +48,20 @@ class BaiToanRepository:
         results = self.db.execute_query(query, (ma_bai_toan,))
         return results[0] if results else None
     
-    def get_by_user(self, ma_nguoi_dung: int) -> List[dict]:
-        query = "SELECT * FROM BAITOAN WHERE maNguoiDung = %s"
+    def get_by_user(self, ma_nguoi_dung: str) -> List[dict]:
+        """Lấy tất cả bài toán của người dùng, sắp xếp theo ngày tạo mới nhất"""
+        query = "SELECT * FROM BAITOAN WHERE maNguoiDung = %s ORDER BY ngayTao DESC"
         return self.db.execute_query(query, (ma_nguoi_dung,))
+    
+    def delete(self, ma_bai_toan: int) -> bool:
+        """Xóa bài toán và các dữ liệu liên quan (cascading delete)"""
+        try:
+            # Xóa theo thứ tự: LOIGIAI -> DUNGHINH3D -> DULIEUHINHHOC -> BAITOAN
+            self.db.execute_query("DELETE FROM LOIGIAI WHERE maBaiToan = %s", (ma_bai_toan,))
+            self.db.execute_query("DELETE FROM DUNGHINH3D WHERE maBaiToan = %s", (ma_bai_toan,))
+            self.db.execute_query("DELETE FROM DULIEUHINHHOC WHERE maBaiToan = %s", (ma_bai_toan,))
+            self.db.execute_query("DELETE FROM BAITOAN WHERE maBaiToan = %s", (ma_bai_toan,))
+            return True
+        except Exception as e:
+            print(f"Error deleting problem: {e}")
+            return False

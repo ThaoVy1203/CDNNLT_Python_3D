@@ -18,7 +18,6 @@
   document.getElementById('topbar-container').innerHTML = renderTopbar('history');
   window.addEventListener('DOMContentLoaded', function() {
     initTopbar();
-    loadHistory();
   });
 </script>
 
@@ -90,17 +89,65 @@ let currentFilter = 'all';
 let allHistory = [];
 
 // Load history on page load
-window.addEventListener('DOMContentLoaded', function() {
-  const user = checkAuth();
+window.addEventListener('DOMContentLoaded', async function() {
+  const user = getCurrentUser();
   
-  if (!user) {
+  if (!user || user.isGuest) {
     // Redirect to login if not authenticated
     window.location.href = 'login.html';
     return;
   }
   
-  loadHistory();
+  await loadHistoryFromBackend();
 });
+
+async function loadHistoryFromBackend() {
+  const maNguoiDung = localStorage.getItem('maNguoiDung');
+  
+  if (!maNguoiDung) {
+    console.warn('No user ID found, using localStorage fallback');
+    loadHistory();
+    return;
+  }
+  
+  try {
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const response = await fetch(`${API_BASE_URL}/bai-toan/user/${maNguoiDung}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to load history from backend');
+    }
+    
+    const data = await response.json();
+    
+    // Transform backend data to frontend format
+    allHistory = data.map(item => ({
+      id: item.maBaiToan,
+      title: item.tomTatDe || 'Bài toán hình học không gian',
+      description: item.deBaiTho ? item.deBaiTho.substring(0, 100) + '...' : 'Hình chóp S.ABCD với các điều kiện cho trước',
+      type: item.loaiHinh || 'Hình chóp',
+      timestamp: item.ngayTao,
+      solveTime: '3 phút',
+      status: 'completed'
+    }));
+    
+    if (allHistory.length === 0) {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('historyList').style.display = 'none';
+    } else {
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('historyList').style.display = 'grid';
+      displayHistory(allHistory);
+    }
+    
+    updateStatistics();
+    
+  } catch (error) {
+    console.error('Error loading history from backend:', error);
+    // Fallback to localStorage
+    loadHistory();
+  }
+}
 
 function loadHistory() {
   allHistory = getHistory();
@@ -131,7 +178,7 @@ function displayHistory(history) {
     const timeStr = date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
     
     return `
-      <div class="history-card" onclick="viewProblem(${index})">
+      <div class="history-card" onclick="viewProblem(${item.id || index})">
         <div class="history-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
@@ -219,9 +266,13 @@ function filterHistory(filter) {
   displayHistory(filtered);
 }
 
-function viewProblem(index) {
-  // In a real app, this would navigate to the problem detail page
-  alert('Xem chi tiết bài toán #' + (index + 1) + '\n\nTính năng đang được phát triển!');
+function viewProblem(problemId) {
+  if (problemId) {
+    // Redirect to solver page with problem ID
+    window.location.href = `solver.html?id=${problemId}`;
+  } else {
+    alert('Xem chi tiết bài toán\n\nTính năng đang được phát triển!');
+  }
 }
 </script>
 

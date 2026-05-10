@@ -31,7 +31,7 @@ class NguoiDungRepository:
             data.get('tenDangNhap', 'Google User'),
             data.get('email', ''),
             data.get('matKhau', ''),  # Google OAuth không cần password
-            data.get('vaiTro', 'user')
+            data.get('vaiTro', 'Thành viên')  # Sửa từ 'user' thành 'Thành viên'
         ))
         return data.get('maNguoiDung')
     
@@ -49,7 +49,7 @@ class NguoiDungRepository:
                 'tenDangNhap': name or f'User_{google_id[:8]}',
                 'email': email,
                 'matKhau': '',  # Google OAuth không cần password
-                'vaiTro': 'user'
+                'vaiTro': 'Thành viên'  # Sửa từ 'user' thành 'Thành viên'
             })
             print(f"Created new Google user: {google_id}")
             return google_id

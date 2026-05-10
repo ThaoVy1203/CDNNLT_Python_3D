@@ -270,46 +270,125 @@ function handleGoogleSignIn() {
   const client = google.accounts.oauth2.initTokenClient({
     client_id: CONFIG.GOOGLE_CLIENT_ID,
     scope: 'email profile',
-    callback: (tokenResponse) => {
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-      })
-      .then(r => r.json())
-      .then(userInfo => {
-        const user = {
-          id: userInfo.sub,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture,
-          provider: 'google'
-        };
-        localStorage.setItem('geo3d_current_user', JSON.stringify(user));
-        window.location.href = 'solver.html';
-      });
+    callback: async (tokenResponse) => {
+      try {
+        // Get user info from Google
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
+        const userInfo = await userInfoResponse.json();
+        
+        console.log('Google user info:', userInfo);
+        
+        // Call backend API to create/get user in database
+        const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
+        const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            googleId: userInfo.sub,
+            email: userInfo.email,
+            name: userInfo.name,
+            picture: userInfo.picture
+          })
+        });
+        
+        if (!backendResponse.ok) {
+          const error = await backendResponse.json();
+          throw new Error(error.detail || 'Đăng nhập thất bại');
+        }
+        
+        const data = await backendResponse.json();
+        console.log('Backend response:', data);
+        
+        if (data.success && data.user) {
+          // Save user info to localStorage
+          localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
+          localStorage.setItem('geo3d_current_user', JSON.stringify({
+            id: data.user.maNguoiDung,
+            username: data.user.tenDangNhap,
+            email: data.user.email,
+            role: data.user.vaiTro,
+            provider: 'google',
+            picture: userInfo.picture
+          }));
+          
+          // Show success message
+          alert('✅ Đăng nhập thành công!');
+          
+          // Redirect to solver page
+          window.location.href = 'solver.html';
+        } else {
+          throw new Error('Không nhận được thông tin user từ server');
+        }
+        
+      } catch (error) {
+        console.error('Google login error:', error);
+        alert('❌ Lỗi đăng nhập: ' + error.message);
+      }
     }
   });
   client.requestAccessToken();
 }
 
 // Handle Google Sign-In callback
-function handleGoogleCallback(response) {
-  // Decode JWT token to get user info
-  const userInfo = parseJwt(response.credential);
-  
-  // Create user object
-  const user = {
-    id: userInfo.sub,
-    email: userInfo.email,
-    name: userInfo.name,
-    picture: userInfo.picture,
-    provider: 'google'
-  };
-  
-  // Save to localStorage
-  localStorage.setItem('geo3d_current_user', JSON.stringify(user));
-  
-  // Redirect to home or solver page
-  window.location.href = 'solver.html';
+async function handleGoogleCallback(response) {
+  try {
+    // Decode JWT token to get user info
+    const userInfo = parseJwt(response.credential);
+    
+    console.log('Google user info:', userInfo);
+    
+    // Call backend API to create/get user in database
+    const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
+    const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        googleId: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture
+      })
+    });
+    
+    if (!backendResponse.ok) {
+      const error = await backendResponse.json();
+      throw new Error(error.detail || 'Đăng nhập thất bại');
+    }
+    
+    const data = await backendResponse.json();
+    console.log('Backend response:', data);
+    
+    if (data.success && data.user) {
+      // Save user info to localStorage
+      localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
+      localStorage.setItem('geo3d_current_user', JSON.stringify({
+        id: data.user.maNguoiDung,
+        username: data.user.tenDangNhap,
+        email: data.user.email,
+        role: data.user.vaiTro,
+        provider: 'google',
+        picture: userInfo.picture
+      }));
+      
+      // Show success message
+      alert('✅ Đăng nhập thành công!');
+      
+      // Redirect to solver page
+      window.location.href = 'solver.html';
+    } else {
+      throw new Error('Không nhận được thông tin user từ server');
+    }
+    
+  } catch (error) {
+    console.error('Google login error:', error);
+    alert('❌ Lỗi đăng nhập: ' + error.message);
+  }
 }
 
 // Parse JWT token
