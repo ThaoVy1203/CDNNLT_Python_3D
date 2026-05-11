@@ -362,14 +362,85 @@ async def render_3d_geometry(ma_bai_toan: int):
 
 @router.get("/problem/{ma_bai_toan}")
 async def get_full_problem(ma_bai_toan: int):
-    """Lấy đầy đủ thông tin bài toán"""
+    """
+    Lấy đầy đủ thông tin bài toán để hiển thị trong lịch sử
+    
+    Returns:
+        - baiToan: Thông tin cơ bản (duongDan, deBaiTho, loaiHinh, tomTatDe, ngayTao)
+        - duLieuHinhHoc: Dữ liệu hình học (toaDoDiem, cacCanh, cacQuanHe)
+        - loiGiai: Lời giải (cacBuocGiai, ketQuaCuoi, congThucSuDung)
+        - extraction: Dữ liệu đã trích xuất (given_conditions, questions, points, relationships)
+    """
     try:
+        # Lấy thông tin bài toán
         bai_toan = bai_toan_repo.get_by_id(ma_bai_toan)
         if not bai_toan:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài toán")
+        
+        # Lấy dữ liệu hình học
         du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
+        
+        # Lấy lời giải
         loi_giai = loi_giai_repo.get_by_bai_toan(ma_bai_toan)
-        return {"baiToan": bai_toan, "duLieuHinhHoc": du_lieu, "loiGiai": loi_giai}
+        
+        # Parse dữ liệu hình học để tạo extraction data
+        extraction = None
+        if du_lieu:
+            try:
+                # Parse các quan hệ từ database
+                cac_quan_he = json.loads(du_lieu.get("cacQuanHe", "[]"))
+                toa_do_diem = json.loads(du_lieu.get("toaDoDiem", "{}"))
+                
+                # Tạo extraction data từ deBaiTho
+                problem_text = bai_toan.get("deBaiTho", "")
+                
+                # Extract given_conditions và questions từ problem_text
+                given_conditions = []
+                questions = []
+                
+                if problem_text:
+                    sentences = problem_text.split('.')
+                    for sentence in sentences:
+                        sentence = sentence.strip()
+                        if not sentence:
+                            continue
+                        
+                        # Check if it's a question
+                        if '?' in sentence or 'tính' in sentence.lower() or 'tìm' in sentence.lower():
+                            questions.append(sentence)
+                        # Check if it's a given condition
+                        elif '=' in sentence or 'vuông góc' in sentence.lower() or '⊥' in sentence:
+                            given_conditions.append(sentence)
+                        elif 'hình' in sentence.lower() or 'cạnh' in sentence.lower():
+                            given_conditions.append(sentence)
+                        elif 'trung điểm' in sentence.lower() or 'tâm' in sentence.lower():
+                            given_conditions.append(sentence)
+                
+                extraction = {
+                    "problem_text": problem_text,
+                    "problem_type": bai_toan.get("loaiHinh", ""),
+                    "given_conditions": given_conditions,
+                    "questions": questions,
+                    "points": list(toa_do_diem.keys()) if toa_do_diem else [],
+                    "relationships": cac_quan_he
+                }
+            except Exception as e:
+                print(f"Warning: Could not parse extraction data: {e}")
+                extraction = {
+                    "problem_text": bai_toan.get("deBaiTho", ""),
+                    "problem_type": bai_toan.get("loaiHinh", ""),
+                    "given_conditions": [],
+                    "questions": [],
+                    "points": [],
+                    "relationships": []
+                }
+        
+        return {
+            "baiToan": bai_toan,
+            "duLieuHinhHoc": du_lieu,
+            "loiGiai": loi_giai,
+            "extraction": extraction  # Thêm extraction data để frontend dễ hiển thị
+        }
     except HTTPException:
         raise
     except Exception as e:

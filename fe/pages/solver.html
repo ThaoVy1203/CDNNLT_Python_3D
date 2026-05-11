@@ -1570,6 +1570,15 @@ let geometry3DData = null;
 document.addEventListener('DOMContentLoaded', function() {
   console.log('=== DOM Content Loaded ===');
   
+  // Check if loading from history (URL parameter ?id=123)
+  const urlParams = new URLSearchParams(window.location.search);
+  const problemId = urlParams.get('id');
+  
+  if (problemId) {
+    console.log('📖 Loading problem from history, ID:', problemId);
+    loadProblemFromHistory(problemId);
+  }
+  
   // Wait for Three.js to load
   if (typeof THREE === 'undefined') {
     console.error('❌ Three.js not loaded');
@@ -2219,6 +2228,173 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+/**
+ * Load problem from history when clicking on a history item
+ * URL format: solver.html?id=123
+ */
+async function loadProblemFromHistory(problemId) {
+  try {
+    console.log('📖 Loading problem from history, ID:', problemId);
+    
+    // Show loading indicator
+    const uploadZone = document.querySelector('.upload-zone');
+    if (uploadZone) {
+      uploadZone.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" style="animation: spin 1s linear infinite; margin-bottom: 16px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <p style="color: var(--ink-2); font-size: 14px;">Đang tải bài toán từ lịch sử...</p>
+        </div>
+      `;
+    }
+    
+    // Fetch problem data from API
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const response = await fetch(`${API_BASE_URL}/geometry/problem/${problemId}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ Problem data loaded:', data);
+    
+    // Store problem ID globally
+    window.currentProblemId = problemId;
+    
+    // 1. Display uploaded image
+    const imageUrl = `${API_BASE_URL}${data.baiToan.duongDan}`;
+    if (uploadZone) {
+      uploadZone.innerHTML = `
+        <div style="position: relative;">
+          <img src="${imageUrl}" alt="Problem image" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="position: absolute; top: 12px; right: 12px; background: rgba(42,122,98,0.9); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+            ✓ Từ lịch sử
+          </div>
+        </div>
+      `;
+    }
+    
+    // 2. Display recognized text
+    const recognizedResult = document.getElementById('recognized-result');
+    if (recognizedResult && data.baiToan.deBaiTho) {
+      const problemText = recognizedResult.querySelector('.problem-text');
+      if (problemText) {
+        problemText.textContent = data.baiToan.deBaiTho;
+      }
+      
+      // Update badges
+      const badgesContainer = recognizedResult.querySelector('div');
+      if (badgesContainer && data.extraction) {
+        badgesContainer.innerHTML = `
+          <span class="badge badge-gold">${data.extraction.problem_type || 'Hình học không gian'}</span>
+          ${data.extraction.given_conditions.slice(0, 3).map(cond => 
+            `<span class="badge badge-indigo">${cond.substring(0, 30)}${cond.length > 30 ? '...' : ''}</span>`
+          ).join('')}
+        `;
+      }
+      
+      recognizedResult.style.display = 'block';
+    }
+    
+    // 3. Display geometry elements in sidebar
+    const geometryInfo = document.getElementById('geometry-info');
+    if (geometryInfo && data.extraction) {
+      const extraction = data.extraction;
+      
+      // Build geometry info rows
+      let infoHTML = '<p class="iw-title">Yếu tố hình học</p>';
+      
+      // Hình dạng
+      if (extraction.problem_type) {
+        infoHTML += `<div class="info-row"><span class="ir-key">Hình dạng</span><span class="ir-val">${extraction.problem_type}</span></div>`;
+      }
+      
+      // Display given conditions (up to 5)
+      extraction.given_conditions.slice(0, 5).forEach((condition, index) => {
+        const label = index === 0 ? 'Đáy' : 
+                     condition.includes('⊥') || condition.includes('vuông góc') ? 'Vuông góc' :
+                     condition.includes('trung điểm') ? 'Trung điểm' :
+                     condition.includes('=') || condition.includes('khoảng cách') ? 'Độ dài' :
+                     `Điều kiện ${index + 1}`;
+        infoHTML += `<div class="info-row"><span class="ir-key">${label}</span><span class="ir-val">${condition}</span></div>`;
+      });
+      
+      // Yêu cầu
+      if (extraction.questions && extraction.questions.length > 0) {
+        infoHTML += `<div class="info-row"><span class="ir-key">Yêu cầu</span><span class="ir-val">${extraction.questions[0]}</span></div>`;
+      }
+      
+      geometryInfo.innerHTML = infoHTML;
+      geometryInfo.style.display = 'block';
+      
+      // Show divider and similar problems
+      const divider = document.getElementById('info-divider');
+      if (divider) divider.style.display = 'block';
+      
+      const similarProblems = document.getElementById('similar-problems');
+      if (similarProblems) similarProblems.style.display = 'block';
+    }
+    
+    // 4. Hide upload tips, show next step button
+    const uploadTips = document.getElementById('upload-tips');
+    if (uploadTips) uploadTips.style.display = 'none';
+    
+    const nextStepBtn = document.getElementById('next-step-btn');
+    if (nextStepBtn) nextStepBtn.style.display = 'block';
+    
+    // 5. Update tab states
+    const tab0 = document.getElementById('tab-0');
+    if (tab0) {
+      tab0.classList.add('done');
+      tab0.querySelector('.step-num').textContent = '✓';
+    }
+    
+    // 6. Load 3D geometry data if available
+    if (data.duLieuHinhHoc) {
+      try {
+        const toaDoDiem = JSON.parse(data.duLieuHinhHoc.toaDoDiem || '{}');
+        const cacCanh = JSON.parse(data.duLieuHinhHoc.cacCanh || '[]');
+        
+        if (Object.keys(toaDoDiem).length > 0) {
+          console.log('✅ 3D geometry data available, will load when switching to Panel 1');
+          window.historyGeometryData = {
+            points: toaDoDiem,
+            edges: cacCanh
+          };
+        }
+      } catch (e) {
+        console.warn('Could not parse 3D geometry data:', e);
+      }
+    }
+    
+    console.log('✅ Problem loaded from history successfully');
+    
+  } catch (error) {
+    console.error('❌ Error loading problem from history:', error);
+    alert(`Lỗi tải bài toán từ lịch sử: ${error.message}\n\nVui lòng thử lại hoặc quay lại trang lịch sử.`);
+    
+    // Restore upload zone
+    const uploadZone = document.querySelector('.upload-zone');
+    if (uploadZone) {
+      uploadZone.innerHTML = `
+        <div class="upload-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h3>Kéo thả ảnh vào đây</h3>
+        <p>hoặc nhấn để chọn từ thiết bị — JPG, PNG, PDF · tối đa 10MB</p>
+        <button class="btn-filled" onclick="event.stopPropagation();document.getElementById('imageInput').click()">Chọn ảnh</button>
+      `;
+    }
+  }
+}
 
 </script>
 </body>
