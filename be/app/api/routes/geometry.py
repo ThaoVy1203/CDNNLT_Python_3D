@@ -438,7 +438,8 @@ async def get_full_problem(ma_bai_toan: int):
             "baiToan": bai_toan,
             "duLieuHinhHoc": du_lieu,
             "loiGiai": loi_giai,
-            "extraction": extraction  # Thêm extraction data để frontend dễ hiển thị
+            "dungHinh3D": dung_hinh_repo.get_by_bai_toan(ma_bai_toan),
+            "extraction": extraction
         }
     except HTTPException:
         raise

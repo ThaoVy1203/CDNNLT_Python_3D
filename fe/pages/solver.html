@@ -2075,26 +2075,61 @@ async function loadProblemFromHistory(problemId) {
       tab0.classList.add('done');
       tab0.querySelector('.step-num').textContent = '✓';
     }
-    
-    // 6. Load 3D geometry data if available
-    if (data.duLieuHinhHoc) {
-      try {
-        const toaDoDiem = JSON.parse(data.duLieuHinhHoc.toaDoDiem || '{}');
-        const cacCanh = JSON.parse(data.duLieuHinhHoc.cacCanh || '[]');
-        
-        if (Object.keys(toaDoDiem).length > 0) {
-          console.log('✅ 3D geometry data available, will load when switching to Panel 1');
-          window.historyGeometryData = {
-            points: toaDoDiem,
-            edges: cacCanh
-          };
-        }
-      } catch (e) {
-        console.warn('Could not parse 3D geometry data:', e);
+
+    // 6. Lưu currentProblemId đúng cách (không dùng window.)
+    currentProblemId = parseInt(problemId);
+    currentProblemData = { extraction: data.extraction };
+
+    // 7. Load 3D geometry từ DUNGHINH3D (đã có sẵn trong DB)
+    setTimeout(() => load3DGeometry(currentProblemId), 500);
+
+    // 8. Load lời giải nếu đã có trong DB
+    if (data.loiGiai) {
+      const solution = data.loiGiai;
+      let steps = [];
+      try { steps = JSON.parse(solution.cacBuocGiai || '[]'); } catch(e) {}
+      const result = solution.ketQuaCuoi || '';
+
+      let solutionHTML = `
+        <div style="padding:16px;background:var(--teal-bg);border:1px solid rgba(42,122,98,.2);border-radius:8px;margin:20px 0;">
+          <p style="font-size:13px;color:var(--teal);font-weight:500;">✅ Lời giải từ lịch sử:</p>
+        </div>`;
+
+      steps.forEach((step, i) => {
+        const title = typeof step === 'object' ? (step.title || `Bước ${i+1}`) : `Bước ${i+1}`;
+        const content = typeof step === 'object' ? (step.content || step) : step;
+        solutionHTML += `
+          <div class="solution-step gold">
+            <div class="ss-label">${title}</div>
+            <p>${content}</p>
+          </div>`;
+      });
+
+      if (result) {
+        solutionHTML += `
+          <div class="solution-step gold" style="background:var(--gold-bg);border-color:rgba(160,120,64,.25);">
+            <div class="ss-label">Kết quả</div>
+            <p style="font-weight:600;color:var(--gold);">${result}</p>
+          </div>`;
       }
+
+      const solutionContent = document.getElementById('solutionContent');
+      const solutionLocked = document.getElementById('solutionLocked');
+      if (solutionContent) {
+        solutionContent.innerHTML = solutionHTML;
+        solutionContent.style.display = 'block';
+      }
+      if (solutionLocked) solutionLocked.style.display = 'none';
+
+      // Đánh dấu tab 3 (Gợi ý & Lời giải) đã có dữ liệu
+      const tab3 = document.getElementById('tab-3');
+      if (tab3) tab3.classList.add('done');
     }
-    
-    console.log('✅ Problem loaded from history successfully');
+
+    // 9. Xóa URL parameter để tránh conflict khi upload ảnh mới
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     
   } catch (error) {
     console.error('❌ Error loading problem from history:', error);
