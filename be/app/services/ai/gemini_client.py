@@ -143,14 +143,22 @@ class GeminiClient:
             tmp_path = tmp_file.name
         
         try:
-            # Upload file
-            uploaded_file = self.client.files.upload(file=tmp_path)
-            
-            # Generate content
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=[prompt, uploaded_file],
-                config=self.generation_config
+            # Chạy trong thread pool để không block async event loop
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            uploaded_file = await loop.run_in_executor(
+                None,
+                lambda: self.client.files.upload(file=tmp_path)
+            )
+
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[prompt, uploaded_file],
+                    config=self.generation_config
+                )
             )
         finally:
             # Xóa file tạm
@@ -228,10 +236,15 @@ BÀI TOÁN:
 Phân tích và trả về JSON.
 """
         
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=full_prompt,
-            config=self.generation_config
+        import asyncio
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=self.generation_config
+            )
         )
         
         try:

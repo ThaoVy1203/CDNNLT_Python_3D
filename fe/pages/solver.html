@@ -68,32 +68,12 @@
 <!-- Verify loading -->
 <script>
 if (typeof THREE === 'undefined') {
-  console.error('❌ THREE.js failed to load from local files');
   alert('Lỗi: Không thể load Three.js. Vui lòng kiểm tra file fe/js/three.min.js');
-} else {
-  console.log('✅ THREE.js loaded from local files, version:', THREE.REVISION);
 }
 </script>
 
 <!-- Three.js Viewer Manager -->
 <script src="../js/three-viewer.js"></script>
-
-<!-- Debug: Log when scripts are loaded -->
-<script>
-console.log('=== Script Loading Check ===');
-console.log('THREE available:', typeof THREE !== 'undefined');
-if (typeof THREE !== 'undefined') {
-  console.log('THREE.REVISION:', THREE.REVISION);
-  console.log('THREE.OrbitControls available:', typeof THREE.OrbitControls !== 'undefined');
-  
-  // Extra debug for OrbitControls
-  if (typeof THREE.OrbitControls === 'undefined') {
-    console.error('❌ THREE.OrbitControls is undefined!');
-    console.log('Available THREE properties:', Object.keys(THREE).filter(k => k.includes('Control')));
-  }
-}
-console.log('ThreeViewerManager available:', typeof ThreeViewerManager !== 'undefined');
-</script>
 
 <!-- MAIN APP -->
 <div class="app-wrapper" style="padding-top: 32px;">
@@ -634,7 +614,7 @@ console.log('ThreeViewerManager available:', typeof ThreeViewerManager !== 'unde
 <!-- Main solver script -->
 <script>
 // ═══════════════════════════════════════════════════════════
-// GLOBAL STATE (specific to solver page)
+// GLOBAL STATE
 // ═══════════════════════════════════════════════════════════
 let currentProblemId = null;
 let currentProblemData = null;
@@ -662,278 +642,202 @@ if (!document.getElementById('solver-animations')) {
 // TAB NAVIGATION - Base implementation
 // ═══════════════════════════════════════════════════════════
 function showTab(index) {
-  // Hide all panels
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.step-tab').forEach(t => {
-    t.classList.remove('active');
-  });
-  
-  // Show selected panel
+  document.querySelectorAll('.step-tab').forEach(t => t.classList.remove('active'));
+
   const panel = document.getElementById('panel-' + index);
-  const tab = document.getElementById('tab-' + index);
-  
+  const tab   = document.getElementById('tab-'   + index);
   if (panel) panel.classList.add('active');
-  if (tab) tab.classList.add('active');
-  
-  // Scroll to top of tabs
+  if (tab)   tab.classList.add('active');
+
   const nav = document.querySelector('.step-nav');
-  if (nav) {
-    nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-  
-  // CRITICAL FIX: Resize canvas when switching to 3D panels
-  // Canvas needs to be visible to get correct dimensions
+  if (nav) nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   setTimeout(() => {
-    if (index === 1 && viewer1) {
-      // Panel 1 - Full 3D model
-      const canvas1 = document.getElementById('threeCanvas1');
-      if (canvas1 && viewer1.renderer && viewer1.camera) {
-        const container = canvas1.parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        console.log('📐 Resizing canvas1 to:', width, 'x', height);
-        
-        viewer1.camera.aspect = width / height;
-        viewer1.camera.updateProjectionMatrix();
-        viewer1.renderer.setSize(width, height);
-        
-        // Re-enable controls to ensure they work
-        if (viewer1.controls) {
-          viewer1.controls.enabled = true;
-          viewer1.controls.update();
-          console.log('✓ Canvas1 resized and controls enabled');
-        }
-      }
-    } else if (index === 2 && viewer2) {
-      // Panel 2 - Step-by-step construction
-      const canvas2 = document.getElementById('threeCanvas2');
-      if (canvas2 && viewer2.renderer && viewer2.camera) {
-        const container = canvas2.parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        console.log('📐 Resizing canvas2 to:', width, 'x', height);
-        
-        viewer2.camera.aspect = width / height;
-        viewer2.camera.updateProjectionMatrix();
-        viewer2.renderer.setSize(width, height);
-        
-        // Re-enable controls to ensure they work
-        if (viewer2.controls) {
-          viewer2.controls.enabled = true;
-          viewer2.controls.update();
-          console.log('✓ Canvas2 resized and controls enabled');
-        }
-      }
+    // Resize viewers
+    function resizeViewer(viewer, canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !viewer || !viewer.renderer || !viewer.camera) return;
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      viewer.camera.aspect = w / h;
+      viewer.camera.updateProjectionMatrix();
+      viewer.renderer.setSize(w, h);
+      if (viewer.controls) { viewer.controls.enabled = true; viewer.controls.update(); }
     }
-  }, 100); // Small delay to ensure panel is visible
+    if (index === 1) resizeViewer(viewer1, 'threeCanvas1');
+    if (index === 2) resizeViewer(viewer2, 'threeCanvas2');
+
+    // Load 3D khi cần
+    if ((index === 1 || index === 2) && currentProblemId && !geometry3DData) {
+      load3DGeometry(currentProblemId);
+    }
+    if ((index === 1 || index === 2) && !currentProblemId) {
+      const msg = `<p style="color:var(--ink-3);font-size:13px;text-align:center;padding:20px;">
+        📤 Vui lòng tải ảnh đề bài ở Bước 1 trước</p>`;
+      const l1 = document.getElementById('canvas1Loading');
+      const l2 = document.getElementById('canvas2Loading');
+      if (l1) { l1.style.display = 'block'; l1.innerHTML = msg; }
+      if (l2) { l2.style.display = 'block'; l2.innerHTML = msg; }
+    }
+
+    // Load hints khi vào panel 3
+    if (index === 3 && currentProblemId) loadHintsAndFormulas();
+  }, 100);
 }
 
 // ═══════════════════════════════════════════════════════════
 // FILE UPLOAD HANDLING
 // ═══════════════════════════════════════════════════════════
 
-// File upload handling with real API integration
+let _uploadInProgress = false;
+
 async function handleFileSelect(event) {
-  const file = event.target.files[0];
+  if (_uploadInProgress) return;
+
+  const file = event && event.target && event.target.files && event.target.files[0];
   if (!file) return;
-  
-  // Check file size (max 10MB)
-  const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-  if (file.size > maxSize) {
-    alert('Kích thước file quá lớn! Vui lòng chọn file nhỏ hơn 10MB.');
-    return;
-  }
-  
-  // Check file type
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
-  if (!allowedTypes.includes(file.type)) {
-    alert('Định dạng file không được hỗ trợ! Vui lòng chọn file JPG, PNG, GIF hoặc PDF.');
-    return;
-  }
-  
-  // Show loading state
-  const uploadZone = document.querySelector('.upload-zone');
+
+  if (file.size > 10 * 1024 * 1024) { alert('File quá lớn! Tối đa 10MB.'); return; }
+  const allowed = ['image/jpeg','image/jpg','image/png','image/gif','application/pdf'];
+  if (!allowed.includes(file.type)) { alert('Định dạng không hỗ trợ!'); return; }
+
+  _uploadInProgress = true;
+
+  const uploadZone    = document.querySelector('.upload-zone');
   const recognizedCard = document.getElementById('recognized-result');
-  
-  uploadZone.innerHTML = `
-    <div class="upload-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M12 6v6l4 2"/>
-      </svg>
-    </div>
-    <h3>Đang xử lý ảnh...</h3>
-    <p>AI đang phân tích đề bài của bạn<span id="loading-dots">...</span></p>
-  `;
-  
-  // Animate loading dots
-  let dotCount = 0;
-  const dotInterval = setInterval(() => {
-    const dotsEl = document.getElementById('loading-dots');
-    if (dotsEl) {
-      dotCount = (dotCount + 1) % 4;
-      dotsEl.textContent = '.'.repeat(dotCount);
-    }
-  }, 500);
-  
+  const geometryInfo  = document.getElementById('geometry-info');
+  const infoDivider   = document.getElementById('info-divider');
+  const similarProbs  = document.getElementById('similar-problems');
+  const nextStepBtn   = document.getElementById('next-step-btn');
+  const uploadTips    = document.getElementById('upload-tips');
+
+  let dotTimer;
   try {
-    // Get user ID if logged in (from auth.js)
-    const userId = typeof getCurrentUser === 'function' ? getCurrentUser()?.id : null;
-    
-    // Call real API to upload and analyze
-    const response = await apiService.uploadAndAnalyze(file, userId);
-    
-    clearInterval(dotInterval);
-    
-    if (response.success) {
-      // Store problem data globally
-      currentProblemId = response.data.maBaiToan;
-      currentProblemData = response.data;
-      
-      // Extract data first before using
-      const extraction = response.data.extraction || {};
-      const problemText = extraction.problem_text || 'Đề bài đã được phân tích thành công';
-      const problemType = extraction.problem_type || 'Hình học không gian';
-      
-      console.log('✅ Problem uploaded successfully. ID:', currentProblemId);
-      console.log('📊 Problem data:', {
-        maBaiToan: currentProblemId,
-        extraction: extraction,
-        hasVisualization: !!response.data.visualization
-      });
-      
-      // Auto-load 3D geometry after successful upload
-      // This will call /render-3d/{id} API to generate and save to DUNGHINH3D table
-      setTimeout(() => {
-        console.log('🎨 Auto-loading 3D geometry from backend (will save to DUNGHINH3D)...');
-        load3DGeometry(currentProblemId);
-      }, 1000); // Increased delay to ensure DB save is complete
-      
-      // Read and preview image
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const imagePreview = file.type.startsWith('image/') 
-          ? `<img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border);" alt="Preview">`
-          : '';
-        
-        uploadZone.innerHTML = `
-          <div class="upload-icon" style="background: var(--teal-bg); border-color: var(--teal);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <h3 style="color: var(--teal);">Đã phân tích thành công!</h3>
-          <p>File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</p>
-          ${imagePreview}
-          <button class="btn-line" style="margin-top: 12px;" onclick="document.getElementById('imageInput').click()">
-            Chọn ảnh khác
-          </button>
-        `;
-        
-        // Update recognized result with real data
-        const problemTextEl = recognizedCard.querySelector('.problem-text');
-        if (problemTextEl) {
-          problemTextEl.innerHTML = problemText;
-        }
-        
-        // Show recognized result
-        recognizedCard.style.display = 'block';
-        
-        // Update geometry info sidebar with real data
-        const geometryInfo = document.getElementById('geometry-info');
-        if (geometryInfo && extraction) {
-          const infoRows = geometryInfo.querySelectorAll('.info-row');
-          
-          // Update with extracted data
-          const givenConditions = extraction.given_conditions || [];
-          const questions = extraction.questions || [];
-          
-          // Clear existing rows
-          geometryInfo.innerHTML = `<p class="iw-title">Yếu tố hình học</p>`;
-          
-          // Add shape type
-          if (problemType) {
-            geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">Hình dạng</span><span class="ir-val">${problemType}</span></div>`;
-          }
-          
-          // Add given conditions
-          givenConditions.slice(0, 4).forEach((condition, idx) => {
-            // Format math symbols
-            let formattedCondition = condition
-              .replace(/vuông góc/gi, '⊥')
-              .replace(/vuong goc/gi, '⊥')
-              .replace(/song song/gi, '∥')
-              .replace(/sqrt\((\d+)\)/g, '√$1')
-              .replace(/\*sqrt\((\d+)\)/g, '√$1')
-              .replace(/a\*sqrt/g, 'a√')
-              .replace(/mp\(([^)]+)\)/g, '($1)')
-              .replace(/SA ⊥ mp\(ABCD\)/g, 'SA ⊥ (ABCD)');
-            
-            // Determine condition type
-            let conditionLabel = 'Điều kiện';
-            if (formattedCondition.includes('⊥')) {
-              conditionLabel = 'Vuông góc';
-            } else if (formattedCondition.includes('∥')) {
-              conditionLabel = 'Song song';
-            } else if (formattedCondition.includes('trung điểm')) {
-              conditionLabel = 'Trung điểm';
-            } else if (formattedCondition.match(/[A-Z]{2,}\s*=/) || formattedCondition.includes('cạnh')) {
-              conditionLabel = 'Độ dài';
-            } else if (formattedCondition.includes('hình vuông') || formattedCondition.includes('hình chữ nhật')) {
-              conditionLabel = 'Đáy';
-            }
-            
-            geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">${conditionLabel}</span><span class="ir-val">${formattedCondition}</span></div>`;
-          });
-          
-          // Add questions
-          if (questions.length > 0) {
-            geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">Yêu cầu</span><span class="ir-val">${questions[0]}</span></div>`;
-          }
-        }
-        
-        // Show sidebar info
-        document.getElementById('geometry-info').style.display = 'block';
-        document.getElementById('info-divider').style.display = 'block';
-        document.getElementById('similar-problems').style.display = 'block';
-        document.getElementById('next-step-btn').style.display = 'block';
-        
-        // Hide upload tips
-        const uploadTips = document.getElementById('upload-tips');
-        if (uploadTips) uploadTips.style.display = 'none';
-        
-        // Smooth scroll to result
-        setTimeout(() => {
-          recognizedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-      };
-      
-      reader.readAsDataURL(file);
-      
-    } else {
-      throw new Error(response.message || 'Không thể phân tích ảnh');
-    }
-    
-  } catch (error) {
-    clearInterval(dotInterval);
-    console.error('Upload error:', error);
-    
+    // Loading state
     uploadZone.innerHTML = `
-      <div class="upload-icon" style="background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.3);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
+      <div class="upload-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
         </svg>
       </div>
-      <h3 style="color: #dc2626;">Lỗi phân tích</h3>
-      <p>${error.message || 'Không thể kết nối đến server. Vui lòng thử lại.'}</p>
-      <button class="btn-filled" style="margin-top: 12px;" onclick="document.getElementById('imageInput').click()">
-        Thử lại
-      </button>
-    `;
+      <h3>Đang xử lý ảnh...</h3>
+      <p>AI đang phân tích đề bài<span id="upload-dots">...</span></p>`;
+    let dotCount = 0;
+    dotTimer = setInterval(() => {
+      const el = document.getElementById('upload-dots');
+      if (el) { dotCount = (dotCount+1)%4; el.textContent = '.'.repeat(dotCount||1); }
+    }, 500);
+
+    // Lấy userId
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const userId = user ? (user.id || user.maNguoiDung || null) : null;
+
+    // Gọi API trực tiếp bằng fetch
+    const formData = new FormData();
+    formData.append('file', file);
+    if (userId) formData.append('ma_nguoi_dung', String(userId));
+
+    const res = await fetch('http://127.0.0.1:8000/geometry/upload-and-save', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || `HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'API lỗi');
+
+    // Lưu state
+    currentProblemId   = json.data.maBaiToan;
+    currentProblemData = json.data;
+
+    const extraction  = json.data.extraction || {};
+    const imagePath   = json.data.imagePath  || null;
+    const problemText = extraction.problem_text || 'Đề bài đã được phân tích thành công';
+    const problemType = extraction.problem_type || 'Hình học không gian';
+    const conditions  = extraction.given_conditions || [];
+    const questions   = extraction.questions || [];
+
+    // Wrap FileReader trong Promise để await
+    let imageDataUrl = null;
+    if (file.type.startsWith('image/')) {
+      imageDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Không đọc được file'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Hiển thị ảnh (ưu tiên URL server, fallback base64)
+    const imgSrc = imagePath ? `http://127.0.0.1:8000${imagePath}` : imageDataUrl;
+    const imgTag = imgSrc
+      ? `<img src="${imgSrc}" style="max-width:100%;max-height:200px;border-radius:8px;margin:12px 0;border:1px solid var(--border);" alt="Ảnh bài toán" onerror="this.style.display='none'">`
+      : '';
+
+    uploadZone.innerHTML = `
+      <div class="upload-icon" style="background:var(--teal-bg);border-color:var(--teal);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h3 style="color:var(--teal);">Đã phân tích thành công!</h3>
+      <p>${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
+      ${imgTag}
+      <button class="btn-line" style="margin-top:10px;"
+        onclick="document.getElementById('imageInput').click()">Chọn ảnh khác</button>`;
+
+    // Hiển thị đề bài
+    const ptEl = recognizedCard.querySelector('.problem-text');
+    if (ptEl) ptEl.innerHTML = problemText;
+    const badgeDiv = recognizedCard.querySelector('div');
+    if (badgeDiv) badgeDiv.innerHTML = `<span class="badge badge-gold">${problemType}</span>`;
+    recognizedCard.style.display = 'block';
+
+    // Hiển thị yếu tố hình học
+    geometryInfo.innerHTML = `<p class="iw-title">Yếu tố hình học</p>
+      <div class="info-row"><span class="ir-key">Hình dạng</span><span class="ir-val">${problemType}</span></div>`;
+    conditions.slice(0,4).forEach(cond => {
+      const fmt = cond.replace(/vuông góc/gi,'⊥').replace(/song song/gi,'∥').replace(/sqrt\((\d+)\)/g,'√$1');
+      const label = fmt.includes('⊥') ? 'Vuông góc'
+                  : fmt.includes('trung điểm') ? 'Trung điểm'
+                  : fmt.includes('hình vuông')||fmt.includes('hình chữ nhật') ? 'Đáy'
+                  : fmt.match(/[A-Z]{2,}\s*=/)||fmt.includes('cạnh') ? 'Độ dài' : 'Điều kiện';
+      geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">${label}</span><span class="ir-val">${fmt}</span></div>`;
+    });
+    if (questions.length > 0)
+      geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">Yêu cầu</span><span class="ir-val">${questions[0]}</span></div>`;
+
+    // Hiện sidebar
+    geometryInfo.style.display = 'block';
+    if (infoDivider)  infoDivider.style.display  = 'block';
+    if (similarProbs) similarProbs.style.display = 'block';
+    if (nextStepBtn)  nextStepBtn.style.display  = 'block';
+    if (uploadTips)   uploadTips.style.display   = 'none';
+
+    setTimeout(() => recognizedCard.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+    setTimeout(() => { if (currentProblemId) load3DGeometry(currentProblemId); }, 1500);
+
+  } catch (err) {
+    console.error('Upload error:', err);
+    uploadZone.innerHTML = `
+      <div class="upload-icon" style="background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <h3 style="color:#dc2626;">Lỗi phân tích</h3>
+      <p>${err.message || 'Không thể kết nối server'}</p>
+      <button class="btn-filled" style="margin-top:12px;"
+        onclick="document.getElementById('imageInput').click()">Thử lại</button>`;
+  } finally {
+    clearInterval(dotTimer);
+    _uploadInProgress = false;
   }
 }
 
@@ -1426,24 +1330,6 @@ async function generate3DRendering() {
   }
 }
 
-// Override showTab to trigger API calls when needed
-const originalShowTab = window.showTab;
-window.showTab = function(index) {
-  // Call original function
-  if (originalShowTab) {
-    originalShowTab(index);
-  }
-  
-  // Trigger API calls based on tab
-  if (index === 1 && currentProblemId) {
-    // Generate 3D when moving to model view
-    generate3DRendering();
-  } else if (index === 3 && currentProblemId) {
-    // Load hints and formulas when moving to hints panel
-    loadHintsAndFormulas();
-  }
-};
-
 // Load hints and formulas from problem data
 async function loadHintsAndFormulas() {
   if (!currentProblemData || !currentProblemData.extraction) {
@@ -1568,119 +1454,59 @@ let geometry3DData = null;
 
 // Initialize Three.js viewers when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('=== DOM Content Loaded ===');
-  
-  // Check if loading from history (URL parameter ?id=123)
   const urlParams = new URLSearchParams(window.location.search);
   const problemId = urlParams.get('id');
-  
-  if (problemId) {
-    console.log('📖 Loading problem from history, ID:', problemId);
-    loadProblemFromHistory(problemId);
-  }
-  
-  // Wait for Three.js to load
+  if (problemId) loadProblemFromHistory(problemId);
+
   if (typeof THREE === 'undefined') {
-    console.error('❌ Three.js not loaded');
+    console.error('Three.js not loaded');
     return;
   }
-  console.log('✓ Three.js loaded, version:', THREE.REVISION);
-  
-  // Check OrbitControls
-  if (typeof THREE.OrbitControls === 'undefined') {
-    console.warn('⚠️ OrbitControls not loaded');
-  } else {
-    console.log('✓ OrbitControls loaded');
-  }
-  
-  // Check ThreeViewerManager
   if (typeof ThreeViewerManager === 'undefined') {
-    console.error('❌ ThreeViewerManager not loaded');
+    console.error('ThreeViewerManager not loaded');
     return;
   }
-  console.log('✓ ThreeViewerManager loaded');
-  
-  // Initialize viewers after a short delay to ensure canvas elements are ready
-  setTimeout(function() {
-    console.log('Initializing Three.js viewers...');
-    initThreeViewers();
-    
-    // NOTE: Mock data is DISABLED. All 3D data now comes from DUNGHINH3D table.
-    // Data will be loaded automatically when user:
-    // 1. Uploads an image in Step 1 (calls load3DGeometry after upload)
-    // 2. Navigates to Panel 1 or Panel 2 (calls load3DGeometry if not loaded yet)
-    console.log('✅ Three.js viewers initialized. Waiting for problem data from database...');
-  }, 200);
+
+  setTimeout(initThreeViewers, 200);
 });
 
 function initThreeViewers() {
   try {
-    // Initialize Panel 1 viewer (full model)
     const canvas1 = document.getElementById('threeCanvas1');
     if (canvas1) {
-      console.log('Canvas1 found:', canvas1);
-      console.log('Canvas1 dimensions:', canvas1.clientWidth, 'x', canvas1.clientHeight);
-      
       viewer1 = new window.ThreeViewerManager();
       viewer1.init('threeCanvas1');
-      console.log('✓ Panel 1 viewer initialized');
-      
-      // Handle resize for canvas1
       const resizeCanvas1 = () => {
         if (viewer1 && viewer1.renderer && viewer1.camera) {
-          const container = canvas1.parentElement;
-          const width = container.clientWidth;
-          const height = container.clientHeight;
-          
-          viewer1.camera.aspect = width / height;
+          const w = canvas1.parentElement.clientWidth;
+          const h = canvas1.parentElement.clientHeight;
+          viewer1.camera.aspect = w / h;
           viewer1.camera.updateProjectionMatrix();
-          viewer1.renderer.setSize(width, height);
+          viewer1.renderer.setSize(w, h);
         }
       };
-      
-      // Resize on window resize
       window.addEventListener('resize', resizeCanvas1);
-      
-      // Initial resize after a short delay
       setTimeout(resizeCanvas1, 100);
-    } else {
-      console.error('❌ Canvas1 (threeCanvas1) not found');
     }
-    
-    // Initialize Panel 2 viewer (step-by-step)
+
     const canvas2 = document.getElementById('threeCanvas2');
     if (canvas2) {
-      console.log('Canvas2 found:', canvas2);
-      console.log('Canvas2 dimensions:', canvas2.clientWidth, 'x', canvas2.clientHeight);
-      
       viewer2 = new window.ThreeViewerManager();
       viewer2.init('threeCanvas2');
-      console.log('✓ Panel 2 viewer initialized');
-      
-      // Handle resize for canvas2
       const resizeCanvas2 = () => {
         if (viewer2 && viewer2.renderer && viewer2.camera) {
-          const container = canvas2.parentElement;
-          const width = container.clientWidth;
-          const height = container.clientHeight;
-          
-          viewer2.camera.aspect = width / height;
+          const w = canvas2.parentElement.clientWidth;
+          const h = canvas2.parentElement.clientHeight;
+          viewer2.camera.aspect = w / h;
           viewer2.camera.updateProjectionMatrix();
-          viewer2.renderer.setSize(width, height);
+          viewer2.renderer.setSize(w, h);
         }
       };
-      
-      // Resize on window resize
       window.addEventListener('resize', resizeCanvas2);
-      
-      // Initial resize after a short delay
       setTimeout(resizeCanvas2, 100);
-    } else {
-      console.error('❌ Canvas2 (threeCanvas2) not found');
     }
   } catch (error) {
-    console.error('❌ Error initializing Three.js viewers:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error initializing Three.js viewers:', error);
   }
 }
 
@@ -1992,109 +1818,6 @@ window.togglePlay = function() {
     }
   } else if (originalTogglePlay) {
     originalTogglePlay();
-  }
-};
-
-// Override showTab to load 3D when switching to panels 1 or 2
-const originalShowTab2 = window.showTab;
-window.showTab = function(index) {
-  // Call original function
-  if (originalShowTab2) {
-    originalShowTab2(index);
-  } else if (originalShowTab) {
-    originalShowTab(index);
-  }
-  
-  // Resize viewers when switching tabs to ensure proper rendering
-  setTimeout(() => {
-    if (index === 1 && viewer1) {
-      const canvas1 = document.getElementById('threeCanvas1');
-      if (canvas1 && viewer1.renderer && viewer1.camera) {
-        const container = canvas1.parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        viewer1.camera.aspect = width / height;
-        viewer1.camera.updateProjectionMatrix();
-        viewer1.renderer.setSize(width, height);
-        
-        console.log('✓ Resized viewer1:', width, 'x', height);
-      }
-    } else if (index === 2 && viewer2) {
-      const canvas2 = document.getElementById('threeCanvas2');
-      if (canvas2 && viewer2.renderer && viewer2.camera) {
-        const container = canvas2.parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        viewer2.camera.aspect = width / height;
-        viewer2.camera.updateProjectionMatrix();
-        viewer2.renderer.setSize(width, height);
-        
-        console.log('✓ Resized viewer2:', width, 'x', height);
-      }
-    }
-  }, 100);
-  
-  // Load 3D geometry when switching to panel 1 or 2
-  if (index === 1 || index === 2) {
-    if (currentProblemId && !geometry3DData) {
-      // PRIORITY 1: Load from DUNGHINH3D table if we have problem ID but no geometry yet
-      console.log('📊 Loading 3D geometry from DUNGHINH3D table...');
-      load3DGeometry(currentProblemId);
-    } else if (!currentProblemId && !geometry3DData) {
-      // PRIORITY 2: Show message to upload problem first
-      console.log('⚠️ No problem uploaded yet. Please upload an image first.');
-      
-      // Show friendly message in canvas
-      const loading1 = document.getElementById('canvas1Loading');
-      const loading2 = document.getElementById('canvas2Loading');
-      
-      if (loading1) {
-        loading1.style.display = 'block';
-        loading1.innerHTML = `
-          <p style="color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px;">
-            📤 Vui lòng tải ảnh đề bài ở Bước 1 trước<br>
-            <span style="font-size: 11px; margin-top: 8px; display: block;">
-              Dữ liệu 3D sẽ được lấy từ bảng DUNGHINH3D trong database
-            </span>
-          </p>
-        `;
-      }
-      
-      if (loading2) {
-        loading2.style.display = 'block';
-        loading2.innerHTML = `
-          <p style="color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px;">
-            📤 Vui lòng tải ảnh đề bài ở Bước 1 trước<br>
-            <span style="font-size: 11px; margin-top: 8px; display: block;">
-              Các bước dựng hình sẽ được lấy từ DUNGHINH3D.cacBuocVe
-            </span>
-          </p>
-        `;
-      }
-      
-      // Update sidebar message
-      const stepsContainer = document.getElementById('steps-container');
-      if (stepsContainer) {
-        stepsContainer.innerHTML = `
-          <div style="padding: 20px; text-align: center; color: var(--ink-3); font-size: 13px;">
-            <p>📤 Vui lòng tải ảnh đề bài ở Bước 1</p>
-            <p style="font-size: 11px; margin-top: 8px;">Các bước dựng hình sẽ được load từ DUNGHINH3D.cacBuocVe</p>
-          </div>
-        `;
-      }
-    } else if (geometry3DData) {
-      console.log('✅ 3D geometry already loaded from DUNGHINH3D table');
-      // Ensure viewers are showing the data
-      if (viewer1 && index === 1) {
-        viewer1.goToStep(geometry3DData.steps.length - 1);
-      }
-      if (viewer2 && index === 2) {
-        viewer2.goToStep(viewer2.currentStep || 0);
-        updateStepIndicator();
-      }
-    }
   }
 };
 

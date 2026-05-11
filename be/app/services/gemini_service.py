@@ -43,14 +43,18 @@ class GeminiService:
             from app.services.ai.prompt import build_solve_prompt
             import json
             import re
-            
-            # Gọi Gemini AI để giải toán
+            import asyncio
+
             prompt = build_solve_prompt(problem_text)
-            
-            response = self.gemini_client.client.models.generate_content(
-                model=self.gemini_client.model_name,
-                contents=prompt,
-                config=self.gemini_client.generation_config
+
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.gemini_client.client.models.generate_content(
+                    model=self.gemini_client.model_name,
+                    contents=prompt,
+                    config=self.gemini_client.generation_config
+                )
             )
             
             # Parse response
@@ -113,15 +117,20 @@ class GeminiService:
         """
         try:
             from app.services.ai.prompt import build_drawing_guide_prompt
-            
+            import asyncio
+
             prompt = build_drawing_guide_prompt(problem_text, shape_type)
-            
-            response = self.gemini_client.client.models.generate_content(
-                model=self.gemini_client.model_name,
-                contents=prompt,
-                config=self.gemini_client.generation_config
+
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.gemini_client.client.models.generate_content(
+                    model=self.gemini_client.model_name,
+                    contents=prompt,
+                    config=self.gemini_client.generation_config
+                )
             )
-            
+
             return response.text.strip()
         except Exception as e:
             # Fallback nếu AI lỗi

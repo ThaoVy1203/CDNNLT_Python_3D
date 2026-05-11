@@ -79,34 +79,39 @@ async def upload_and_save_problem(
             print(f"Renderer error: {e}")
             visualization = {"points": {}, "edges": [], "faces": []}
 
-        # Lưu vào DB (dù có hay không có user_id đều lưu để có maBaiToan)
-        # Nếu có user_id, tự động tạo user nếu chưa tồn tại
+        # LƯU ẢNH VÀO DISK
+        import os
+        from datetime import datetime
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = file.filename.replace(" ", "_")
+        unique_filename = f"{timestamp}_{safe_filename}"
+        file_path = os.path.join(upload_dir, unique_filename)
+        with open(file_path, "wb") as f:
+            f.write(image_bytes)
+        db_image_path = f"/uploads/{unique_filename}"
+
         print("Step 2: Saving to BAITOAN...")
         try:
-            # Nếu có user_id, đảm bảo user tồn tại trong DB
             if user_id:
                 try:
                     nguoi_dung_repo.get_or_create_google_user(user_id, email='', name='')
-                    print(f"User {user_id} verified/created")
                 except Exception as e:
                     print(f"Warning: Could not create user {user_id}: {e}")
-                    # Tiếp tục với user_id = None (guest mode)
                     user_id = None
             
             data_to_save = {
-                "maNguoiDung": user_id,  # None nếu không đăng nhập, hoặc Google ID
-                "duongDan": file.filename,
+                "maNguoiDung": user_id,
+                "duongDan": db_image_path,
                 "deBaiTho": extraction.get("problem_text", ""),
                 "loaiHinh": extraction.get("problem_type", ""),
                 "tomTatDe": ", ".join(extraction.get("questions", []))
             }
-            print(f"Data to save: maNguoiDung={data_to_save['maNguoiDung']}, duongDan={data_to_save['duongDan']}, loaiHinh={data_to_save['loaiHinh']}")
-            print(f"deBaiTho length: {len(data_to_save['deBaiTho'])}, tomTatDe length: {len(data_to_save['tomTatDe'])}")
             ma_bai_toan = bai_toan_repo.create_from_dict(data_to_save)
         except Exception as e:
             import traceback
             print(f"ERROR saving to BAITOAN: {e}")
-            print(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Lỗi lưu bài toán: {str(e)}")
 
         print("Step 3: Saving to DULIEUHINHHOC...")
@@ -120,7 +125,6 @@ async def upload_and_save_problem(
         except Exception as e:
             import traceback
             print(f"ERROR saving to DULIEUHINHHOC: {e}")
-            print(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Lỗi lưu dữ liệu hình học: {str(e)}")
 
         return {
@@ -130,6 +134,7 @@ async def upload_and_save_problem(
             "data": {
                 "maBaiToan": ma_bai_toan,
                 "duLieuHinhHocId": du_lieu_id,
+                "imagePath": db_image_path,  # trả về đường dẫn ảnh
                 "extraction": extraction,
                 "visualization": visualization,
                 "hasLoiGiai": False
@@ -306,11 +311,7 @@ async def render_3d_geometry(ma_bai_toan: int):
                 elif 'trung điểm' in sentence.lower() or 'tâm' in sentence.lower():
                     extraction_data["given_conditions"].append(sentence)
         
-        print(f"📊 [API] Extraction data prepared:")
-        print(f"   - Problem type: {extraction_data['problem_type']}")
-        print(f"   - Given conditions: {len(extraction_data['given_conditions'])} items")
-        print(f"   - Points: {extraction_data['points']}")
-        print(f"   - Relationships: {len(extraction_data['relationships'])} items")
+        print(f"Extraction data: type={extraction_data['problem_type']}, conditions={len(extraction_data['given_conditions'])}, points={extraction_data['points']}")
         
         # Solve geometry using Gemini extraction data
         solver = GeometrySolver()
@@ -336,8 +337,6 @@ async def render_3d_geometry(ma_bai_toan: int):
             "codeThreeJS": threejs_data["code"],
             "huongDanVe": guide
         })
-        
-        print(f"✅ [API] 3D geometry saved to DUNGHINH3D with ID: {dung_hinh_id}")
         
         return {
             "success": True,
