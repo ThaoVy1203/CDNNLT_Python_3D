@@ -73,14 +73,32 @@ class GeminiService:
             
             try:
                 solution = json.loads(json_str)
+                
+                # Validate: Ensure steps is not too long
+                if "steps" in solution and len(solution["steps"]) > 10:
+                    print(f"⚠️  Too many steps ({len(solution['steps'])}), truncating to first 5")
+                    solution["steps"] = solution["steps"][:5]
+                    
             except json.JSONDecodeError as e:
-                # If still fails, try to extract just the text without LaTeX
-                print(f"JSON parse error: {e}")
-                print(f"Problematic JSON: {json_str[:500]}")
-                # Fallback: create simple solution without LaTeX
+                print(f"❌ JSON parse error: {e}")
+                print(f"Problematic JSON (first 500 chars): {json_str[:500]}")
+                
+                # Try to extract steps manually from text
+                lines = response_text.split('\n')
+                steps = []
+                for line in lines:
+                    line = line.strip()
+                    if line and (line.startswith('-') or line.startswith('Bước') or line.startswith('•')):
+                        steps.append(line.lstrip('-•').strip())
+                        if len(steps) >= 5:
+                            break
+                
+                if not steps:
+                    steps = ["Không thể phân tích lời giải. Vui lòng thử lại."]
+                
                 solution = {
-                    "steps": ["Bước 1: Phân tích đề bài", "Bước 2: Áp dụng công thức", "Bước 3: Tính toán kết quả"],
-                    "result": "Vui lòng xem lại đề bài",
+                    "steps": steps,
+                    "result": "Xem chi tiết trong các bước giải",
                     "formulas_used": []
                 }
             
@@ -135,3 +153,169 @@ class GeminiService:
         except Exception as e:
             # Fallback nếu AI lỗi
             return f"HƯỚNG DẪN DỰNG HÌNH {shape_type.upper()}\n\nBước 1: Vẽ các điểm cơ bản\nBước 2: Nối các cạnh theo đề bài\nBước 3: Hoàn thiện hình vẽ"
+
+    async def solve_problem_with_context(self, problem_text: str) -> dict:
+        """
+        Giải bài toán với context từ tài liệu (File Search)
+        
+        CHIẾN LƯỢC MỚI:
+        1. Gọi solve_problem() để có kết quả chính xác
+        2. Dùng File Search + kết quả đó để viết lại lời giải chuẩn SGK
+        
+        Args:
+            problem_text: Đề bài toán
+            
+        Returns:
+            {
+                "steps": [...],
+                "result": "...",
+                "formulas_used": [...],
+                "references": [...]
+            }
+        """
+        try:
+            from app.services.file_search_service import file_search_service
+            from app.services.ai.prompt import build_solve_prompt
+            import json
+            import asyncio
+            
+            # BƯỚC 1: Giải bài toán để có kết quả chính xác
+            print(f"\n🧮 Step 1: Solving problem for accurate result...")
+            initial_solution = await self.solve_problem(problem_text)
+            initial_result = initial_solution.get("result", "")
+            initial_steps = initial_solution.get("steps", [])
+            
+            print(f"✅ Initial result: {initial_result}")
+            
+            # BƯỚC 2: Search tài liệu liên quan
+            print(f"\n📚 Step 2: Searching documents for context...")
+            search_results = await file_search_service.search(problem_text)
+            
+            # BƯỚC 3: Viết lại lời giải chuẩn SGK
+            if search_results:
+                print(f"✅ Found {len(search_results)} relevant documents")
+                
+                # Extract context from search results
+                context_parts = []
+                for result in search_results:
+                    context_parts.append(f"""
+📄 TÀI LIỆU: {result['file']}
+
+CÔNG THỨC:
+{chr(10).join('- ' + f for f in result.get('formulas', []))}
+
+ĐỊNH LÝ:
+{chr(10).join('- ' + t for t in result.get('theorems', []))}
+
+PHƯƠNG PHÁP:
+{chr(10).join('- ' + m for m in result.get('methods', []))}
+""")
+                
+                context = "\n\n".join(context_parts)
+                
+                # Enhanced prompt: Refine solution with context
+                refine_prompt = f"""
+Bạn là giáo viên toán chuyên về hình học không gian.
+
+ĐỀ BÀI:
+{problem_text}
+
+KẾT QUẢ ĐÚNG (đã tính toán):
+{initial_result}
+
+CÁC BƯỚC ĐÃ GIẢI (tham khảo):
+{chr(10).join(f"{i+1}. {step}" for i, step in enumerate(initial_steps))}
+
+THÔNG TIN TỪ TÀI LIỆU THAM KHẢO:
+{context}
+
+YÊU CẦU:
+Hãy viết lại lời giải theo PHONG CÁCH SÁCH GIÁO KHOA:
+- Sử dụng phương pháp và công thức từ tài liệu tham khảo
+- Giữ nguyên KẾT QUẢ ĐÚNG: {initial_result}
+- Tối đa 5 bước, mỗi bước 1 câu ngắn gọn
+- Mỗi bước phải logic, dễ hiểu như trong SGK
+- KHÔNG dùng LaTeX, dùng Unicode: √, ², ³, ⊥, ∥, ⇒
+
+VÍ DỤ FORMAT:
+{{
+  "steps": [
+    "Gọi G là trọng tâm △ABC, M là trung điểm BC",
+    "Ta có A'G ⊥ (ABC) ⇒ A'G ⊥ BC; BC ⊥ AM ⇒ BC ⊥ (MAA')",
+    "Kẻ MI ⊥ AA', BC ⊥ IM ⇒ d(AA', BC) = IM = a√3/4",
+    "Kẻ GH ⊥ AA', áp dụng định lý Thales: GH = (2/3) × IM = a√3/6",
+    "Vậy V = A'G × S_ABC = (a/3) × (a²√3/4) = a³√3/12"
+  ],
+  "result": "{initial_result}",
+  "formulas_used": ["Định lý 3 đường vuông góc", "Khoảng cách hai đường thẳng chéo nhau", "Thể tích khối lăng trụ"]
+}}
+
+Trả về JSON:
+"""
+                
+                print(f"\n✍️  Step 3: Refining solution with textbook style...")
+                
+            else:
+                print(f"⚠️  No relevant documents found, using initial solution")
+                return initial_solution
+            
+            # Call Gemini to refine
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.gemini_client.client.models.generate_content(
+                    model=self.gemini_client.model_name,
+                    contents=refine_prompt,
+                    config=self.gemini_client.generation_config
+                )
+            )
+            
+            response_text = response.text.strip()
+            
+            # Extract JSON from response
+            if "```json" in response_text:
+                json_str = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                json_str = response_text.split("```")[1].split("```")[0].strip()
+            else:
+                json_str = response_text
+            
+            # Clean up JSON string
+            import re
+            json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', json_str)
+            
+            try:
+                refined_solution = json.loads(json_str)
+                
+                # Validate: Ensure steps is not too long
+                if "steps" in refined_solution and len(refined_solution["steps"]) > 10:
+                    print(f"⚠️  Too many steps ({len(refined_solution['steps'])}), truncating to first 5")
+                    refined_solution["steps"] = refined_solution["steps"][:5]
+                
+                # Ensure result matches initial result
+                if "result" not in refined_solution or not refined_solution["result"]:
+                    refined_solution["result"] = initial_result
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parse error in refine: {e}")
+                print(f"Falling back to initial solution")
+                refined_solution = initial_solution
+            
+            # Add references to solution
+            refined_solution["references"] = [
+                {
+                    "file": r["file"],
+                    "excerpt": r["excerpt"],
+                    "formulas": r.get("formulas", []),
+                    "theorems": r.get("theorems", [])
+                }
+                for r in search_results
+            ]
+            
+            print(f"✅ Refined solution ready!")
+            return refined_solution
+            
+        except Exception as e:
+            print(f"❌ Error in solve_with_context: {e}")
+            # Fallback to normal solve
+            return await self.solve_problem(problem_text)

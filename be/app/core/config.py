@@ -19,6 +19,12 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     
+    # File Search
+    USE_FILE_SEARCH: bool = os.getenv("USE_FILE_SEARCH", "true").lower() == "true"
+    DOCUMENTS_PATH: str = os.getenv("DOCUMENTS_PATH", "Documents")
+    MAX_SEARCH_RESULTS: int = int(os.getenv("MAX_SEARCH_RESULTS", "3"))
+    FILE_SEARCH_INDEX_NAME: str = os.getenv("FILE_SEARCH_INDEX_NAME", "geometry-documents-index")
+    
     # CORS
     CORS_ORIGINS: list = ["*"]
 

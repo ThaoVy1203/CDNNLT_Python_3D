@@ -91,7 +91,7 @@ class GeminiClient:
         self.client = genai.Client(api_key=self.api_key)
         
         # Đọc model từ environment variable hoặc dùng mặc định
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         print(f"🤖 Using Gemini model: {self.model_name}")
         
         self.generation_config = types.GenerateContentConfig(

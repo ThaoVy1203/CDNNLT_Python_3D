@@ -157,6 +157,8 @@ async def solve_problem_with_ai(ma_bai_toan: int):
     Bước 3: Giải bài toán bằng Gemini AI.
     Hoạt động với cả guest (maBaiToan từ bước 1) và logged-in user.
     Kết quả lưu vào LOIGIAI (dù guest hay không).
+    
+    Nếu USE_FILE_SEARCH=true, sẽ search tài liệu để lấy context.
     """
     try:
         # Lấy bài toán từ DB
@@ -175,16 +177,30 @@ async def solve_problem_with_ai(ma_bai_toan: int):
                     "solution": {
                         "steps": json.loads(existing_solution.get("cacBuocGiai", "[]")),
                         "result": existing_solution.get("ketQuaCuoi", ""),
-                        "formulas_used": json.loads(existing_solution.get("congThucSuDung", "[]"))
+                        "formulas_used": json.loads(existing_solution.get("congThucSuDung", "[]")),
+                        "references": []  # Old solutions don't have references
                     },
-                    "fromCache": True
+                    "fromCache": True,
+                    "usedFileSearch": False
                 }
             }
 
-        # Gọi Gemini AI giải toán
+        # Gọi Gemini AI giải toán (với hoặc không có File Search)
         problem_text = bai_toan.get("deBaiTho", "")
+        
         try:
-            solution = await gemini_service.solve_problem(problem_text)
+            # Use File Search if enabled
+            from app.core.config import settings
+            if settings.USE_FILE_SEARCH:
+                print(f"📚 Using File Search for problem {ma_bai_toan}")
+                solution = await gemini_service.solve_problem_with_context(problem_text)
+                used_file_search = True
+            else:
+                print(f"📝 Solving without File Search")
+                solution = await gemini_service.solve_problem(problem_text)
+                solution["references"] = []
+                used_file_search = False
+                
         except Exception as e:
             error_msg = str(e)
             if "503" in error_msg or "UNAVAILABLE" in error_msg:
@@ -204,11 +220,13 @@ async def solve_problem_with_ai(ma_bai_toan: int):
 
         return {
             "success": True,
-            "message": "Đã giải toán thành công",
+            "message": "Đã giải toán thành công" + (" (có tham khảo tài liệu)" if used_file_search else ""),
             "data": {
                 "loiGiaiId": loi_giai_id,
                 "solution": solution,
-                "fromCache": False
+                "fromCache": False,
+                "usedFileSearch": used_file_search,
+                "references": solution.get("references", [])
             }
         }
 
@@ -620,3 +638,38 @@ def _generate_drawing_guide(geometry_data: dict) -> str:
     
     return guide
 
+
+
+
+@router.get("/file-search/status")
+async def get_file_search_status():
+    """Lấy trạng thái File Search"""
+    try:
+        from app.services.file_search_service import file_search_service
+        status = file_search_service.get_status()
+        return {
+            "success": True,
+            "data": status
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
+@router.post("/file-search/initialize")
+async def initialize_file_search():
+    """Khởi tạo/Refresh File Search index"""
+    try:
+        from app.services.file_search_service import file_search_service
+        success = await file_search_service.initialize()
+        return {
+            "success": success,
+            "message": "File Search initialized successfully" if success else "Failed to initialize File Search"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }

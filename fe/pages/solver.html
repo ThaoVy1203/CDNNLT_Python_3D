@@ -972,6 +972,11 @@ async function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const message = input.value.trim();
   
+  console.log('💬 sendChatMessage called');
+  console.log('   - message:', message);
+  console.log('   - currentProblemId:', currentProblemId);
+  console.log('   - currentProblemData:', currentProblemData);
+  
   if (!message || message.length < 10) {
     alert('Vui lòng nhập ít nhất 10 ký tự để AI có thể đánh giá!');
     return;
@@ -1004,8 +1009,11 @@ async function sendChatMessage() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
   
   try {
+    console.log('🔄 Calling evaluateUserApproach...');
     // Call Gemini AI to evaluate the user's approach
     const evaluation = await evaluateUserApproach(message);
+    
+    console.log('✅ Evaluation result:', evaluation);
     
     // Remove loading
     document.getElementById(loadingId)?.remove();
@@ -1014,7 +1022,8 @@ async function sendChatMessage() {
     addChatMessage('ai', evaluation.response);
     
     // Check if should unlock based on score only (không còn giới hạn lần thử)
-    const shouldUnlock = evaluation.score >= 5;
+    // TEMPORARY: Lowered threshold from 5 to 3 for testing
+    const shouldUnlock = evaluation.score >= 3;
     
     if (shouldUnlock) {
       setTimeout(() => {
@@ -1080,8 +1089,14 @@ function addChatMessage(type, text) {
 }
 
 async function evaluateUserApproach(userMessage) {
+  console.log('🤖 evaluateUserApproach called');
+  console.log('   - userMessage:', userMessage);
+  console.log('   - currentProblemId:', currentProblemId);
+  console.log('   - API_BASE_URL:', typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'UNDEFINED');
+  
   // Use real Gemini AI to evaluate user's approach
   try {
+    console.log('📡 Calling API /geometry/evaluate-approach...');
     const response = await fetch(`${API_BASE_URL}/geometry/evaluate-approach`, {
       method: 'POST',
       headers: {
@@ -1094,17 +1109,23 @@ async function evaluateUserApproach(userMessage) {
       })
     });
     
+    console.log('📡 API response status:', response.status);
+    
     const data = await response.json();
+    console.log('📡 API response data:', data);
     
     if (data.success && data.evaluation) {
+      console.log('✅ Using API evaluation');
       return {
         score: data.evaluation.score || 0,
         response: data.evaluation.feedback
       };
     }
   } catch (error) {
-    console.error('AI evaluation error:', error);
+    console.error('❌ AI evaluation API error:', error);
   }
+  
+  console.log('⚠️ Falling back to keyword-based evaluation');
   
   // Fallback to keyword-based if API fails
   const keywords = {
@@ -1126,6 +1147,12 @@ async function evaluateUserApproach(userMessage) {
   const lowerMessage = userMessage.toLowerCase();
   const goodCount = keywords.good.filter(k => lowerMessage.includes(k)).length;
   const badCount = keywords.bad.filter(k => lowerMessage.includes(k)).length;
+  
+  console.log('🔍 Keyword analysis:');
+  console.log('   - message length:', userMessage.length);
+  console.log('   - goodCount:', goodCount);
+  console.log('   - badCount:', badCount);
+  console.log('   - matched good keywords:', keywords.good.filter(k => lowerMessage.includes(k)));
   
   // Check message length and quality
   if (userMessage.length < 15) {
@@ -2084,46 +2111,42 @@ async function loadProblemFromHistory(problemId) {
     setTimeout(() => load3DGeometry(currentProblemId), 500);
 
     // 8. Load lời giải nếu đã có trong DB
+    // NOTE: Khi load từ lịch sử, KHÔNG tự động hiển thị lời giải
+    // Người dùng phải chat với AI để mở khóa lại
     if (data.loiGiai) {
       const solution = data.loiGiai;
       let steps = [];
       try { steps = JSON.parse(solution.cacBuocGiai || '[]'); } catch(e) {}
       const result = solution.ketQuaCuoi || '';
 
-      let solutionHTML = `
-        <div style="padding:16px;background:var(--teal-bg);border:1px solid rgba(42,122,98,.2);border-radius:8px;margin:20px 0;">
-          <p style="font-size:13px;color:var(--teal);font-weight:500;">✅ Lời giải từ lịch sử:</p>
-        </div>`;
+      // Store solution data but DON'T display it yet
+      currentProblemData.solution = {
+        steps: steps,
+        result: result
+      };
 
-      steps.forEach((step, i) => {
-        const title = typeof step === 'object' ? (step.title || `Bước ${i+1}`) : `Bước ${i+1}`;
-        const content = typeof step === 'object' ? (step.content || step) : step;
-        solutionHTML += `
-          <div class="solution-step gold">
-            <div class="ss-label">${title}</div>
-            <p>${content}</p>
-          </div>`;
-      });
-
-      if (result) {
-        solutionHTML += `
-          <div class="solution-step gold" style="background:var(--gold-bg);border-color:rgba(160,120,64,.25);">
-            <div class="ss-label">Kết quả</div>
-            <p style="font-weight:600;color:var(--gold);">${result}</p>
-          </div>`;
-      }
-
-      const solutionContent = document.getElementById('solutionContent');
-      const solutionLocked = document.getElementById('solutionLocked');
-      if (solutionContent) {
-        solutionContent.innerHTML = solutionHTML;
-        solutionContent.style.display = 'block';
-      }
-      if (solutionLocked) solutionLocked.style.display = 'none';
-
-      // Đánh dấu tab 3 (Gợi ý & Lời giải) đã có dữ liệu
-      const tab3 = document.getElementById('tab-3');
-      if (tab3) tab3.classList.add('done');
+      console.log('✅ Solution loaded from history but kept locked');
+      
+      // Add a hint message in chat
+      setTimeout(() => {
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          chatMessages.innerHTML += `
+            <div class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
+              <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--indigo), #5b7fd8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
+                🤖
+              </div>
+              <div style="flex: 1; max-width: 85%;">
+                <div style="font-size: 11px; color: var(--indigo); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">AI Phản biện</div>
+                <div style="padding: 12px 16px; background: var(--gold-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(160,120,64,0.1); border: 1px solid rgba(160,120,64,0.2);">
+                  📚 Bạn đang xem lại bài toán từ lịch sử. Hãy chia sẻ cách giải của bạn để mở khóa lời giải chi tiết!
+                </div>
+              </div>
+            </div>
+          `;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }, 500);
     }
 
     // 9. Xóa URL parameter để tránh conflict khi upload ảnh mới
