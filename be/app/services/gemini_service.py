@@ -81,7 +81,8 @@ class GeminiService:
                     
             except json.JSONDecodeError as e:
                 print(f"❌ JSON parse error: {e}")
-                print(f"Problematic JSON (first 500 chars): {json_str[:500]}")
+                print(f"Problematic JSON (first 1000 chars): {json_str[:1000]}")
+                print(f"Problematic JSON (last 500 chars): {json_str[-500:]}")
                 
                 # Try to extract steps manually from text
                 lines = response_text.split('\n')

@@ -390,7 +390,7 @@ if (typeof THREE === 'undefined') {
               <path d="M12 8h.01"></path>
             </svg>
             <p style="font-size: 11px; color: var(--ink-2); margin: 0; line-height: 1.5;">
-              Chat không giới hạn! AI sẽ hướng dẫn bạn từng bước. Khi đạt điểm >= 5, lời giải sẽ được mở khóa.
+              Chat không giới hạn! AI sẽ hướng dẫn bạn từng bước. Khi đạt điểm >= 3, lời giải sẽ được mở khóa.
             </p>
           </div>
         </div>
@@ -1205,25 +1205,15 @@ async function evaluateUserApproach(userMessage) {
 }
 
 function unlockSolutionAfterChat() {
-  // Call API to solve problem if not already solved
-  if (currentProblemId && !currentProblemData?.solution) {
+  // Call API to solve problem with File Search
+  if (currentProblemId) {
     solveProblemWithAPI();
   } else {
-    // Just show the solution if already loaded
-    document.getElementById('solutionLocked').style.display = 'none';
-    document.getElementById('solutionContent').style.display = 'block';
-    
-    // Smooth scroll to solution
-    setTimeout(() => {
-      document.getElementById('solutionContent').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
+    alert('Lỗi: Không tìm thấy ID bài toán!');
   }
 }
 
-// Solve problem with API
+// Solve problem with API (calls /geometry/solve-problem/{ma_bai_toan})
 async function solveProblemWithAPI() {
   if (!currentProblemId) {
     alert('Vui lòng tải ảnh đề bài trước!');
@@ -1232,40 +1222,76 @@ async function solveProblemWithAPI() {
   
   // Show loading state
   const solutionLocked = document.getElementById('solutionLocked');
+  const solutionContent = document.getElementById('solutionContent');
+  
   solutionLocked.innerHTML = `
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" style="margin-bottom: 12px; animation: spin 1s linear infinite;">
       <circle cx="12" cy="12" r="10"></circle>
       <path d="M12 6v6l4 2"></path>
     </svg>
-    <p style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-bottom: 6px;">Đang giải toán...</p>
-    <p style="font-size: 12px; color: var(--ink-3);">AI đang phân tích và tìm lời giải</p>
+    <p style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-bottom: 6px;">Đang giải toán với AI...</p>
+    <p style="font-size: 12px; color: var(--ink-3);">Gemini đang phân tích và tìm lời giải dựa trên tài liệu</p>
   `;
   
   try {
-    const response = await apiService.solveProblem(currentProblemId);
+    console.log('🤖 Calling solve-problem API for problem:', currentProblemId);
     
-    if (response.success) {
+    const response = await fetch(`${API_BASE_URL}/geometry/solve-problem/${currentProblemId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    console.log('📡 API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ Solution data:', data);
+    
+    // DEBUG: Log raw response text to check JSON validity
+    if (!data.success) {
+      console.error('❌ API returned error:', data);
+      throw new Error(data.message || 'API trả về lỗi');
+    }
+    
+    if (data.success && data.data && data.data.solution) {
       // Store solution data
-      currentProblemData.solution = response.data.solution;
+      currentProblemData.solution = data.data.solution;
       
-      // Update solution content with real data
-      const solution = response.data.solution;
+      // Extract solution details
+      const solution = data.data.solution;
       const steps = solution.steps || [];
       const result = solution.result || '';
+      const formulas = solution.formulas_used || [];
+      const references = solution.references || [];
+      
+      console.log('📊 Solution details:');
+      console.log('   - Steps:', steps.length);
+      console.log('   - Result:', result);
+      console.log('   - Formulas:', formulas.length);
+      console.log('   - References:', references.length);
       
       // Build solution HTML
       let solutionHTML = `
         <div style="padding: 16px; background: var(--teal-bg); border: 1px solid rgba(42,122,98,.2); border-radius: 8px; margin: 20px 0;">
-          <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Tuyệt vời! Bạn đã phân tích hướng giải. Dưới đây là lời giải chi tiết:</p>
+          <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Tuyệt vời! Bạn đã phân tích hướng giải. Dưới đây là lời giải chi tiết từ AI:</p>
         </div>
       `;
       
       // Add each step
       steps.forEach((step, index) => {
+        // Handle both string and object formats
+        const stepContent = typeof step === 'string' ? step : (step.content || step.description || '');
+        
         solutionHTML += `
           <div class="solution-step gold">
-            <div class="ss-label">Bước ${index + 1} — ${step.title || 'Giải'}</div>
-            <p>${step.content || step}</p>
+            <div class="ss-label">Bước ${index + 1}</div>
+            <p>${stepContent}</p>
           </div>
         `;
       });
@@ -1273,48 +1299,71 @@ async function solveProblemWithAPI() {
       // Add final result
       if (result) {
         solutionHTML += `
-          <div class="solution-step gold" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
+          <div class="solution-step teal" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
             <div class="ss-label">Kết quả cuối cùng</div>
-            <p style="font-weight: 600; color: var(--gold);">${result}</p>
+            <p style="font-weight: 600; color: var(--gold); font-size: 15px;">${result}</p>
           </div>
         `;
       }
       
-      document.getElementById('solutionContent').innerHTML = solutionHTML;
+      // Add formulas used
+      if (formulas.length > 0) {
+        solutionHTML += `
+          <div style="margin-top: 20px; padding: 16px; background: var(--indigo-bg); border: 1px solid rgba(61,82,160,.2); border-radius: 8px;">
+            <p style="font-size: 12px; color: var(--indigo); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">📐 Công thức đã sử dụng</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--ink-2); line-height: 1.8;">
+              ${formulas.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // Add references if available
+      if (references.length > 0) {
+        solutionHTML += `
+          <div style="margin-top: 16px; padding: 16px; background: rgba(160,120,64,0.05); border: 1px solid rgba(160,120,64,.15); border-radius: 8px;">
+            <p style="font-size: 12px; color: var(--gold); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">📚 Tài liệu tham khảo</p>
+            ${references.map(ref => `
+              <div style="margin-bottom: 12px; padding: 10px; background: white; border-radius: 6px; border: 1px solid var(--border);">
+                <p style="font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 6px;">📄 ${ref.file}</p>
+                ${ref.formulas && ref.formulas.length > 0 ? `
+                  <p style="font-size: 11px; color: var(--ink-3); margin: 4px 0;">
+                    <strong>Công thức:</strong> ${ref.formulas.slice(0, 2).join(', ')}
+                  </p>
+                ` : ''}
+                ${ref.theorems && ref.theorems.length > 0 ? `
+                  <p style="font-size: 11px; color: var(--ink-3); margin: 4px 0;">
+                    <strong>Định lý:</strong> ${ref.theorems.slice(0, 2).join(', ')}
+                  </p>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      solutionContent.innerHTML = solutionHTML;
       
       // Hide locked, show content
-      document.getElementById('solutionLocked').style.display = 'none';
-      document.getElementById('solutionContent').style.display = 'block';
-      
-      // Render LaTeX math
-      setTimeout(() => {
-        if (window.renderMathInElement) {
-          renderMathInElement(document.getElementById('solutionContent'), {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '$', right: '$', display: false},
-              {left: '\\(', right: '\\)', display: false},
-              {left: '\\[', right: '\\]', display: true}
-            ],
-            throwOnError: false
-          });
-        }
-      }, 100);
+      solutionLocked.style.display = 'none';
+      solutionContent.style.display = 'block';
       
       // Smooth scroll to solution
       setTimeout(() => {
-        document.getElementById('solutionContent').scrollIntoView({ 
+        solutionContent.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'start' 
         });
       }, 200);
       
+      console.log('✅ Solution displayed successfully');
+      
     } else {
-      throw new Error(response.message || 'Không thể giải toán');
+      throw new Error(data.message || 'Không nhận được lời giải từ API');
     }
     
   } catch (error) {
-    console.error('Solve error:', error);
+    console.error('❌ Solve error:', error);
     solutionLocked.innerHTML = `
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="margin-bottom: 12px;">
         <circle cx="12" cy="12" r="10"></circle>
@@ -1322,9 +1371,9 @@ async function solveProblemWithAPI() {
         <line x1="9" y1="9" x2="15" y2="15"></line>
       </svg>
       <p style="font-size: 14px; color: #dc2626; font-weight: 500; margin-bottom: 6px;">Lỗi giải toán</p>
-      <p style="font-size: 12px; color: var(--ink-3);">${error.message || 'Không thể kết nối đến server'}</p>
-      <button class="btn-filled" onclick="solveProblemWithAPI()" style="margin-top: 16px;">
-        Thử lại
+      <p style="font-size: 12px; color: var(--ink-3); margin-bottom: 16px;">${error.message || 'Không thể kết nối đến server'}</p>
+      <button class="btn-filled" onclick="solveProblemWithAPI()" style="padding: 10px 20px; font-size: 13px;">
+        🔄 Thử lại
       </button>
     `;
   }
@@ -2110,24 +2159,48 @@ async function loadProblemFromHistory(problemId) {
     // 7. Load 3D geometry từ DUNGHINH3D (đã có sẵn trong DB)
     setTimeout(() => load3DGeometry(currentProblemId), 500);
 
-    // 8. Load lời giải nếu đã có trong DB
-    // NOTE: Khi load từ lịch sử, KHÔNG tự động hiển thị lời giải
-    // Người dùng phải chat với AI để mở khóa lại
+    // 8. Load lời giải nếu đã có trong DB - HIỂN THỊ NGAY
     if (data.loiGiai) {
       const solution = data.loiGiai;
       let steps = [];
       try { steps = JSON.parse(solution.cacBuocGiai || '[]'); } catch(e) {}
       const result = solution.ketQuaCuoi || '';
 
-      // Store solution data but DON'T display it yet
+      // Store solution data
       currentProblemData.solution = {
         steps: steps,
         result: result
       };
 
-      console.log('✅ Solution loaded from history but kept locked');
+      console.log('✅ Solution loaded from history, displaying now...');
       
-      // Add a hint message in chat
+      // Display solution immediately
+      displaySolutionFromHistory(steps, result);
+      
+      // Add info message in chat
+      setTimeout(() => {
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          chatMessages.innerHTML += `
+            <div class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
+              <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--teal), #4db89f); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
+                ✅
+              </div>
+              <div style="flex: 1; max-width: 85%;">
+                <div style="font-size: 11px; color: var(--teal); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Lời giải có sẵn</div>
+                <div style="padding: 12px 16px; background: var(--teal-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(42,122,98,0.1); border: 1px solid rgba(42,122,98,0.2);">
+                  📚 Bạn đã giải bài toán này trước đây. Lời giải chi tiết đã được hiển thị bên dưới!
+                </div>
+              </div>
+            </div>
+          `;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }, 500);
+    } else {
+      // No solution yet - keep locked
+      console.log('⚠️ No solution found in history, keeping locked');
+      
       setTimeout(() => {
         const chatMessages = document.getElementById('chatMessages');
         if (chatMessages) {
@@ -2175,6 +2248,59 @@ async function loadProblemFromHistory(problemId) {
       `;
     }
   }
+}
+
+/**
+ * Display solution from history (when solution already exists in database)
+ */
+function displaySolutionFromHistory(steps, result) {
+  const solutionLocked = document.getElementById('solutionLocked');
+  const solutionContent = document.getElementById('solutionContent');
+  
+  if (!solutionLocked || !solutionContent) {
+    console.error('Solution containers not found');
+    return;
+  }
+  
+  // Build solution HTML
+  let solutionHTML = `
+    <div style="padding: 16px; background: var(--teal-bg); border: 1px solid rgba(42,122,98,.2); border-radius: 8px; margin: 20px 0;">
+      <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Lời giải chi tiết từ lịch sử:</p>
+    </div>
+  `;
+  
+  // Add each step
+  if (steps && steps.length > 0) {
+    steps.forEach((step, index) => {
+      // Handle both string and object formats
+      const stepContent = typeof step === 'string' ? step : (step.content || step.description || step);
+      
+      solutionHTML += `
+        <div class="solution-step gold">
+          <div class="ss-label">Bước ${index + 1}</div>
+          <p>${stepContent}</p>
+        </div>
+      `;
+    });
+  }
+  
+  // Add final result
+  if (result) {
+    solutionHTML += `
+      <div class="solution-step teal" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
+        <div class="ss-label">Kết quả cuối cùng</div>
+        <p style="font-weight: 600; color: var(--gold); font-size: 15px;">${result}</p>
+      </div>
+    `;
+  }
+  
+  solutionContent.innerHTML = solutionHTML;
+  
+  // Hide locked, show content
+  solutionLocked.style.display = 'none';
+  solutionContent.style.display = 'block';
+  
+  console.log('✅ Solution from history displayed successfully');
 }
 
 </script>
