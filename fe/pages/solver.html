@@ -85,8 +85,8 @@ if (typeof THREE === 'undefined') {
       <button class="step-tab active" onclick="showTab(0)" id="tab-0">
         <span class="step-num">1</span> Tải ảnh & Phân tích
       </button>
-      <button class="step-tab done" onclick="showTab(1)" id="tab-1">
-        <span class="step-num">✓</span> Mô hình 3D
+      <button class="step-tab" onclick="showTab(1)" id="tab-1">
+        <span class="step-num">2</span> Mô hình 3D
       </button>
       <button class="step-tab" onclick="showTab(2)" id="tab-2">
         <span class="step-num">3</span> Dựng hình từng bước
@@ -691,10 +691,9 @@ function showTab(index) {
 // ═══════════════════════════════════════════════════════════
 
 let _uploadInProgress = false;
+let _selectedFile = null; // Store selected file for later analysis
 
 async function handleFileSelect(event) {
-  if (_uploadInProgress) return;
-
   const file = event && event.target && event.target.files && event.target.files[0];
   if (!file) return;
 
@@ -702,6 +701,79 @@ async function handleFileSelect(event) {
   const allowed = ['image/jpeg','image/jpg','image/png','image/gif','application/pdf'];
   if (!allowed.includes(file.type)) { alert('Định dạng không hỗ trợ!'); return; }
 
+  // Store file for later analysis
+  _selectedFile = file;
+  
+  // Show preview
+  await showImagePreview(file);
+}
+
+async function showImagePreview(file) {
+  const uploadZone = document.querySelector('.upload-zone');
+  if (!uploadZone) return;
+  
+  // Remove onclick to prevent re-triggering file dialog
+  uploadZone.onclick = null;
+  uploadZone.style.cursor = 'default';
+  
+  // Read file as data URL for preview
+  let imageDataUrl = null;
+  if (file.type.startsWith('image/')) {
+    imageDataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Không đọc được file'));
+      reader.readAsDataURL(file);
+    });
+  }
+  
+  // Show preview with action buttons
+  const imgTag = imageDataUrl
+    ? `<img src="${imageDataUrl}" style="max-width:100%;max-height:300px;border-radius:8px;margin:16px 0;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.1);" alt="Preview ảnh bài toán">`
+    : `<div style="padding:40px;background:var(--indigo-bg);border-radius:8px;margin:16px 0;">
+         <p style="color:var(--indigo);font-size:14px;">📄 ${file.name}</p>
+       </div>`;
+  
+  uploadZone.innerHTML = `
+    <div class="upload-icon" style="background:var(--indigo-bg);border-color:var(--indigo);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </div>
+    <h3 style="color:var(--indigo);">Đã chọn ảnh</h3>
+    <p>${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
+    ${imgTag}
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+      <button class="btn-line" onclick="event.stopPropagation();selectNewImage()">
+        🔄 Chọn ảnh khác
+      </button>
+      <button class="btn-filled" onclick="event.stopPropagation();analyzeSelectedImage()" style="padding:12px 32px;">
+        ✨ Phân tích bài toán
+      </button>
+    </div>
+  `;
+}
+
+function selectNewImage() {
+  // Reset selected file
+  _selectedFile = null;
+  
+  // Clear file input
+  const input = document.getElementById('imageInput');
+  if (input) input.value = '';
+  
+  // Trigger file dialog
+  input.click();
+}
+
+async function analyzeSelectedImage() {
+  if (!_selectedFile) {
+    alert('Vui lòng chọn ảnh trước!');
+    return;
+  }
+  
+  if (_uploadInProgress) return;
   _uploadInProgress = true;
 
   const uploadZone    = document.querySelector('.upload-zone');
@@ -717,12 +789,12 @@ async function handleFileSelect(event) {
     // Loading state
     uploadZone.innerHTML = `
       <div class="upload-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" style="animation: spin 1s linear infinite;">
           <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
         </svg>
       </div>
-      <h3>Đang xử lý ảnh...</h3>
-      <p>AI đang phân tích đề bài<span id="upload-dots">...</span></p>`;
+      <h3>Đang phân tích ảnh...</h3>
+      <p>AI đang trích xuất đề bài<span id="upload-dots">...</span></p>`;
     let dotCount = 0;
     dotTimer = setInterval(() => {
       const el = document.getElementById('upload-dots');
@@ -733,9 +805,9 @@ async function handleFileSelect(event) {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     const userId = user ? (user.id || user.maNguoiDung || null) : null;
 
-    // Gọi API trực tiếp bằng fetch
+    // Gọi API upload-and-save
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', _selectedFile);
     if (userId) formData.append('ma_nguoi_dung', String(userId));
 
     const res = await fetch('http://127.0.0.1:8000/geometry/upload-and-save', {
@@ -762,14 +834,14 @@ async function handleFileSelect(event) {
     const conditions  = extraction.given_conditions || [];
     const questions   = extraction.questions || [];
 
-    // Wrap FileReader trong Promise để await
+    // Wrap FileReader trong Promise để await (for display only)
     let imageDataUrl = null;
-    if (file.type.startsWith('image/')) {
+    if (_selectedFile.type.startsWith('image/')) {
       imageDataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload  = e => resolve(e.target.result);
         reader.onerror = () => reject(new Error('Không đọc được file'));
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(_selectedFile);
       });
     }
 
@@ -786,10 +858,10 @@ async function handleFileSelect(event) {
         </svg>
       </div>
       <h3 style="color:var(--teal);">Đã phân tích thành công!</h3>
-      <p>${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
+      <p>${_selectedFile.name} · ${(_selectedFile.size/1024).toFixed(1)} KB</p>
       ${imgTag}
       <button class="btn-line" style="margin-top:10px;"
-        onclick="document.getElementById('imageInput').click()">Chọn ảnh khác</button>`;
+        onclick="event.stopPropagation();selectNewImage()">Chọn ảnh khác</button>`;
 
     // Hiển thị đề bài
     const ptEl = recognizedCard.querySelector('.problem-text');
@@ -833,8 +905,14 @@ async function handleFileSelect(event) {
       </div>
       <h3 style="color:#dc2626;">Lỗi phân tích</h3>
       <p>${err.message || 'Không thể kết nối server'}</p>
-      <button class="btn-filled" style="margin-top:12px;"
-        onclick="document.getElementById('imageInput').click()">Thử lại</button>`;
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+        <button class="btn-line" onclick="event.stopPropagation();selectNewImage()">
+          🔄 Chọn ảnh khác
+        </button>
+        <button class="btn-filled" onclick="event.stopPropagation();analyzeSelectedImage()">
+          🔄 Thử lại
+        </button>
+      </div>`;
   } finally {
     clearInterval(dotTimer);
     _uploadInProgress = false;
@@ -2029,6 +2107,61 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Display solution from history data (when solution already exists)
+ */
+function displaySolutionFromHistory(steps, result) {
+  const solutionLocked = document.getElementById('solutionLocked');
+  const solutionContent = document.getElementById('solutionContent');
+  
+  if (!solutionLocked || !solutionContent) {
+    console.error('❌ Solution containers not found');
+    return;
+  }
+  
+  console.log('📊 Displaying solution from history:', { steps: steps.length, result });
+  
+  // Build solution HTML
+  let solutionHTML = `
+    <div style="padding: 16px; background: var(--teal-bg); border: 1px solid rgba(42,122,98,.2); border-radius: 8px; margin: 20px 0;">
+      <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Bài toán này đã có lời giải từ lần trước. Dưới đây là lời giải chi tiết:</p>
+    </div>
+  `;
+  
+  // Add each step
+  if (steps && steps.length > 0) {
+    steps.forEach((step, index) => {
+      // Handle both string and object formats
+      const stepContent = typeof step === 'string' ? step : (step.content || step.description || step);
+      
+      solutionHTML += `
+        <div class="solution-step gold">
+          <div class="ss-label">Bước ${index + 1}</div>
+          <p>${stepContent}</p>
+        </div>
+      `;
+    });
+  }
+  
+  // Add final result
+  if (result) {
+    solutionHTML += `
+      <div class="solution-step teal" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
+        <div class="ss-label">Kết quả cuối cùng</div>
+        <p style="font-weight: 600; color: var(--gold); font-size: 15px;">${result}</p>
+      </div>
+    `;
+  }
+  
+  solutionContent.innerHTML = solutionHTML;
+  
+  // Hide locked, show content
+  solutionLocked.style.display = 'none';
+  solutionContent.style.display = 'block';
+  
+  console.log('✅ Solution displayed from history');
+}
+
+/**
  * Load problem from history when clicking on a history item
  * URL format: solver.html?id=123
  */
@@ -2159,7 +2292,7 @@ async function loadProblemFromHistory(problemId) {
     // 7. Load 3D geometry từ DUNGHINH3D (đã có sẵn trong DB)
     setTimeout(() => load3DGeometry(currentProblemId), 500);
 
-    // 8. Load lời giải nếu đã có trong DB - HIỂN THỊ NGAY
+    // 8. Load lời giải nếu đã có trong DB - HIỂN THỊ NGAY và ẨN CHAT BOT
     if (data.loiGiai) {
       const solution = data.loiGiai;
       let steps = [];
@@ -2172,34 +2305,26 @@ async function loadProblemFromHistory(problemId) {
         result: result
       };
 
-      console.log('✅ Solution loaded from history, displaying now...');
+      console.log('✅ Solution loaded from history, displaying immediately and hiding chat bot');
       
-      // Display solution immediately
-      displaySolutionFromHistory(steps, result);
-      
-      // Add info message in chat
+      // Hide chat bot section since solution is available
       setTimeout(() => {
-        const chatMessages = document.getElementById('chatMessages');
-        if (chatMessages) {
-          chatMessages.innerHTML += `
-            <div class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
-              <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--teal), #4db89f); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
-                ✅
-              </div>
-              <div style="flex: 1; max-width: 85%;">
-                <div style="font-size: 11px; color: var(--teal); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Lời giải có sẵn</div>
-                <div style="padding: 12px 16px; background: var(--teal-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(42,122,98,0.1); border: 1px solid rgba(42,122,98,0.2);">
-                  📚 Bạn đã giải bài toán này trước đây. Lời giải chi tiết đã được hiển thị bên dưới!
-                </div>
-              </div>
-            </div>
-          `;
-          chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Tìm và ẩn container chứa chat bot (div có style="margin-top: 28px;")
+        const chatBotContainer = document.querySelector('#panel-3 .p-main > div[style*="margin-top: 28px"]');
+        if (chatBotContainer) {
+          chatBotContainer.style.display = 'none';
+          console.log('✅ Chat bot container hidden');
+        } else {
+          console.warn('⚠️ Chat bot container not found');
         }
+        
+        // Display solution immediately
+        displaySolutionFromHistory(steps, result);
+        
       }, 500);
     } else {
-      // No solution yet - keep locked
-      console.log('⚠️ No solution found in history, keeping locked');
+      // No solution yet - show chat bot normally
+      console.log('⚠️ No solution found in history, showing chat bot');
       
       setTimeout(() => {
         const chatMessages = document.getElementById('chatMessages');
@@ -2248,59 +2373,6 @@ async function loadProblemFromHistory(problemId) {
       `;
     }
   }
-}
-
-/**
- * Display solution from history (when solution already exists in database)
- */
-function displaySolutionFromHistory(steps, result) {
-  const solutionLocked = document.getElementById('solutionLocked');
-  const solutionContent = document.getElementById('solutionContent');
-  
-  if (!solutionLocked || !solutionContent) {
-    console.error('Solution containers not found');
-    return;
-  }
-  
-  // Build solution HTML
-  let solutionHTML = `
-    <div style="padding: 16px; background: var(--teal-bg); border: 1px solid rgba(42,122,98,.2); border-radius: 8px; margin: 20px 0;">
-      <p style="font-size: 13px; color: var(--teal); font-weight: 500;">✅ Lời giải chi tiết từ lịch sử:</p>
-    </div>
-  `;
-  
-  // Add each step
-  if (steps && steps.length > 0) {
-    steps.forEach((step, index) => {
-      // Handle both string and object formats
-      const stepContent = typeof step === 'string' ? step : (step.content || step.description || step);
-      
-      solutionHTML += `
-        <div class="solution-step gold">
-          <div class="ss-label">Bước ${index + 1}</div>
-          <p>${stepContent}</p>
-        </div>
-      `;
-    });
-  }
-  
-  // Add final result
-  if (result) {
-    solutionHTML += `
-      <div class="solution-step teal" style="background: var(--gold-bg); border-color: rgba(160,120,64,.25);">
-        <div class="ss-label">Kết quả cuối cùng</div>
-        <p style="font-weight: 600; color: var(--gold); font-size: 15px;">${result}</p>
-      </div>
-    `;
-  }
-  
-  solutionContent.innerHTML = solutionHTML;
-  
-  // Hide locked, show content
-  solutionLocked.style.display = 'none';
-  solutionContent.style.display = 'block';
-  
-  console.log('✅ Solution from history displayed successfully');
 }
 
 </script>

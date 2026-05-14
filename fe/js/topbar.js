@@ -33,7 +33,8 @@ function renderTopbar(activePage = '') {
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:4px">
+        <span class="user-name" id="userName"></span>
+        <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:4px">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
@@ -91,9 +92,14 @@ function renderTopbar(activePage = '') {
 
 // Toggle user dropdown menu
 function toggleUserMenu() {
+  const dropdown = document.getElementById('userDropdown');
   const menu = document.getElementById('userMenu');
-  if (menu) {
+  
+  if (menu && dropdown) {
+    // Toggle show class on menu
     menu.classList.toggle('show');
+    // Toggle open class on dropdown for chevron rotation
+    dropdown.classList.toggle('open');
   }
 }
 
@@ -101,8 +107,39 @@ function toggleUserMenu() {
 window.addEventListener('click', function(e) {
   const dropdown = document.getElementById('userDropdown');
   const menu = document.getElementById('userMenu');
+  
   if (dropdown && menu && !dropdown.contains(e.target)) {
     menu.classList.remove('show');
+    dropdown.classList.remove('open');
+  }
+});
+
+// Close dropdown when mouse leaves - with delay to allow moving to menu items
+let closeMenuTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const dropdown = document.getElementById('userDropdown');
+  const menu = document.getElementById('userMenu');
+  
+  if (dropdown && menu) {
+    // When mouse leaves the entire dropdown area
+    dropdown.addEventListener('mouseleave', function(e) {
+      if (menu.classList.contains('show')) {
+        // Set timeout to close after 800ms
+        closeMenuTimeout = setTimeout(() => {
+          menu.classList.remove('show');
+          dropdown.classList.remove('open');
+        }, 800);
+      }
+    });
+    
+    // When mouse enters back, cancel the close
+    dropdown.addEventListener('mouseenter', function() {
+      if (closeMenuTimeout) {
+        clearTimeout(closeMenuTimeout);
+        closeMenuTimeout = null;
+      }
+    });
   }
 });
 
@@ -118,11 +155,17 @@ function initTopbar() {
   const currentUser = getCurrentUser();
   const loginBtn = document.getElementById('loginBtn');
   const userDropdown = document.getElementById('userDropdown');
+  const userName = document.getElementById('userName');
   
   if (currentUser) {
     // User is logged in - show dropdown, hide login button
     if (loginBtn) loginBtn.style.display = 'none';
     if (userDropdown) userDropdown.style.display = 'block';
+    
+    // Display username (not email)
+    if (userName) {
+      userName.textContent = currentUser.username || 'User';
+    }
   } else {
     // User is not logged in - show login button, hide dropdown
     if (loginBtn) loginBtn.style.display = 'inline-block';

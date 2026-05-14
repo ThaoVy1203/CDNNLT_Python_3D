@@ -187,6 +187,11 @@
   color: var(--teal);
 }
 
+.status-pending {
+  background: var(--gold-bg);
+  color: var(--gold);
+}
+
 .status-draft {
   background: var(--gold-bg);
   color: var(--gold);

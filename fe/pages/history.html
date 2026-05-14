@@ -52,7 +52,7 @@
     <button class="filter-btn active" onclick="filterHistory('all')">Tất cả</button>
     <button class="filter-btn" onclick="filterHistory('week')">Tuần này</button>
     <button class="filter-btn" onclick="filterHistory('month')">Tháng này</button>
-    <button class="filter-btn" onclick="filterHistory('completed')">Hoàn thành</button>
+    <button class="filter-btn" onclick="filterHistory('unlocked')">Đã mở khóa</button>
   </div>
 
   <!-- History List -->
@@ -120,17 +120,29 @@ async function loadHistoryFromBackend() {
     
     const data = await response.json();
     
+    console.log('📊 Raw API data:', data); // DEBUG: Check what API returns
+    
     // Transform backend data to frontend format
-    allHistory = data.map(item => ({
-      id: item.maBaiToan,
-      title: item.tomTatDe || 'Bài toán hình học không gian',
-      description: item.deBaiTho ? item.deBaiTho.substring(0, 100) + '...' : 'Hình chóp S.ABCD với các điều kiện cho trước',
-      type: item.loaiHinh || 'Hình chóp',
-      timestamp: item.ngayTao,
-      solveTime: '3 phút',
-      status: 'completed',
-      imageUrl: item.duongDan ? `http://127.0.0.1:8000${item.duongDan}` : null
-    }));
+    allHistory = data.map(item => {
+      // Backend returns 1 or 0, convert to boolean
+      const hasSolution = item.hasSolution === 1 || item.hasSolution === true;
+      
+      console.log(`Problem ${item.maBaiToan}:`, {
+        hasSolution: item.hasSolution,
+        result: hasSolution
+      }); // DEBUG: Check each item
+      
+      return {
+        id: item.maBaiToan,
+        title: item.tomTatDe || 'Bài toán hình học không gian',
+        description: item.deBaiTho ? item.deBaiTho.substring(0, 100) + '...' : 'Hình chóp S.ABCD với các điều kiện cho trước',
+        type: item.loaiHinh || 'Hình chóp',
+        timestamp: item.ngayTao,
+        solveTime: '3 phút',
+        hasSolution: hasSolution,
+        imageUrl: item.duongDan ? `http://127.0.0.1:8000${item.duongDan}` : null
+      };
+    });
     
     if (allHistory.length === 0) {
       document.getElementById('emptyState').style.display = 'block';
@@ -217,7 +229,10 @@ function displayHistory(history) {
         
         <div class="history-actions">
           <div class="history-date">${dateStr} ${timeStr}</div>
-          <span class="history-status status-completed">✓ Hoàn thành</span>
+          ${item.hasSolution 
+            ? '<span class="history-status status-completed">✓ Đã mở khóa</span>'
+            : '<span class="history-status status-pending">🔒 Chưa mở khóa</span>'
+          }
         </div>
       </div>
     `;
@@ -265,8 +280,8 @@ function filterHistory(filter) {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     filtered = allHistory.filter(item => new Date(item.timestamp) > monthAgo);
-  } else if (filter === 'completed') {
-    filtered = allHistory.filter(item => item.status === 'completed' || true);
+  } else if (filter === 'unlocked') {
+    filtered = allHistory.filter(item => item.hasSolution === true);
   }
   
   displayHistory(filtered);

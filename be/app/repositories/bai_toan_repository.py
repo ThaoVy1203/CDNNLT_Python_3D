@@ -50,7 +50,15 @@ class BaiToanRepository:
     
     def get_by_user(self, ma_nguoi_dung: str) -> List[dict]:
         """Lấy tất cả bài toán của người dùng, sắp xếp theo ngày tạo mới nhất"""
-        query = "SELECT * FROM BAITOAN WHERE maNguoiDung = %s ORDER BY ngayTao DESC"
+        query = """
+        SELECT 
+            bt.*,
+            CASE WHEN lg.maLoiGiai IS NOT NULL THEN 1 ELSE 0 END AS hasSolution
+        FROM BAITOAN bt
+        LEFT JOIN LOIGIAI lg ON bt.maBaiToan = lg.maBaiToan
+        WHERE bt.maNguoiDung = %s 
+        ORDER BY bt.ngayTao DESC
+        """
         return self.db.execute_query(query, (ma_nguoi_dung,))
     
     def delete(self, ma_bai_toan: int) -> bool:

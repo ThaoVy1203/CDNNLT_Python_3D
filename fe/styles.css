@@ -42,29 +42,176 @@ body {
 
 /* ── TOPBAR ── */
 .topbar {
-  position: sticky; top: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 48px; height: 60px;
-  background: rgba(247,245,240,0.92);
+  position: sticky; 
+  top: 0; 
+  z-index: 10000;
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 0 48px; 
+  height: 60px;
+  background: rgba(160, 130, 70, 0.98);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(140, 110, 60, 0.5);
 }
 .logo {
   font-family: var(--serif);
   font-size: 22px; font-weight: 500;
-  color: var(--ink); letter-spacing: -.01em;
+  color: #fff; letter-spacing: -.01em;
 }
-.logo em { color: var(--gold); font-style: italic; }
+.logo em { color: #f5e6d3; font-style: italic; }
 .nav { display: flex; gap: 28px; list-style: none; }
 .nav a {
   font-size: 13px; font-weight: 400;
-  color: var(--ink-3); text-decoration: none;
+  color: rgba(255, 255, 255, 0.85); text-decoration: none;
   letter-spacing: .02em; cursor: pointer;
   transition: color .18s;
 }
-.nav a:hover { color: var(--ink); }
-.nav a.active { color: var(--ink); font-weight: 500; }
+.nav a:hover { color: #fff; }
+.nav a.active { 
+  color: #fff; 
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
 .topbar-right { display: flex; gap: 10px; align-items: center; }
+
+/* Login button in topbar - white style for gold background */
+.topbar .btn-filled {
+  padding: 7px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  color: rgb(160, 130, 70);
+  background: #fff;
+  cursor: pointer;
+  transition: all .18s;
+}
+
+.topbar .btn-filled:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* User Dropdown Menu */
+.user-dropdown {
+  position: relative;
+}
+
+.user-avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.user-avatar-btn:hover,
+.user-dropdown.open .user-avatar-btn {
+  border-color: #ff8c42;
+  background: #fff;
+  color: #ff8c42;
+}
+
+.user-avatar-btn .user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.18s;
+}
+
+.user-avatar-btn:hover .user-name,
+.user-dropdown.open .user-avatar-btn .user-name {
+  color: #ff8c42;
+}
+
+.user-avatar-btn svg {
+  stroke: #333;
+  transition: stroke 0.18s;
+}
+
+.user-avatar-btn:hover svg,
+.user-dropdown.open .user-avatar-btn svg {
+  stroke: #ff8c42;
+}
+
+/* Chevron icon rotation */
+.user-avatar-btn .chevron-icon {
+  transition: transform 0.3s ease !important;
+}
+
+.user-dropdown.open .user-avatar-btn .chevron-icon {
+  transform: rotate(180deg) !important;
+}
+
+.user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 99999; /* Increased from 9999 to 99999 - highest possible */
+}
+
+.user-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.user-menu-item:hover {
+  background: var(--gold-bg);
+  color: var(--gold);
+}
+
+.user-menu-item.logout {
+  color: var(--red);
+}
+
+.user-menu-item.logout:hover {
+  background: rgba(184, 64, 64, 0.08);
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+  width: 100%; /* Ensure full width */
+  border: none; /* Remove any default border */
+  display: block; /* Ensure it's a block element */
+}
 
 .btn-line {
   padding: 7px 18px;
@@ -542,10 +689,84 @@ body {
 
 /* ── FOOTER ── */
 footer {
-  border-top: 1px solid var(--border);
-  padding: 32px 48px;
-  display: flex; justify-content: space-between; align-items: center;
-  background: var(--surface);
+  border-top: 1px solid rgba(140, 110, 60, 0.5);
+  padding: 48px 48px 24px;
+  background: rgb(160, 130, 70);
+  color: #fff;
+}
+
+footer .logo {
+  color: #fff;
+  font-size: 24px;
+}
+
+footer .logo em {
+  color: #f5e6d3;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 50px;
+  margin-bottom: 32px;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-brand {
+  max-width: 380px;
+}
+
+.footer-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.footer-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 10px;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+.footer-bottom {
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  text-align: center;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
 }
 
 /* ── AI STATUS ── */
@@ -566,7 +787,20 @@ footer {
   .p-side { border-top: 1px solid var(--border); }
   .features { grid-template-columns: 1fr 1fr; }
   .nav { display: none; }
-  footer { padding: 24px 20px; flex-direction: column; gap: 12px; text-align: center; }
+  footer { 
+    padding: 32px 20px 20px;
+  }
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-bottom: 24px;
+  }
+  .footer-brand {
+    max-width: 100%;
+  }
+  .footer-bottom {
+    padding-top: 20px;
+  }
 }
 
 /* ── USER DROPDOWN ── */
@@ -625,11 +859,6 @@ footer {
   color: var(--ink-2);
   text-decoration: none;
   transition: all .15s;
-  border-bottom: 1px solid var(--border);
-}
-
-.user-menu-item:last-child {
-  border-bottom: none;
 }
 
 .user-menu-item:hover {
