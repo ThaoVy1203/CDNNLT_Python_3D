@@ -545,27 +545,9 @@ async def evaluate_user_approach(request: dict):
                 "message": "Ý tưởng quá ngắn"
             }
         
-        # Build evaluation prompt
-        prompt = f"""Bạn là giáo viên toán học. Đánh giá ý tưởng giải toán của học sinh.
-
-ĐỀ BÀI:
-{problem_text}
-
-Ý TƯỞNG CỦA HỌC SINH:
-{user_approach}
-
-Hãy đánh giá:
-1. Học sinh có hiểu đúng đề bài không?
-2. Hướng giải có hợp lý không?
-3. Có đề cập đến các yếu tố quan trọng không?
-
-Trả về JSON với format:
-{{
-  "score": <điểm từ 0-10>,
-  "feedback": "<phản hồi chi tiết>",
-  "should_unlock": <true nếu score >= 6, false nếu không>
-}}
-"""
+        # Build evaluation prompt using the function from prompt.py
+        from app.services.ai.prompt import build_evaluation_prompt
+        prompt = build_evaluation_prompt(problem_text, user_approach)
         
         try:
             response = await gemini_service.gemini_client.generate_content_async(prompt)
@@ -581,30 +563,49 @@ Trả về JSON với format:
             
             evaluation = json.loads(json_str)
             
+            # Ensure should_unlock is based on score >= 3
+            score = evaluation.get("score", 0)
+            should_unlock = score >= 3 or evaluation.get("should_unlock", False)
+            
             return {
                 "success": True,
                 "evaluation": {
-                    "shouldUnlock": evaluation.get("should_unlock", False),
+                    "shouldUnlock": should_unlock,
                     "feedback": evaluation.get("feedback", ""),
-                    "score": evaluation.get("score", 0)
+                    "score": score
                 }
             }
         except Exception as e:
             print(f"Gemini evaluation error: {e}")
-            # Fallback to keyword-based evaluation
+            # Fallback to keyword-based evaluation (more lenient)
             score = 0
-            keywords = ['pythagore', 'pytago', 'trung điểm', 'vuông góc', 'sin', 'cos', 'tan', 'góc', 'hình chiếu']
+            
+            # Keywords for geometry problems
+            keywords = [
+                'pythagore', 'pytago', 'trung điểm', 'vuông góc', 'song song',
+                'sin', 'cos', 'tan', 'góc', 'hình chiếu', 'khoảng cách',
+                'trọng tâm', 'vector', 'công thức', 'định lý', 'tính',
+                'dựng', 'áp dụng', 'gọi', 'suy ra', 'vậy', 'đáp án'
+            ]
+            
+            user_approach_lower = user_approach.lower()
             for keyword in keywords:
-                if keyword in user_approach.lower():
+                if keyword in user_approach_lower:
                     score += 1
             
-            score = min(10, score * 2)
-            feedback = "Ý tưởng của bạn có đề cập đến một số yếu tố quan trọng." if score >= 6 else "Hãy phân tích kỹ hơn các yếu tố đã cho trong đề bài."
+            # More lenient scoring
+            score = min(10, score * 1.5)  # Each keyword worth 1.5 points
+            
+            # If user mentions any relevant concept, give at least 3 points
+            if score > 0:
+                score = max(3, score)
+            
+            feedback = "Bạn đã đề cập đến một số khái niệm quan trọng. Hãy xem lời giải chi tiết!" if score >= 3 else "Hãy phân tích kỹ hơn các yếu tố đã cho trong đề bài."
             
             return {
                 "success": True,
                 "evaluation": {
-                    "shouldUnlock": score >= 6,
+                    "shouldUnlock": score >= 3,
                     "feedback": feedback,
                     "score": score
                 }

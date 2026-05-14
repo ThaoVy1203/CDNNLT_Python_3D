@@ -279,7 +279,7 @@ YÊU CẦU:
 1. Đánh giá xem học sinh có hiểu đề bài không
 2. Kiểm tra xem ý tưởng có logic và đúng hướng không
 3. Cho điểm từ 0-10 (10 là hoàn hảo)
-4. Quyết định có nên mở khóa lời giải không (điểm >= 5)
+4. Quyết định có nên mở khóa lời giải không (điểm >= 3)
 
 Trả về JSON:
 {{
@@ -289,54 +289,72 @@ Trả về JSON:
 }}
 
 HƯỚNG DẪN NHẬN DIỆN KÝ HIỆU TOÁN HỌC:
-- (SMN), (ABCD), (SBC) = mặt phẳng SMN, ABCD, SBC
+- Vector: a⃗, b⃗, c⃗, AG'⃗, AA'⃗ (có thể viết a, b, c, AG', AA')
+- Trọng tâm: G, G', O
+- Công thức vector: AG' = (AA' + AB + AC)/3 hoặc (a + b + c)/3
+- (SMN), (ABCD), (SBC) = mặt phẳng
 - d(A, (SMN)) = khoảng cách từ điểm A đến mặt phẳng SMN
-- d(BC, SM) = khoảng cách giữa hai đường thẳng BC và SM
-- AH ⊥ SN hoặc "AH vuông góc SN" = AH vuông góc với SN
-- BC ∥ (SMN) hoặc "BC song song (SMN)" = BC song song với mặt phẳng SMN
-- Các ký tự đặc biệt: ⊥ (vuông góc), ∥ (song song), √ (căn), ² (bình phương)
+- AH ⊥ SN = AH vuông góc với SN
+- BC ∥ (SMN) = BC song song với mặt phẳng SMN
 
-QUY TẮC ĐÁNH GIÁ (QUAN TRỌNG - HÃY TÍCH CỰC VÀ KHUYẾN KHÍCH):
-- Điểm 9-10: Ý tưởng xuất sắc, đầy đủ các bước, logic hoàn hảo, đề cập chi tiết
-- Điểm 7-8: Ý tưởng rất tốt, đúng hướng, đề cập đủ các bước chính
-- Điểm 5-6: Ý tưởng đúng hướng, có ít nhất 2-3 bước quan trọng (ĐỦ ĐỂ MỞ KHÓA)
-- Điểm 3-4: Có một vài ý đúng nhưng còn thiếu nhiều, chưa nắm được hướng chính
-- Điểm 0-2: Chưa hiểu đề hoặc ý tưởng sai hoàn toàn
+QUY TẮC ĐÁNH GIÁ (RẤT QUAN TRỌNG - HÃY CỰC KỲ DỄ TÍNH):
 
-TIÊU CHÍ ĐÁNH GIÁ TÍCH CỰC (cho điểm cao):
-✅ Đề cập đến các điểm, đường quan trọng (N, M, H, SM, BC, AH, SN...)
-✅ Nói về quan hệ hình học (vuông góc, song song, trung điểm, hình chiếu...)
-✅ Đề cập đến phương pháp (dựng đường, tính khoảng cách, áp dụng định lý...)
-✅ Có logic từng bước (gọi, suy ra, do đó, vậy, sau đó...)
-✅ Đề cập đến công thức hoặc định lý cần dùng (Pythagore, khoảng cách, thể tích...)
-✅ Sử dụng ký hiệu toán học đúng (dù có thể viết theo nhiều cách khác nhau)
+**ĐIỂM 8-10: Xuất sắc**
+- Có đầy đủ các bước logic
+- Đề cập công thức cụ thể
+- Giải thích rõ ràng
 
-NGUYÊN TẮC QUAN TRỌNG:
-🎯 Nếu học sinh đã nắm được HƯỚNG GIẢI CHÍNH và đề cập ít nhất 2-3 bước quan trọng → CHO ĐIỂM >= 6
-🎯 Nếu học sinh dùng ký hiệu toán học (dù phức tạp) → đây là dấu hiệu TÍCH CỰC, không phạt điểm
-🎯 Nếu học sinh đề cập đến "dựng đường", "tính khoảng cách", "áp dụng định lý" → cho điểm cao
-🎯 Ưu tiên KHUYẾN KHÍCH hơn là chỉ trích
+**ĐIỂM 6-7: Rất tốt**
+- Đúng hướng giải
+- Có công thức hoặc phương pháp
+- Logic rõ ràng
 
-VÍ DỤ Ý TƯỞNG TỐT (nên cho 7-9 điểm):
-- "Gọi N là trung điểm AB, BC song song (SMN), suy ra d(BC,SM) = d(A,(SMN)). Dựng AH vuông góc SN"
-- "Tôi sẽ tìm trung điểm M, sau đó dựng đường cao từ A xuống SN để tính khoảng cách"
-- "Áp dụng công thức khoảng cách từ điểm đến mặt phẳng, cần tìm AH vuông góc với (SMN)"
+**ĐIỂM 4-5: Tốt**
+- Đề cập phương pháp chính
+- Có một vài bước đúng
+- Hiểu được đề bài
 
-VÍ DỤ Ý TƯỞNG TRUNG BÌNH (nên cho 5-6 điểm):
-- "Tôi sẽ tìm trung điểm và dựng đường vuông góc"
-- "Cần tính khoảng cách từ điểm đến mặt phẳng"
-- "Sử dụng Pythagore và tính SA"
+**ĐIỂM 3: Đạt (ĐỦ ĐỂ MỞ KHÓA)**
+- Đề cập BẤT KỲ khái niệm nào liên quan (trọng tâm, vector, công thức...)
+- Đề cập BẤT KỲ phương pháp nào (tính, áp dụng, thay...)
+- Có BẤT KỲ logic nào (gọi, suy ra, vậy...)
+- Đề cập BẤT KỲ điểm/đường nào trong đề (G', A, B, C, AA', AB, AC...)
 
-VÍ DỤ Ý TƯỞNG YẾU (cho 2-4 điểm):
-- "Tôi sẽ tính thể tích" (không liên quan đến đề bài)
-- "Không biết làm thế nào"
+**ĐIỂM 1-2: Yếu**
+- Chỉ nói chung chung không cụ thể
+- Không đề cập gì liên quan đến đề bài
+
+**ĐIỂM 0: Không đạt**
 - "Cho tôi đáp án"
+- "Không biết"
+- Hoàn toàn sai hoặc không liên quan
+
+NGUYÊN TẮC QUAN TRỌNG NHẤT:
+🎯 Nếu học sinh đề cập đến BẤT KỲ nội dung nào trong đề bài → CHO ÍT NHẤT 3 ĐIỂM
+🎯 Nếu học sinh nói về "trọng tâm" → CHO ÍT NHẤT 4 ĐIỂM (vì đây là khái niệm chính)
+🎯 Nếu học sinh viết công thức (dù chưa hoàn chỉnh) → CHO ÍT NHẤT 5 ĐIỂM
+🎯 Nếu học sinh có logic đầy đủ → CHO 7-9 ĐIỂM
+🎯 LUÔN LUÔN ưu tiên MỞ KHÓA hơn là từ chối
+
+VÍ DỤ CỤ THỂ CHO BÀI VECTOR (PHẢI CHO >= 3 ĐIỂM):
+
+✅ "G' là trọng tâm" → 4 điểm (đã nắm khái niệm chính)
+✅ "Dùng công thức trọng tâm" → 5 điểm (biết phương pháp)
+✅ "AG' = (a + b + c)/3" → 6 điểm (có công thức)
+✅ "Gọi G' là trọng tâm tam giác A'B'C'. Vì G' là trọng tâm nên AG' = (AA' + AB + AC)/3" → 8 điểm (logic đầy đủ)
+✅ "Thay a = AA', b = AB, c = AC vào công thức" → 7 điểm (có bước thay thế)
+✅ "Đáp án là C" (nếu có giải thích trước đó) → 5-6 điểm
+✅ "Tính vector AG'" → 3 điểm (biết cần tính gì)
+✅ "Áp dụng tính chất trọng tâm" → 4 điểm (biết tính chất)
+
+❌ "Cho tôi đáp án" → 0 điểm
+❌ "Không biết làm" → 0 điểm
 
 FEEDBACK NÊN:
-✅ Khuyến khích và động viên nếu đúng hướng (dù chưa hoàn hảo)
-✅ Gợi ý cụ thể nếu còn thiếu (nhưng không tiết lộ toàn bộ lời giải)
-✅ Tích cực, ấm áp, như một người thầy tốt
-✅ Nếu học sinh dùng ký hiệu toán học phức tạp → khen ngợi sự cố gắng
+✅ Rất khuyến khích và động viên
+✅ Khen ngợi những gì học sinh làm đúng
+✅ Nếu >= 3 điểm, LUÔN nói: "Tuyệt vời! Bạn đã nắm được hướng giải. Hãy xem lời giải chi tiết để hiểu rõ hơn!"
+✅ Tích cực, ấm áp, động viên
 """
 
 
