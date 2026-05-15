@@ -4,83 +4,169 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lịch sử giải bài - Geo3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Outfit', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
 <link rel="stylesheet" href="../styles.css">
-<link rel="stylesheet" href="../css/history.css">
+<style>
+  /* Custom scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .animation-fadeIn {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
-<body>
+<body class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900 min-h-screen relative overflow-x-hidden flex flex-col">
 
-<div id="topbar-container"></div>
+<!-- Background Decorations -->
+<div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+
+<div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
 <script src="../js/auth.js"></script>
 <script src="../js/topbar.js"></script>
 <script>
   document.getElementById('topbar-container').innerHTML = renderTopbar('history');
-  window.addEventListener('DOMContentLoaded', function() {
-    initTopbar();
-  });
+  initTopbar();
 </script>
 
-<div class="history-container">
-  <div class="history-header">
-    <h1 class="history-title">Lịch sử giải bài</h1>
-    <p class="history-subtitle">Xem lại các bài toán bạn đã giải trước đây</p>
+<main class="flex-1 w-full max-w-[1100px] mx-auto px-6 sm:px-12 pt-[140px] pb-24">
+  
+  <!-- Header -->
+  <div class="mb-12">
+    <h1 class="font-serif text-[40px] font-semibold text-slate-900 tracking-tight leading-tight mb-2">Lịch sử giải bài</h1>
+    <p class="text-[15px] text-slate-500 font-light">Xem lại các bài toán bạn đã giải trước đây.</p>
   </div>
 
   <!-- Statistics -->
-  <div class="stats-row">
-    <div class="stat-box">
-      <div class="stat-number" id="totalSolved">0</div>
-      <div class="stat-label">Tổng số bài</div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-12">
+    <!-- Stat Box -->
+    <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+      <div class="text-[32px] font-semibold text-slate-900 tracking-tight mb-1" id="totalSolved">0</div>
+      <div class="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Tổng số bài</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-number" id="thisWeek">0</div>
-      <div class="stat-label">Tuần này</div>
+    <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+      <div class="text-[32px] font-semibold text-slate-900 tracking-tight mb-1" id="thisWeek">0</div>
+      <div class="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Tuần này</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-number" id="thisMonth">0</div>
-      <div class="stat-label">Tháng này</div>
+    <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+      <div class="text-[32px] font-semibold text-slate-900 tracking-tight mb-1" id="thisMonth">0</div>
+      <div class="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Tháng này</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-number" id="avgTime">0s</div>
-      <div class="stat-label">Thời gian TB</div>
+    <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+      <div class="text-[32px] font-semibold text-slate-900 tracking-tight mb-1" id="avgTime">0m</div>
+      <div class="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Thời gian TB</div>
     </div>
   </div>
 
   <!-- Filters -->
-  <div class="history-filters">
-    <button class="filter-btn active" onclick="filterHistory('all')">Tất cả</button>
-    <button class="filter-btn" onclick="filterHistory('week')">Tuần này</button>
-    <button class="filter-btn" onclick="filterHistory('month')">Tháng này</button>
-    <button class="filter-btn" onclick="filterHistory('unlocked')">Đã mở khóa</button>
+  <div class="flex items-center gap-2 mb-8 overflow-x-auto no-scrollbar pb-2">
+    <button class="filter-btn active px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-md border border-transparent" onclick="filterHistory('all', this)">Tất cả</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm" onclick="filterHistory('week', this)">Tuần này</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm" onclick="filterHistory('month', this)">Tháng này</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm" onclick="filterHistory('unlocked', this)">Đã mở khóa</button>
   </div>
 
   <!-- History List -->
-  <div class="history-grid" id="historyList">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="historyList">
     <!-- Will be populated by JavaScript -->
   </div>
 
   <!-- Empty State -->
-  <div class="empty-history" id="emptyState" style="display:none;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    <h3>Chưa có lịch sử</h3>
-    <p>Bạn chưa giải bài toán nào. Hãy bắt đầu giải bài đầu tiên!</p>
-    <button class="btn-filled" onclick="window.location.href='solver.html'">
+  <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center bg-white/40 backdrop-blur-md border border-white/80 rounded-[32px] shadow-sm">
+    <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mb-6 text-slate-400">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <h3 class="font-serif text-[24px] font-semibold text-slate-900 mb-2">Chưa có lịch sử</h3>
+    <p class="text-[14px] text-slate-500 mb-8 max-w-[300px]">Bạn chưa giải bài toán nào. Hãy bắt đầu phân tích đề bài đầu tiên nhé!</p>
+    <button class="px-6 py-3 bg-slate-900 text-white rounded-xl text-[14px] font-medium shadow-md hover:bg-slate-800 transition-colors" onclick="window.location.href='solver.html'">
       Bắt đầu giải bài
     </button>
   </div>
-</div>
+
+</main>
 
 <!-- FOOTER -->
-<footer>
-  <div>
-    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
-    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+<footer class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10 mt-auto">
+  <!-- Faded Huge Background Text -->
+  <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
+    <div class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
+      GEO3D
+    </div>
   </div>
-  <div style="font-size:12px;color:var(--ink-3)">
-    © 2024 Geo3D · Made with ❤️ for students
+
+  <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
+    <!-- Brand Info -->
+    <div class="flex flex-col max-w-[380px]">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
+        </div>
+        <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
+      </div>
+      <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
+        Manage geometry effortlessly.
+      </p>
+      <!-- Social Icons -->
+      <div class="flex gap-4 opacity-60">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </div>
+    </div>
+    
+    <!-- Use Links -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
+      <ul class="list-none p-0 m-0 space-y-4">
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a></li>
+      </ul>
+    </div>
+
+    <!-- Company -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
+      <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
+        SPKT University<br/>
+        Ho Chi Minh City, VN 700000
+      </p>
+    </div>
+  </div>
+  
+  <div class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
+    <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
+    <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
   </div>
 </footer>
 
@@ -88,22 +174,17 @@
 let currentFilter = 'all';
 let allHistory = [];
 
-// Load history on page load
 window.addEventListener('DOMContentLoaded', async function() {
   const user = getCurrentUser();
-  
   if (!user || user.isGuest) {
-    // Redirect to login if not authenticated
     window.location.href = 'login.html';
     return;
   }
-  
   await loadHistoryFromBackend();
 });
 
 async function loadHistoryFromBackend() {
   const maNguoiDung = localStorage.getItem('maNguoiDung');
-  
   if (!maNguoiDung) {
     console.warn('No user ID found, using localStorage fallback');
     loadHistory();
@@ -114,24 +195,11 @@ async function loadHistoryFromBackend() {
     const API_BASE_URL = 'http://127.0.0.1:8000';
     const response = await fetch(`${API_BASE_URL}/bai-toan/user/${maNguoiDung}`);
     
-    if (!response.ok) {
-      throw new Error('Failed to load history from backend');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load history from backend');
     const data = await response.json();
     
-    console.log('📊 Raw API data:', data); // DEBUG: Check what API returns
-    
-    // Transform backend data to frontend format
     allHistory = data.map(item => {
-      // Backend returns 1 or 0, convert to boolean
       const hasSolution = item.hasSolution === 1 || item.hasSolution === true;
-      
-      console.log(`Problem ${item.maBaiToan}:`, {
-        hasSolution: item.hasSolution,
-        result: hasSolution
-      }); // DEBUG: Check each item
-      
       return {
         id: item.maBaiToan,
         title: item.tomTatDe || 'Bài toán hình học không gian',
@@ -144,36 +212,29 @@ async function loadHistoryFromBackend() {
       };
     });
     
-    if (allHistory.length === 0) {
-      document.getElementById('emptyState').style.display = 'block';
-      document.getElementById('historyList').style.display = 'none';
-    } else {
-      document.getElementById('emptyState').style.display = 'none';
-      document.getElementById('historyList').style.display = 'grid';
-      displayHistory(allHistory);
-    }
-    
-    updateStatistics();
-    
+    renderUI();
   } catch (error) {
-    console.error('Error loading history from backend:', error);
-    // Fallback to localStorage
+    console.error('Error loading history:', error);
     loadHistory();
   }
 }
 
 function loadHistory() {
-  allHistory = getHistory();
-  
+  allHistory = typeof getHistory === 'function' ? getHistory() : [];
+  renderUI();
+}
+
+function renderUI() {
   if (allHistory.length === 0) {
-    document.getElementById('emptyState').style.display = 'block';
-    document.getElementById('historyList').style.display = 'none';
+    document.getElementById('emptyState').classList.remove('hidden');
+    document.getElementById('emptyState').classList.add('flex');
+    document.getElementById('historyList').classList.add('hidden');
   } else {
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('historyList').style.display = 'grid';
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('flex');
+    document.getElementById('historyList').classList.remove('hidden');
     displayHistory(allHistory);
   }
-  
   updateStatistics();
 }
 
@@ -181,7 +242,7 @@ function displayHistory(history) {
   const historyList = document.getElementById('historyList');
   
   if (history.length === 0) {
-    historyList.innerHTML = '<p style="text-align:center;color:var(--ink-3);padding:40px;">Không tìm thấy bài toán nào</p>';
+    historyList.innerHTML = '<p class="text-center text-slate-400 py-10 col-span-1 md:col-span-2">Không tìm thấy bài toán nào</p>';
     return;
   }
   
@@ -190,49 +251,35 @@ function displayHistory(history) {
     const dateStr = date.toLocaleDateString('vi-VN');
     const timeStr = date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
     
+    const iconHtml = item.imageUrl
+      ? `<img src="${item.imageUrl}" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\\'w-full h-full flex items-center justify-center text-slate-400\\'>Mất ảnh</div>'">`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-8 h-8 text-slate-400"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
+      
+    const statusHtml = item.hasSolution 
+      ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-semibold border border-emerald-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Đã giải</span>`
+      : `<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[11px] font-semibold border border-amber-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Đang giải</span>`;
+
     return `
-      <div class="history-card" onclick="viewProblem(${item.id || index})">
-        <div class="history-icon" style="${item.imageUrl ? 'padding:0;overflow:hidden;' : ''}">
-          ${item.imageUrl
-            ? `<img src="${item.imageUrl}" alt="Ảnh bài toán"
-                style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"
-                onerror="this.parentElement.innerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'12 2 2 7 12 12 22 7 12 2\\'></polygon><polyline points=\\'2 17 12 22 22 17\\'></polyline><polyline points=\\'2 12 12 17 22 12\\'></polyline></svg>'">`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-               </svg>`
-          }
-        </div>
-        
-        <div class="history-content">
-          <h3 class="history-problem-title">${item.title || 'Bài toán hình học không gian'}</h3>
-          <p class="history-problem-desc">${item.description || 'Hình chóp S.ABCD với các điều kiện cho trước'}</p>
+      <div class="bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.03)] rounded-[24px] p-5 cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 animation-fadeIn" onclick="viewProblem(${item.id || index})">
+        <div class="flex gap-5 h-full">
+          <!-- Thumbnail -->
+          <div class="w-[100px] h-[100px] rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            ${iconHtml}
+          </div>
           
-          <div class="history-meta">
-            <div class="history-meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-              <span>${item.solveTime || '3 phút'}</span>
-            </div>
-            <div class="history-meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <span>${item.type || 'Hình chóp'}</span>
+          <!-- Content -->
+          <div class="flex-1 flex flex-col min-w-0">
+            <h3 class="font-serif text-[16px] font-semibold text-slate-900 truncate mb-1">${item.title || 'Bài toán hình học không gian'}</h3>
+            <p class="text-[13px] text-slate-500 line-clamp-2 mb-3 leading-relaxed flex-1">${item.description || 'Hình chóp S.ABCD...'}</p>
+            
+            <div class="flex items-center justify-between mt-auto pt-2">
+              <div class="flex items-center gap-1.5 text-[12px] text-slate-500 font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                ${dateStr}
+              </div>
+              ${statusHtml}
             </div>
           </div>
-        </div>
-        
-        <div class="history-actions">
-          <div class="history-date">${dateStr} ${timeStr}</div>
-          ${item.hasSolution 
-            ? '<span class="history-status status-completed">✓ Đã mở khóa</span>'
-            : '<span class="history-status status-pending">🔒 Chưa mở khóa</span>'
-          }
         </div>
       </div>
     `;
@@ -242,33 +289,27 @@ function displayHistory(history) {
 function updateStatistics() {
   const history = allHistory;
   
-  // Total solved
   document.getElementById('totalSolved').textContent = history.length;
   
-  // This week
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const thisWeek = history.filter(item => new Date(item.timestamp) > weekAgo).length;
-  document.getElementById('thisWeek').textContent = thisWeek;
+  document.getElementById('thisWeek').textContent = history.filter(item => new Date(item.timestamp) > weekAgo).length;
   
-  // This month
   const monthAgo = new Date();
   monthAgo.setMonth(monthAgo.getMonth() - 1);
-  const thisMonth = history.filter(item => new Date(item.timestamp) > monthAgo).length;
-  document.getElementById('thisMonth').textContent = thisMonth;
+  document.getElementById('thisMonth').textContent = history.filter(item => new Date(item.timestamp) > monthAgo).length;
   
-  // Average time (mock data)
   document.getElementById('avgTime').textContent = '3m';
 }
 
-function filterHistory(filter) {
+function filterHistory(filter, btnElement) {
   currentFilter = filter;
   
-  // Update active button
+  // Update active button classes
   document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.remove('active');
+    btn.className = "filter-btn px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm";
   });
-  event.target.classList.add('active');
+  btnElement.className = "filter-btn active px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-md border border-transparent";
   
   let filtered = allHistory;
   
@@ -289,13 +330,11 @@ function filterHistory(filter) {
 
 function viewProblem(problemId) {
   if (problemId) {
-    // Redirect to solver page with problem ID
     window.location.href = `solver.html?id=${problemId}`;
   } else {
-    alert('Xem chi tiết bài toán\n\nTính năng đang được phát triển!');
+    alert('Tính năng đang được phát triển!');
   }
 }
 </script>
-
 </body>
 </html>

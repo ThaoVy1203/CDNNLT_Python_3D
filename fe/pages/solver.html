@@ -1,11 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Giải bài toán - Geo3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Outfit', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../css/three-viewer.css">
 <!-- KaTeX DISABLED: AI uses Unicode (√, ², ³) instead of LaTeX to avoid rendering Vietnamese text as math
@@ -64,14 +77,50 @@
 }
 </style>
 </head>
-<body>
+<body class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900 relative overflow-x-hidden min-h-screen">
 
-<div id="topbar-container"></div>
+<!-- Background Decorations -->
+<div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+
+<div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
 <script src="../js/auth.js"></script>
 <script src="../js/topbar.js"></script>
 <script>
-  document.getElementById('topbar-container').innerHTML = renderTopbar('solver');
-  window.addEventListener('DOMContentLoaded', initTopbar);
+  console.log('[Solver] Page loaded');
+  console.log('[Solver] geo3d_current_user raw:', localStorage.getItem('geo3d_current_user'));
+  console.log('[Solver] typeof getCurrentUser:', typeof getCurrentUser);
+  console.log('[Solver] typeof renderTopbar:', typeof renderTopbar);
+
+  // Force re-read localStorage and update topbar
+  (function() {
+    try {
+      const raw = localStorage.getItem('geo3d_current_user');
+      const user = raw ? JSON.parse(raw) : null;
+      console.log('[Solver] parsed user:', user);
+
+      const html = renderTopbar('solver');
+      document.getElementById('topbar-container').innerHTML = html;
+
+      // After inject, force correct display state
+      const loginBtn = document.getElementById('loginBtn');
+      const userDropdown = document.getElementById('userDropdown');
+      const userName = document.getElementById('userName');
+
+      if (user && user.id) {
+        console.log('[Solver] User logged in, hiding login btn');
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (userDropdown) userDropdown.style.display = 'block';
+        if (userName) userName.textContent = user.username || user.email || 'User';
+      } else {
+        console.log('[Solver] No user, showing login btn');
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (userDropdown) userDropdown.style.display = 'none';
+      }
+    } catch(e) {
+      console.error('[Solver] Topbar init error:', e);
+    }
+  })();
 </script>
 
 <!-- Three.js and OrbitControls - LOCAL FILES (most reliable) -->
@@ -89,7 +138,7 @@ if (typeof THREE === 'undefined') {
 <script src="../js/three-viewer.js"></script>
 
 <!-- MAIN APP -->
-<div class="app-wrapper" style="padding-top: 32px;">
+<div class="app-wrapper" style="padding-top: 120px;">
 
   <!-- STEP TABS CONTAINER -->
   <div class="step-tabs-container">
@@ -327,86 +376,101 @@ if (typeof THREE === 'undefined') {
         <div class="f-note">SA là đường cao của hình chóp</div>
       </div>
 
-      <div style="margin-top: 28px;">
-        <div style="padding: 24px; background: linear-gradient(135deg, rgba(61,82,160,0.05) 0%, rgba(160,120,64,0.05) 100%); border-radius: 12px; border: 1px solid var(--border);">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--indigo) 0%, var(--gold) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              💬
-            </div>
-            <div>
-              <h3 style="font-size: 15px; font-weight: 600; color: var(--ink); margin: 0;">Trò chuyện với AI Phản biện</h3>
-              <p style="font-size: 12px; color: var(--ink-3); margin: 4px 0 0 0;">Chia sẻ ý tưởng giải toán để mở khóa lời giải</p>
-            </div>
+      <div id="chat-section-wrapper" class="mt-8 p-5 sm:p-7 rounded-[32px] border border-white/60 shadow-[0_8px_40px_rgba(0,0,0,0.05)] relative overflow-hidden bg-slate-50">
+        <!-- Background Ambient Effects for the Card -->
+        <div class="absolute -top-20 -left-20 w-64 h-64 bg-violet-400/20 blur-[60px] rounded-full pointer-events-none mix-blend-multiply"></div>
+        <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-fuchsia-400/20 blur-[60px] rounded-full pointer-events-none mix-blend-multiply"></div>
+        
+        <!-- Header for Chat Section -->
+        <div class="relative z-10 flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-[12px] bg-gradient-to-tr from-violet-500 to-fuchsia-500 text-white flex items-center justify-center shadow-md">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
           </div>
-          
-          <!-- Chat messages container -->
-          <div id="chatMessages" style="max-height: 320px; overflow-y: auto; margin-bottom: 16px; padding: 16px; background: white; border-radius: 10px; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-            <div class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
-              <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--indigo), #5b7fd8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
-                🤖
-              </div>
-              <div style="flex: 1;">
-                <div style="font-size: 11px; color: var(--indigo); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">AI Phản biện</div>
-                <div style="padding: 12px 16px; background: var(--indigo-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(61,82,160,0.1);">
+          <div>
+            <h3 class="font-serif text-[18px] font-semibold text-slate-900 tracking-tight m-0 leading-tight">AI Trợ giảng</h3>
+            <p class="text-[13px] text-slate-500 m-0">Trao đổi ý tưởng để mở khóa lời giải</p>
+          </div>
+        </div>
+
+        <div class="relative z-10">
+          <!-- Top Card: Messages -->
+          <div class="bg-white/80 backdrop-blur-2xl border border-white shadow-[0_4px_24px_rgba(0,0,0,0.03)] rounded-[20px] p-5 mb-4">
+            <div id="chatMessages" style="max-height: 320px; overflow-y: auto;" class="space-y-4 pr-2">
+              <div class="ai-message flex gap-3 items-end animation-fadeIn">
+                <div class="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden relative">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#aiGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <defs>
+                      <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#a855f7" />
+                        <stop offset="100%" stop-color="#ec4899" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+                  </svg>
+                </div>
+                <div class="bg-white shadow-sm border border-slate-100 rounded-2xl rounded-bl-sm p-4 text-[14px] text-slate-700 leading-relaxed max-w-[85%]">
                   Chào bạn! Hãy chia sẻ ý tưởng giải bài toán này. Tôi sẽ hướng dẫn và gợi ý cho bạn từng bước.
-                  <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(61,82,160,0.15);">
-                    <strong style="color: var(--indigo);">💡 Gợi ý:</strong> Hãy nói về các bước bạn sẽ làm, công thức nào cần dùng. Nếu chưa biết, hãy hỏi tôi!
+                  <div class="mt-3 pt-3 border-t border-slate-100">
+                    <strong class="text-blue-600">💡 Gợi ý:</strong> Hãy nói về các bước bạn sẽ làm, công thức nào cần dùng. Nếu chưa biết, hãy hỏi tôi!
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <!-- Remaining attempts counter - HIDDEN vì không còn giới hạn -->
-          <div id="attemptsCounter" style="display: none; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 14px; background: rgba(61,82,160,0.08); border-radius: 8px; border-left: 3px solid var(--indigo);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 6v6l4 2"></path>
-            </svg>
-            <p style="font-size: 11px; color: var(--ink-2); margin: 0; line-height: 1.5;">
-              <strong id="attemptsText">Không giới hạn</strong>
-            </p>
-          </div>
-          
-          <!-- Chat input -->
-          <div style="display: flex; gap: 10px; align-items: flex-end;">
-            <div style="flex: 1; position: relative;">
-              <input 
-                type="text" 
-                id="chatInput" 
-                placeholder="Nhập ý tưởng của bạn... (VD: Tôi sẽ tìm AM trước, sau đó dùng Pythagore...)"
-                style="width: 100%; padding: 14px 16px; padding-right: 50px; border: 2px solid var(--border); border-radius: 10px; font-family: var(--sans); font-size: 13px; transition: all 0.2s; background: white;"
-                onkeypress="if(event.key === 'Enter') sendChatMessage()"
-                onfocus="this.style.borderColor='var(--indigo)'; this.style.boxShadow='0 0 0 3px rgba(61,82,160,0.1)'"
-                onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'"
-              />
-              <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-4); font-size: 11px; pointer-events: none;">
-                Enter ↵
-              </div>
+
+          <!-- Bottom Card: Input -->
+          <div class="bg-white/80 backdrop-blur-2xl border border-white shadow-[0_4px_24px_rgba(0,0,0,0.03)] rounded-[20px] p-4">
+            <!-- Tools Row -->
+            <div class="flex items-center gap-2 mb-3">
+              <button class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[12px] font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path></svg>
+                Geo3D 4.5 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <button class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[12px] font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Phân tích
+              </button>
             </div>
-            <button 
-              onclick="sendChatMessage()" 
-              style="padding: 14px 24px; background: linear-gradient(135deg, var(--indigo) 0%, #5b7fd8 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(61,82,160,0.25); display: flex; align-items: center; gap: 6px;"
-              onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(61,82,160,0.35)'"
-              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(61,82,160,0.25)'"
-            >
-              <span>Gửi</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
+
+            <!-- Input Area -->
+            <div class="relative flex items-end gap-2">
+              <textarea 
+                id="chatInput" 
+                rows="1"
+                placeholder="Nhập ý tưởng của bạn..."
+                class="w-full bg-transparent border-none outline-none resize-none text-[14px] text-slate-800 placeholder-slate-400 py-2 focus:ring-0"
+                onkeypress="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendChatMessage(); }"
+                oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
+              ></textarea>
+            </div>
+
+            <!-- Bottom Actions Row -->
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100/50">
+              <div class="flex items-center gap-2 overflow-x-auto no-scrollbar" id="suggestionsRow">
+                <button onclick="document.getElementById('chatInput').value='Tôi sẽ tìm AM trước'; document.getElementById('chatInput').focus()" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-full text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 whitespace-nowrap shadow-sm">
+                  <span class="text-fuchsia-500">✦</span> Tìm AM trước
+                </button>
+                <button onclick="document.getElementById('chatInput').value='Sử dụng định lý Pythagore'; document.getElementById('chatInput').focus()" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-full text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 whitespace-nowrap shadow-sm">
+                  <span class="text-fuchsia-500">✦</span> Dùng Pythagore
+                </button>
+              </div>
+              
+              <button 
+                onclick="sendChatMessage()" 
+                class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-400 text-white flex items-center justify-center shadow-md hover:opacity-90 transition-opacity ml-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 14px; background: rgba(160,120,64,0.08); border-radius: 8px; border-left: 3px solid var(--gold);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 16v-4"></path>
-              <path d="M12 8h.01"></path>
-            </svg>
-            <p style="font-size: 11px; color: var(--ink-2); margin: 0; line-height: 1.5;">
-              Chat không giới hạn! AI sẽ hướng dẫn bạn từng bước. Khi đạt điểm >= 3, lời giải sẽ được mở khóa.
-            </p>
+
+          <div class="flex items-center justify-center gap-2 mt-3 px-2">
+            <p class="text-[11px] text-slate-400 m-0">Chat không giới hạn. Lời giải sẽ tự động mở khóa khi bạn hiểu đúng hướng.</p>
           </div>
         </div>
       </div>
@@ -529,55 +593,68 @@ if (typeof THREE === 'undefined') {
   
   </div><!-- End step-tabs-container -->
 
-  <!-- FEATURES -->
-  <div style="text-align:center;margin:64px 0 28px">
-    <p style="font-family:var(--serif);font-size:36px;font-weight:400;color:var(--ink);margin-bottom:10px">
-      Mọi thứ để <em style="color:var(--gold)">hiểu thật sự</em>
-    </p>
-    <p style="font-size:14px;color:var(--ink-3);font-weight:300">Không chỉ đáp án — mà là cách tư duy hình học không gian</p>
-  </div>
-
-  <div class="features">
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      </div>
-      <h3>Nhận diện từ ảnh</h3>
-      <p>Chụp hoặc tải ảnh đề bài — AI trích xuất toàn bộ dữ kiện hình học trong vài giây.</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-      </div>
-      <h3>Mô hình 3D tương tác</h3>
-      <p>Xoay, phóng to, quan sát từ mọi góc độ — hiểu không gian bằng mắt thật.</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-      </div>
-      <h3>Dựng hình từng bước</h3>
-      <p>Animation có thể tạm dừng, tua — theo dõi từng thao tác như giáo viên hướng dẫn.</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      </div>
-      <h3>Lời giải chi tiết</h3>
-      <p>Từng bước suy luận có hình minh họa — liên kết lý thuyết và trực quan.</p>
-    </div>
-  </div>
-
 </div>
 
 <!-- FOOTER -->
-<footer>
-  <div>
-    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
-    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+<footer class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10 mt-20">
+  
+  <!-- Faded Huge Background Text -->
+  <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
+    <div class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
+      GEO3D
+    </div>
   </div>
-  <div style="font-size:12px;color:var(--ink-3)">
-    © 2024 Geo3D · Made with ❤️ for students
+
+  <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
+    <!-- Brand Info -->
+    <div class="flex flex-col max-w-[380px]">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
+        </div>
+        <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
+      </div>
+      <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
+        Manage geometry effortlessly.
+      </p>
+      
+      <!-- Social Icons -->
+      <div class="flex gap-4 opacity-60">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </div>
+    </div>
+    
+    <!-- Use Links -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
+      <ul class="list-none p-0 m-0 space-y-4">
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a></li>
+      </ul>
+    </div>
+
+    <!-- Company -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
+      <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
+        SPKT University<br/>
+        Ho Chi Minh City, VN 700000
+      </p>
+    </div>
+    
+  </div>
+  
+  <div class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
+    <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
+    <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
   </div>
 </footer>
 
@@ -1246,15 +1323,14 @@ async function sendChatMessage() {
   const chatMessages = document.getElementById('chatMessages');
   const loadingId = 'loading-' + Date.now();
   chatMessages.innerHTML += `
-    <div id="${loadingId}" class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
-      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--indigo), #5b7fd8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite;">
-        🤖
+    <div id="${loadingId}" class="ai-message flex gap-3 items-end animation-fadeIn">
+      <div class="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden relative">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#aiGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 3s linear infinite;">
+          <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+        </svg>
       </div>
-      <div style="flex: 1; max-width: 85%;">
-        <div style="font-size: 11px; color: var(--indigo); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">AI Phản biện</div>
-        <div style="padding: 12px 16px; background: var(--indigo-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink-2); line-height: 1.7; box-shadow: 0 1px 3px rgba(61,82,160,0.1); border: 1px solid rgba(61,82,160,0.15);">
-          <span style="opacity: 0.7;">Đang suy nghĩ</span><span class="dots">...</span>
-        </div>
+      <div class="bg-white shadow-sm border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 text-[14px] text-slate-700 max-w-[85%] flex items-center h-10">
+        <span class="dots text-slate-400">Đang suy nghĩ</span>
       </div>
     </div>
   `;
@@ -1309,29 +1385,25 @@ function addChatMessage(type, text) {
   
   if (type === 'user') {
     chatMessages.innerHTML += `
-      <div class="user-message" style="margin-bottom: 16px; display: flex; gap: 10px; justify-content: flex-end; animation: fadeIn 0.3s ease;">
-        <div style="flex: 1; max-width: 85%; display: flex; flex-direction: column; align-items: flex-end;">
-          <div style="font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Bạn</div>
-          <div style="padding: 12px 16px; background: linear-gradient(135deg, var(--gold-bg) 0%, rgba(160,120,64,0.08) 100%); border-radius: 12px; border-radius-top-right: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(160,120,64,0.15); border: 1px solid rgba(160,120,64,0.2);">
-            ${text}
-          </div>
+      <div class="user-message flex gap-3 items-end justify-end animation-fadeIn">
+        <div class="bg-white shadow-sm border border-slate-100 rounded-2xl rounded-br-sm p-4 text-[14px] text-slate-700 leading-relaxed max-w-[85%]">
+          ${text}
         </div>
-        <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--gold), #c9a05f); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
-          👤
+        <div class="w-8 h-8 rounded-lg bg-blue-100 overflow-hidden flex items-center justify-center flex-shrink-0 shadow-sm border border-white">
+          <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0" alt="Avatar" class="w-full h-full object-cover">
         </div>
       </div>
     `;
   } else {
     chatMessages.innerHTML += `
-      <div class="ai-message" style="margin-bottom: 16px; display: flex; gap: 10px; animation: fadeIn 0.3s ease;">
-        <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--indigo), #5b7fd8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
-          🤖
+      <div class="ai-message flex gap-3 items-end animation-fadeIn">
+        <div class="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden relative">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#aiGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
         </div>
-        <div style="flex: 1; max-width: 85%;">
-          <div style="font-size: 11px; color: var(--indigo); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">AI Phản biện</div>
-          <div style="padding: 12px 16px; background: var(--indigo-bg); border-radius: 12px; border-radius-top-left: 4px; font-size: 13px; color: var(--ink); line-height: 1.7; box-shadow: 0 1px 3px rgba(61,82,160,0.1); border: 1px solid rgba(61,82,160,0.15);">
-            ${text}
-          </div>
+        <div class="bg-white shadow-sm border border-slate-100 rounded-2xl rounded-bl-sm p-4 text-[14px] text-slate-700 leading-relaxed max-w-[85%]">
+          ${text}
         </div>
       </div>
     `;

@@ -50,7 +50,7 @@ class GeminiService:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.gemini_client.client.models.generate_content(
+                lambda: self.gemini_client._generate_with_retry(
                     model=self.gemini_client.model_name,
                     contents=prompt,
                     config=self.gemini_client.generation_config
@@ -143,7 +143,7 @@ class GeminiService:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.gemini_client.client.models.generate_content(
+                lambda: self.gemini_client._generate_with_retry(
                     model=self.gemini_client.model_name,
                     contents=prompt,
                     config=self.gemini_client.generation_config

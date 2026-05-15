@@ -83,16 +83,18 @@ class GeminiClient:
         if not GENAI_AVAILABLE:
             raise ImportError("google-genai package is required. Install: pip install google-genai")
         
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY not found")
+        # Load tất cả API keys từ environment
+        self.api_keys = self._load_api_keys(api_key)
+        self.current_key_index = 0
         
-        # Khởi tạo client mới
+        # Khởi tạo client với key đầu tiên
+        self.api_key = self.api_keys[0]
         self.client = genai.Client(api_key=self.api_key)
         
-        # Đọc model từ environment variable hoặc dùng mặc định
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        # Đọc model từ environment variable
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
         print(f"🤖 Using Gemini model: {self.model_name}")
+        print(f"🔑 Loaded {len(self.api_keys)} API key(s)")
         
         self.generation_config = types.GenerateContentConfig(
             temperature=1.0,
@@ -100,6 +102,67 @@ class GeminiClient:
             top_k=40,
             max_output_tokens=8192,
         )
+    
+    def _load_api_keys(self, primary_key: Optional[str] = None) -> list:
+        """Load tất cả API keys từ environment"""
+        keys = []
+        
+        # Load các key đánh số: GEMINI_API_KEY_1, GEMINI_API_KEY_2, ...
+        i = 1
+        while True:
+            key = os.getenv(f"GEMINI_API_KEY_{i}")
+            if not key:
+                break
+            keys.append(key)
+            i += 1
+        
+        # Nếu không có key đánh số, dùng key chính
+        if not keys:
+            fallback = primary_key or os.getenv("GEMINI_API_KEY")
+            if fallback:
+                keys.append(fallback)
+        
+        if not keys:
+            raise ValueError("Không tìm thấy GEMINI_API_KEY nào trong .env")
+        
+        return keys
+    
+    def _rotate_key(self):
+        """Chuyển sang key tiếp theo"""
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        self.api_key = self.api_keys[self.current_key_index]
+        self.client = genai.Client(api_key=self.api_key)
+        print(f"🔄 Switched to API key #{self.current_key_index + 1}")
+    
+    def _generate_with_retry(self, model: str, contents, config):
+        """Gọi API với tự động xoay vòng key khi bị limit"""
+        tried_keys = set()
+        last_error = None
+        
+        while len(tried_keys) < len(self.api_keys):
+            try:
+                response = self.client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=config
+                )
+                return response
+            except Exception as e:
+                error_msg = str(e)
+                last_error = e
+                tried_keys.add(self.current_key_index)
+                
+                is_quota_error = any(code in error_msg for code in [
+                    "429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota"
+                ])
+                
+                if is_quota_error and len(tried_keys) < len(self.api_keys):
+                    print(f"⚠️ Key #{self.current_key_index + 1} bị limit, thử key khác...")
+                    self._rotate_key()
+                else:
+                    raise e
+        
+        raise last_error
     
     def _prepare_image(self, image_input: Union[str, bytes, Image.Image]) -> Image.Image:
         """Chuẩn bị ảnh"""
@@ -154,7 +217,7 @@ class GeminiClient:
 
             response = await loop.run_in_executor(
                 None,
-                lambda: self.client.models.generate_content(
+                lambda: self._generate_with_retry(
                     model=self.model_name,
                     contents=[prompt, uploaded_file],
                     config=self.generation_config

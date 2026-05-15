@@ -50,8 +50,18 @@ function saveUsers(users) {
 
 // Get current user
 function getCurrentUser() {
-  const user = localStorage.getItem('geo3d_current_user');
-  return user ? JSON.parse(user) : null;
+  try {
+    const raw = localStorage.getItem('geo3d_current_user');
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    // Validate: must have at least id or email
+    if (!user || typeof user !== 'object') return null;
+    return user;
+  } catch (e) {
+    console.warn('[Auth] Failed to parse geo3d_current_user:', e);
+    localStorage.removeItem('geo3d_current_user');
+    return null;
+  }
 }
 
 // Set current user

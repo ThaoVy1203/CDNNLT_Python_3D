@@ -550,7 +550,16 @@ async def evaluate_user_approach(request: dict):
         prompt = build_evaluation_prompt(problem_text, user_approach)
         
         try:
-            response = await gemini_service.gemini_client.generate_content_async(prompt)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: gemini_service.gemini_client._generate_with_retry(
+                    model=gemini_service.gemini_client.model_name,
+                    contents=prompt,
+                    config=gemini_service.gemini_client.generation_config
+                )
+            )
             response_text = response.text.strip()
             
             # Extract JSON from response
