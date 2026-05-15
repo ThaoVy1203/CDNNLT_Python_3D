@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -34,6 +34,19 @@
   0%, 20% { content: '.'; }
   40% { content: '..'; }
   60%, 100% { content: '...'; }
+}
+.step-tab.tab-locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+  position: relative;
+}
+.step-tab.tab-locked .lock-icon {
+  display: inline-block;
+  animation: pulse 2s ease-in-out infinite;
+}
+.step-tab.tab-locked:hover {
+  background: rgba(220,38,38,0.05);
+  border-color: rgba(220,38,38,0.2);
 }
 #chatMessages::-webkit-scrollbar {
   width: 6px;
@@ -91,11 +104,13 @@ if (typeof THREE === 'undefined') {
       <button class="step-tab" onclick="showTab(2)" id="tab-2">
         <span class="step-num">3</span> Dựng hình từng bước
       </button>
-      <button class="step-tab" onclick="showTab(3)" id="tab-3">
+      <button class="step-tab tab-locked" onclick="showTab(3)" id="tab-3">
         <span class="step-num">4</span> Gợi ý & Lời giải
+        <span class="lock-icon" style="margin-left: 6px; font-size: 12px;">🔒</span>
       </button>
-      <button class="step-tab" onclick="showTab(4)" id="tab-4">
+      <button class="step-tab tab-locked" onclick="showTab(4)" id="tab-4">
         <span class="step-num">5</span> Kết quả
+        <span class="lock-icon" style="margin-left: 6px; font-size: 12px;">🔒</span>
       </button>
     </div>
 
@@ -598,9 +613,17 @@ if (!document.getElementById('solver-animations')) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TAB NAVIGATION - Base implementation
+// TAB NAVIGATION - Base implementation with access control
 // ═══════════════════════════════════════════════════════════
+let solutionUnlocked = false; // Track if solution has been unlocked
+
 function showTab(index) {
+  // Access control: Check if user can access this tab
+  if (!canAccessTab(index)) {
+    showTabAccessDenied(index);
+    return;
+  }
+
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.step-tab').forEach(t => t.classList.remove('active'));
 
@@ -647,6 +670,183 @@ function showTab(index) {
     // Load result panel khi vào panel 4
     if (index === 4 && currentProblemId) loadResultPanel();
   }, 100);
+}
+
+/**
+ * Check if user can access a specific tab
+ * @param {number} tabIndex - Tab index (0-4)
+ * @returns {boolean} - True if access is allowed
+ */
+function canAccessTab(tabIndex) {
+  // Tab 0, 1, 2 are always accessible
+  if (tabIndex <= 2) {
+    return true;
+  }
+  
+  // Tab 3 (Gợi ý & Lời giải) requires problem to be uploaded
+  if (tabIndex === 3) {
+    if (!currentProblemId) {
+      return false;
+    }
+    return true;
+  }
+  
+  // Tab 4 (Kết quả) requires solution to be unlocked
+  if (tabIndex === 4) {
+    if (!solutionUnlocked) {
+      return false;
+    }
+    return true;
+  }
+  
+  return true;
+}
+
+/**
+ * Update tab lock status based on current state
+ */
+function updateTabLockStatus() {
+  const tab3 = document.getElementById('tab-3');
+  const tab4 = document.getElementById('tab-4');
+  
+  console.log('🔄 updateTabLockStatus called');
+  console.log('   - currentProblemId:', currentProblemId);
+  console.log('   - solutionUnlocked:', solutionUnlocked);
+  console.log('   - tab3 element:', tab3);
+  console.log('   - tab4 element:', tab4);
+  
+  // Update Tab 3 (Gợi ý & Lời giải)
+  if (tab3) {
+    if (currentProblemId) {
+      // Unlock tab 3 - remove locked state completely
+      console.log('   ✅ Unlocking Tab 3');
+      tab3.classList.remove('tab-locked');
+      
+      // Remove lock icon completely
+      const lockIcon = tab3.querySelector('.lock-icon');
+      if (lockIcon) {
+        console.log('   🗑️ Removing lock icon from Tab 3');
+        lockIcon.remove();
+      }
+    } else {
+      // Keep tab 3 locked
+      console.log('   🔒 Keeping Tab 3 locked');
+      tab3.classList.add('tab-locked');
+      
+      // Add lock icon if not exists
+      if (!tab3.querySelector('.lock-icon')) {
+        const lockIcon = document.createElement('span');
+        lockIcon.className = 'lock-icon';
+        lockIcon.style.cssText = 'margin-left: 6px; font-size: 12px;';
+        lockIcon.textContent = '🔒';
+        tab3.appendChild(lockIcon);
+      }
+    }
+  }
+  
+  // Update Tab 4 (Kết quả)
+  if (tab4) {
+    if (solutionUnlocked) {
+      // Unlock tab 4 when solution is unlocked
+      console.log('   ✅ Unlocking Tab 4 (solution unlocked)');
+      tab4.classList.remove('tab-locked');
+      const lockIcon = tab4.querySelector('.lock-icon');
+      if (lockIcon) {
+        lockIcon.textContent = '';
+        lockIcon.style.color = 'var(--teal)';
+      }
+    } else {
+      // Keep tab 4 locked until solution is unlocked
+      console.log('   🔒 Keeping Tab 4 locked (waiting for solution)');
+      tab4.classList.add('tab-locked');
+      const lockIcon = tab4.querySelector('.lock-icon');
+      if (lockIcon) {
+        lockIcon.textContent = '🔒';
+        lockIcon.style.color = '';
+      }
+    }
+  }
+}
+
+/**
+ * Show access denied message when user tries to access locked tab
+ * @param {number} tabIndex - Tab index that was blocked
+ */
+function showTabAccessDenied(tabIndex) {
+  // Remove any existing notification first
+  const existingNotif = document.querySelector('.tab-access-notification');
+  if (existingNotif) {
+    existingNotif.remove();
+  }
+  
+  let message = '';
+  let icon = '🔒';
+  
+  if (tabIndex === 3 && !currentProblemId) {
+    message = 'Vui lòng tải ảnh đề bài ở Bước 1 trước!';
+    icon = '📤';
+  } else if (tabIndex === 4 && !solutionUnlocked) {
+    message = 'Vui lòng mở khóa lời giải ở Bước 4 trước khi xem kết quả!';
+    icon = '🔓';
+  }
+  
+  // Create temporary notification
+  const notification = document.createElement('div');
+  notification.className = 'tab-access-notification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(239,68,68,0.95) 0%, rgba(220,38,38,0.95) 100%);
+    color: white;
+    padding: 14px 22px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(239,68,68,0.35);
+    z-index: 10000;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideDownFast 0.2s ease;
+    max-width: 90%;
+    border: 1.5px solid rgba(255,255,255,0.25);
+  `;
+  
+  notification.innerHTML = `
+    <span style="font-size: 20px;">${icon}</span>
+    <span>${message}</span>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Add slide down animation
+  if (!document.getElementById('tab-access-animation')) {
+    const style = document.createElement('style');
+    style.id = 'tab-access-animation';
+    style.textContent = `
+      @keyframes slideDownFast {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // Remove after 2.5 seconds (faster)
+  setTimeout(() => {
+    notification.style.animation = 'slideDownFast 0.2s ease reverse';
+    setTimeout(() => {
+      notification.remove();
+    }, 200);
+  }, 2500);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -789,6 +989,11 @@ async function analyzeSelectedImage() {
     // Lưu state
     currentProblemId   = json.data.maBaiToan;
     currentProblemData = json.data;
+    
+    console.log('✅ Upload successful!');
+    console.log('   - json.data.maBaiToan:', json.data.maBaiToan);
+    console.log('   - currentProblemId:', currentProblemId);
+    console.log('   - typeof currentProblemId:', typeof currentProblemId);
 
     const extraction  = json.data.extraction || {};
     const imagePath   = json.data.imagePath  || null;
@@ -856,6 +1061,12 @@ async function analyzeSelectedImage() {
 
     setTimeout(() => recognizedCard.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
     setTimeout(() => { if (currentProblemId) load3DGeometry(currentProblemId); }, 1500);
+    
+    // Update tab lock status after successful upload (with slight delay to ensure DOM is ready)
+    setTimeout(() => {
+      console.log('🔓 Updating tab lock status after upload. currentProblemId:', currentProblemId);
+      updateTabLockStatus();
+    }, 100);
 
   } catch (err) {
     console.error('Upload error:', err);
@@ -1252,6 +1463,12 @@ function unlockSolutionAfterChat() {
   } else {
     alert('Lỗi: Không tìm thấy ID bài toán!');
   }
+  
+  // Mark solution as unlocked
+  solutionUnlocked = true;
+  
+  // Update tab lock status
+  updateTabLockStatus();
 }
 
 // Solve problem with API (calls /geometry/solve-problem/{ma_bai_toan})
@@ -1398,6 +1615,10 @@ async function solveProblemWithAPI() {
       }, 200);
       
       console.log('✅ Solution displayed successfully');
+      
+      // Mark solution as unlocked and update tab status
+      solutionUnlocked = true;
+      updateTabLockStatus();
       
     } else {
       throw new Error(data.message || 'Không nhận được lời giải từ API');
@@ -1586,6 +1807,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   setTimeout(initThreeViewers, 200);
+  
+  // Initialize tab lock status
+  updateTabLockStatus();
 });
 
 function initThreeViewers() {
@@ -2257,6 +2481,12 @@ function displaySolutionFromHistory(steps, result) {
   solutionLocked.style.display = 'none';
   solutionContent.style.display = 'block';
   
+  // Mark solution as unlocked (important for tab access control)
+  solutionUnlocked = true;
+  
+  // Update tab lock status
+  updateTabLockStatus();
+  
   console.log('✅ Solution displayed from history');
 }
 
@@ -2387,6 +2617,10 @@ async function loadProblemFromHistory(problemId) {
     // 6. Lưu currentProblemId đúng cách (không dùng window.)
     currentProblemId = parseInt(problemId);
     currentProblemData = { extraction: data.extraction };
+    
+    // 6.1. Update tab lock status immediately after setting currentProblemId
+    console.log('🔓 Updating tab lock status after loading from history. currentProblemId:', currentProblemId);
+    updateTabLockStatus();
 
     // 7. Load 3D geometry từ DUNGHINH3D (đã có sẵn trong DB)
     setTimeout(() => load3DGeometry(currentProblemId), 500);
