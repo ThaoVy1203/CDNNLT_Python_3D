@@ -11,7 +11,7 @@ dist/
 .vite/
 
 # IDE
-.vscode/
+# .vscode/  <- cho phép commit settings
 .idea/
 
 # OS

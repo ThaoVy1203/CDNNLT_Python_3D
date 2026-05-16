@@ -1,0 +1,14 @@
+{
+  "liveServer.settings.donotReload": true,
+  "liveServer.settings.donotVerifyTags": true,
+  "liveServer.settings.ignoreFiles": [
+    "**/*.py",
+    "**/*.html",
+    "**/*.js",
+    "**/*.css",
+    "**/*.json",
+    "**/*.md",
+    "**/*.txt",
+    "**/*"
+  ]
+}
