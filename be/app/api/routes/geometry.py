@@ -157,6 +157,8 @@ async def solve_problem_with_ai(ma_bai_toan: int):
     Bước 3: Giải bài toán bằng Gemini AI.
     Hoạt động với cả guest (maBaiToan từ bước 1) và logged-in user.
     Kết quả lưu vào LOIGIAI (dù guest hay không).
+    
+    Nếu USE_FILE_SEARCH=true, sẽ search tài liệu để lấy context.
     """
     try:
         # Lấy bài toán từ DB
@@ -175,16 +177,30 @@ async def solve_problem_with_ai(ma_bai_toan: int):
                     "solution": {
                         "steps": json.loads(existing_solution.get("cacBuocGiai", "[]")),
                         "result": existing_solution.get("ketQuaCuoi", ""),
-                        "formulas_used": json.loads(existing_solution.get("congThucSuDung", "[]"))
+                        "formulas_used": json.loads(existing_solution.get("congThucSuDung", "[]")),
+                        "references": []  # Old solutions don't have references
                     },
-                    "fromCache": True
+                    "fromCache": True,
+                    "usedFileSearch": False
                 }
             }
 
-        # Gọi Gemini AI giải toán
+        # Gọi Gemini AI giải toán (với hoặc không có File Search)
         problem_text = bai_toan.get("deBaiTho", "")
+        
         try:
-            solution = await gemini_service.solve_problem(problem_text)
+            # Use File Search if enabled
+            from app.core.config import settings
+            if settings.USE_FILE_SEARCH:
+                print(f"📚 Using File Search for problem {ma_bai_toan}")
+                solution = await gemini_service.solve_problem_with_context(problem_text)
+                used_file_search = True
+            else:
+                print(f"📝 Solving without File Search")
+                solution = await gemini_service.solve_problem(problem_text)
+                solution["references"] = []
+                used_file_search = False
+                
         except Exception as e:
             error_msg = str(e)
             if "503" in error_msg or "UNAVAILABLE" in error_msg:
@@ -204,11 +220,13 @@ async def solve_problem_with_ai(ma_bai_toan: int):
 
         return {
             "success": True,
-            "message": "Đã giải toán thành công",
+            "message": "Đã giải toán thành công" + (" (có tham khảo tài liệu)" if used_file_search else ""),
             "data": {
                 "loiGiaiId": loi_giai_id,
                 "solution": solution,
-                "fromCache": False
+                "fromCache": False,
+                "usedFileSearch": used_file_search,
+                "references": solution.get("references", [])
             }
         }
 
@@ -527,30 +545,21 @@ async def evaluate_user_approach(request: dict):
                 "message": "Ý tưởng quá ngắn"
             }
         
-        # Build evaluation prompt
-        prompt = f"""Bạn là giáo viên toán học. Đánh giá ý tưởng giải toán của học sinh.
-
-ĐỀ BÀI:
-{problem_text}
-
-Ý TƯỞNG CỦA HỌC SINH:
-{user_approach}
-
-Hãy đánh giá:
-1. Học sinh có hiểu đúng đề bài không?
-2. Hướng giải có hợp lý không?
-3. Có đề cập đến các yếu tố quan trọng không?
-
-Trả về JSON với format:
-{{
-  "score": <điểm từ 0-10>,
-  "feedback": "<phản hồi chi tiết>",
-  "should_unlock": <true nếu score >= 6, false nếu không>
-}}
-"""
+        # Build evaluation prompt using the function from prompt.py
+        from app.services.ai.prompt import build_evaluation_prompt
+        prompt = build_evaluation_prompt(problem_text, user_approach)
         
         try:
-            response = await gemini_service.gemini_client.generate_content_async(prompt)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: gemini_service.gemini_client._generate_with_retry(
+                    model=gemini_service.gemini_client.model_name,
+                    contents=prompt,
+                    config=gemini_service.gemini_client.generation_config
+                )
+            )
             response_text = response.text.strip()
             
             # Extract JSON from response
@@ -563,30 +572,49 @@ Trả về JSON với format:
             
             evaluation = json.loads(json_str)
             
+            # Ensure should_unlock is based on score >= 3
+            score = evaluation.get("score", 0)
+            should_unlock = score >= 3 or evaluation.get("should_unlock", False)
+            
             return {
                 "success": True,
                 "evaluation": {
-                    "shouldUnlock": evaluation.get("should_unlock", False),
+                    "shouldUnlock": should_unlock,
                     "feedback": evaluation.get("feedback", ""),
-                    "score": evaluation.get("score", 0)
+                    "score": score
                 }
             }
         except Exception as e:
             print(f"Gemini evaluation error: {e}")
-            # Fallback to keyword-based evaluation
+            # Fallback to keyword-based evaluation (more lenient)
             score = 0
-            keywords = ['pythagore', 'pytago', 'trung điểm', 'vuông góc', 'sin', 'cos', 'tan', 'góc', 'hình chiếu']
+            
+            # Keywords for geometry problems
+            keywords = [
+                'pythagore', 'pytago', 'trung điểm', 'vuông góc', 'song song',
+                'sin', 'cos', 'tan', 'góc', 'hình chiếu', 'khoảng cách',
+                'trọng tâm', 'vector', 'công thức', 'định lý', 'tính',
+                'dựng', 'áp dụng', 'gọi', 'suy ra', 'vậy', 'đáp án'
+            ]
+            
+            user_approach_lower = user_approach.lower()
             for keyword in keywords:
-                if keyword in user_approach.lower():
+                if keyword in user_approach_lower:
                     score += 1
             
-            score = min(10, score * 2)
-            feedback = "Ý tưởng của bạn có đề cập đến một số yếu tố quan trọng." if score >= 6 else "Hãy phân tích kỹ hơn các yếu tố đã cho trong đề bài."
+            # More lenient scoring
+            score = min(10, score * 1.5)  # Each keyword worth 1.5 points
+            
+            # If user mentions any relevant concept, give at least 3 points
+            if score > 0:
+                score = max(3, score)
+            
+            feedback = "Bạn đã đề cập đến một số khái niệm quan trọng. Hãy xem lời giải chi tiết!" if score >= 3 else "Hãy phân tích kỹ hơn các yếu tố đã cho trong đề bài."
             
             return {
                 "success": True,
                 "evaluation": {
-                    "shouldUnlock": score >= 6,
+                    "shouldUnlock": score >= 3,
                     "feedback": feedback,
                     "score": score
                 }
@@ -620,3 +648,38 @@ def _generate_drawing_guide(geometry_data: dict) -> str:
     
     return guide
 
+
+
+
+@router.get("/file-search/status")
+async def get_file_search_status():
+    """Lấy trạng thái File Search"""
+    try:
+        from app.services.file_search_service import file_search_service
+        status = file_search_service.get_status()
+        return {
+            "success": True,
+            "data": status
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
+@router.post("/file-search/initialize")
+async def initialize_file_search():
+    """Khởi tạo/Refresh File Search index"""
+    try:
+        from app.services.file_search_service import file_search_service
+        success = await file_search_service.initialize()
+        return {
+            "success": success,
+            "message": "File Search initialized successfully" if success else "Failed to initialize File Search"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }

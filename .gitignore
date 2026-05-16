@@ -5,6 +5,9 @@ __pycache__/
 venv/
 .env
 
+# File Search Cache
+be/.file_search_cache.json
+
 # Node
 node_modules/
 dist/

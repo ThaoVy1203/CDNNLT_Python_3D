@@ -6,236 +6,117 @@
 <title>Đăng nhập - Geo3D</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../styles.css">
-<style>
-.auth-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, var(--gold-bg), var(--indigo-bg));
-  position: relative;
-  overflow: hidden;
-}
-.auth-container::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('data:image/svg+xml,<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="1.5" fill="rgba(160,120,64,0.1)"/></svg>');
-  opacity: 0.5;
-}
-.auth-card {
-  position: relative;
-  z-index: 1;
-  background: var(--white);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 420px;
-  padding: 48px 40px;
-}
-.auth-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.auth-header .logo {
-  font-family: var(--serif);
-  font-size: 42px;
-  font-weight: 500;
-  color: var(--ink);
-  margin-bottom: 12px;
-}
-.auth-header .logo em {
-  color: var(--gold);
-  font-style: italic;
-}
-.auth-header h2 {
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--ink);
-  margin-bottom: 8px;
-}
-.auth-header p {
-  font-size: 14px;
-  color: var(--ink-3);
-  line-height: 1.6;
-}
-.btn-google {
-  width: 100%;
-  padding: 14px;
-  background: var(--white);
-  color: var(--ink);
-  border: 1.5px solid var(--border-md);
-  border-radius: 8px;
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-.btn-google:hover {
-  border-color: var(--gold);
-  background: rgba(160,120,64,0.05);
-  transform: translateY(-1px);
-}
-.btn-google svg {
-  width: 20px;
-  height: 20px;
-}
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 28px 0;
-  color: var(--ink-4);
-  font-size: 12px;
-}
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.divider::before {
-  margin-right: 16px;
-}
-.divider::after {
-  margin-left: 16px;
-}
-.btn-guest {
-  width: 100%;
-  padding: 14px;
-  background: var(--white);
-  color: var(--ink);
-  border: 1.5px solid var(--border-md);
-  border-radius: 8px;
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-.btn-guest:hover {
-  border-color: var(--indigo);
-  background: rgba(67,56,202,0.05);
-  transform: translateY(-1px);
-}
-.auth-footer {
-  text-align: center;
-  margin-top: 32px;
-  font-size: 12px;
-  color: var(--ink-3);
-  line-height: 1.6;
-}
-.auth-footer a {
-  color: var(--gold);
-  text-decoration: none;
-  font-weight: 500;
-}
-.auth-footer a:hover {
-  text-decoration: underline;
-}
-.features-list {
-  margin-top: 32px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border);
-}
-.features-list h3 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-2);
-  margin-bottom: 16px;
-  text-align: center;
-}
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: var(--ink-3);
-}
-.feature-item svg {
-  width: 16px;
-  height: 16px;
-  color: var(--gold);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-@media (max-width: 860px) {
-  .auth-card {
-    padding: 40px 28px;
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Outfit', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        }
+      }
+    }
   }
-}
-</style>
+</script>
+<link rel="stylesheet" href="../styles.css">
 </head>
-<body>
+<body class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
 
-<div class="auth-container">
-  <div class="auth-card">
-    <div class="auth-header">
-      <div class="logo">Geo<em>3D</em></div>
-      <h2>Đăng nhập để tiếp tục</h2>
-      <p>Lưu lịch sử giải bài và truy cập tính năng luyện tập</p>
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden px-4">
+  
+  <!-- Background Decorations -->
+  <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 blur-[120px] pointer-events-none"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/20 blur-[120px] pointer-events-none"></div>
+
+  <!-- Back to Home -->
+  <a href="index.html" class="absolute top-8 left-6 md:left-10 flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors z-20">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    Quay lại trang chủ
+  </a>
+
+  <!-- Auth Card -->
+  <div class="w-full max-w-[860px] bg-white/80 backdrop-blur-xl rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/60 overflow-hidden relative z-10 flex flex-col md:flex-row">
+    
+    <!-- Left Column: Branding & Benefits -->
+    <div class="w-full md:w-1/2 p-8 sm:p-12 bg-slate-50/50 border-r border-slate-100 flex flex-col justify-between">
+      <div>
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0f172a] text-white shadow-sm mb-6">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
+        </div>
+        <h2 class="font-serif text-[28px] md:text-[32px] font-semibold text-slate-900 tracking-tight mb-2">Đăng nhập Geo3D</h2>
+        <p class="text-[15px] text-slate-500 leading-relaxed mb-10">Giải pháp toàn diện cho Hình Học Không Gian với trí tuệ nhân tạo.</p>
+        
+        <!-- Benefits list -->
+        <div>
+          <div class="text-[12px] font-bold text-slate-900 uppercase tracking-widest mb-5">Đặc quyền tài khoản</div>
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 text-blue-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <span class="text-[14px] text-slate-600 font-medium leading-snug">Lưu vĩnh viễn lịch sử các bài toán đã giải</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 text-blue-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <span class="text-[14px] text-slate-600 font-medium leading-snug">Truy cập kho 10.000+ bài tập luyện thi</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 text-blue-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <span class="text-[14px] text-slate-600 font-medium leading-snug">Đồng bộ dữ liệu học tập trên đa thiết bị</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Google Sign-In Button (Custom Style) -->
-    <button class="btn-google" onclick="handleGoogleSignIn()">
-      <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Đăng nhập bằng Google
-    </button>
-
-    <div class="divider">hoặc</div>
-
-    <button class="btn-guest" onclick="continueAsGuest()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-        <circle cx="12" cy="7" r="4"></circle>
-      </svg>
-      Tiếp tục với tư cách khách
-    </button>
-
-    <div class="features-list">
-      <h3>Lợi ích khi đăng nhập</h3>
-      <div class="feature-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>Lưu lịch sử giải bài và xem lại bất cứ lúc nào</span>
+    <!-- Right Column: Login Actions -->
+    <div class="w-full md:w-1/2 p-8 sm:p-12 bg-white flex flex-col justify-center">
+      <div class="text-center mb-8 md:hidden">
+        <h3 class="font-serif text-[22px] font-semibold text-slate-900">Bắt đầu ngay</h3>
       </div>
-      <div class="feature-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>Truy cập kho bài tập luyện tập theo chủ đề</span>
+      
+      <!-- Actions -->
+      <div class="space-y-4 w-full max-w-[320px] mx-auto">
+        <button onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-[15px] font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Đăng nhập bằng Google
+        </button>
+
+        <div class="relative flex items-center py-2">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink-0 mx-4 text-[12px] text-slate-400 font-bold uppercase tracking-wider">Hoặc</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <button onclick="continueAsGuest()" class="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-slate-900 border border-transparent rounded-xl text-[15px] font-semibold text-white hover:bg-slate-800 transition-all shadow-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Tiếp tục với tư cách khách
+        </button>
       </div>
-      <div class="feature-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>Đồng bộ dữ liệu trên mọi thiết bị</span>
+
+      <!-- Footer -->
+      <div class="mt-8 text-center text-[12px] text-slate-400 leading-relaxed max-w-[280px] mx-auto">
+        Bằng việc tiếp tục, bạn đồng ý với <br/><a href="#" class="text-slate-600 hover:text-slate-900 font-medium underline underline-offset-2">Điều khoản dịch vụ</a> và <a href="#" class="text-slate-600 hover:text-slate-900 font-medium underline underline-offset-2">Chính sách bảo mật</a>
       </div>
     </div>
 
-    <div class="auth-footer">
-      Bằng cách đăng nhập, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> và <a href="#">Chính sách bảo mật</a> của chúng tôi.
-    </div>
   </div>
 </div>
 
@@ -278,54 +159,70 @@ function handleGoogleSignIn() {
         });
         const userInfo = await userInfoResponse.json();
         
-        console.log('Google user info:', userInfo);
+        console.log('[Login] Google user info:', userInfo);
         
-        // Call backend API to create/get user in database
-        const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
-        const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            googleId: userInfo.sub,
-            email: userInfo.email,
-            name: userInfo.name,
-            picture: userInfo.picture
-          })
-        });
+        // Save Google user info immediately (fallback if backend fails)
+        const fallbackUser = {
+          id: userInfo.sub,
+          username: userInfo.name || userInfo.email,
+          email: userInfo.email,
+          role: 'Thành viên',
+          provider: 'google',
+          picture: userInfo.picture
+        };
         
-        if (!backendResponse.ok) {
-          const error = await backendResponse.json();
-          throw new Error(error.detail || 'Đăng nhập thất bại');
+        // Try to sync with backend
+        try {
+          const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
+          const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              googleId: userInfo.sub,
+              email: userInfo.email,
+              name: userInfo.name,
+              picture: userInfo.picture
+            })
+          });
+          
+          if (backendResponse.ok) {
+            const data = await backendResponse.json();
+            console.log('[Login] Backend response:', data);
+            
+            if (data.success && data.user) {
+              localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
+              const userObj = {
+                id: data.user.maNguoiDung,
+                username: data.user.tenDangNhap || userInfo.name || userInfo.email || 'User',
+                name: userInfo.name || '',          // tên thật từ Google
+                email: data.user.email || userInfo.email,
+                role: data.user.vaiTro || 'Thành viên',
+                provider: 'google',
+                picture: userInfo.picture
+              };
+              localStorage.setItem('geo3d_current_user', JSON.stringify(userObj));
+              console.log('[Login] Saved from backend:', userObj);
+            } else {
+              // Backend returned but no user data - use fallback
+              localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+              console.log('[Login] Backend no user data, using fallback:', fallbackUser);
+            }
+          } else {
+            // Backend error - use fallback
+            localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+            console.warn('[Login] Backend error, using fallback:', fallbackUser);
+          }
+        } catch (backendErr) {
+          // Backend unreachable - use fallback
+          localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+          console.warn('[Login] Backend unreachable, using fallback:', fallbackUser);
         }
         
-        const data = await backendResponse.json();
-        console.log('Backend response:', data);
-        
-        if (data.success && data.user) {
-          // Save user info to localStorage
-          localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
-          localStorage.setItem('geo3d_current_user', JSON.stringify({
-            id: data.user.maNguoiDung,
-            username: data.user.tenDangNhap,
-            email: data.user.email,
-            role: data.user.vaiTro,
-            provider: 'google',
-            picture: userInfo.picture
-          }));
-          
-          // Show success message
-          alert('✅ Đăng nhập thành công!');
-          
-          // Redirect to solver page
-          window.location.href = 'solver.html';
-        } else {
-          throw new Error('Không nhận được thông tin user từ server');
-        }
+        console.log('[Login] Final localStorage:', localStorage.getItem('geo3d_current_user'));
+        window.location.href = 'solver.html';
         
       } catch (error) {
-        console.error('Google login error:', error);
+        console.error('[Login] Google login error:', error);
         alert('❌ Lỗi đăng nhập: ' + error.message);
       }
     }
@@ -336,57 +233,62 @@ function handleGoogleSignIn() {
 // Handle Google Sign-In callback
 async function handleGoogleCallback(response) {
   try {
-    // Decode JWT token to get user info
     const userInfo = parseJwt(response.credential);
+    console.log('[Login] Google callback user info:', userInfo);
     
-    console.log('Google user info:', userInfo);
+    // Save Google user info immediately (fallback if backend fails)
+    const fallbackUser = {
+      id: userInfo.sub,
+      username: userInfo.name || userInfo.email,
+      email: userInfo.email,
+      role: 'Thành viên',
+      provider: 'google',
+      picture: userInfo.picture
+    };
     
-    // Call backend API to create/get user in database
-    const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
-    const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        googleId: userInfo.sub,
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture
-      })
-    });
-    
-    if (!backendResponse.ok) {
-      const error = await backendResponse.json();
-      throw new Error(error.detail || 'Đăng nhập thất bại');
+    try {
+      const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
+      const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          googleId: userInfo.sub,
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture
+        })
+      });
+      
+      if (backendResponse.ok) {
+        const data = await backendResponse.json();
+        if (data.success && data.user) {
+          localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
+          const userObj = {
+            id: data.user.maNguoiDung,
+            username: data.user.tenDangNhap || userInfo.name || userInfo.email || 'User',
+            name: userInfo.name || '',          // tên thật từ Google
+            email: data.user.email || userInfo.email,
+            role: data.user.vaiTro || 'Thành viên',
+            provider: 'google',
+            picture: userInfo.picture
+          };
+          localStorage.setItem('geo3d_current_user', JSON.stringify(userObj));
+        } else {
+          localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+        }
+      } else {
+        localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+      }
+    } catch (backendErr) {
+      localStorage.setItem('geo3d_current_user', JSON.stringify(fallbackUser));
+      console.warn('[Login] Backend unreachable, using fallback');
     }
     
-    const data = await backendResponse.json();
-    console.log('Backend response:', data);
-    
-    if (data.success && data.user) {
-      // Save user info to localStorage
-      localStorage.setItem('maNguoiDung', data.user.maNguoiDung);
-      localStorage.setItem('geo3d_current_user', JSON.stringify({
-        id: data.user.maNguoiDung,
-        username: data.user.tenDangNhap,
-        email: data.user.email,
-        role: data.user.vaiTro,
-        provider: 'google',
-        picture: userInfo.picture
-      }));
-      
-      // Show success message
-      alert('✅ Đăng nhập thành công!');
-      
-      // Redirect to solver page
-      window.location.href = 'solver.html';
-    } else {
-      throw new Error('Không nhận được thông tin user từ server');
-    }
+    console.log('[Login] Final localStorage:', localStorage.getItem('geo3d_current_user'));
+    window.location.href = 'solver.html';
     
   } catch (error) {
-    console.error('Google login error:', error);
+    console.error('[Login] Google callback error:', error);
     alert('❌ Lỗi đăng nhập: ' + error.message);
   }
 }
@@ -403,8 +305,9 @@ function parseJwt(token) {
 
 // Continue as guest
 function continueAsGuest() {
-  // Clear any existing user data
+  // Clear any existing user data - guest mode means no user
   localStorage.removeItem('geo3d_current_user');
+  localStorage.removeItem('maNguoiDung');
   // Redirect to solver page
   window.location.href = 'solver.html';
 }

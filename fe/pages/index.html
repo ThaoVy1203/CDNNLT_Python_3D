@@ -14,386 +14,134 @@
 <meta name="twitter:description" content="Chụp ảnh đề bài, AI tự động phân tích và dựng mô hình 3D. Nhận lời giải chi tiết trong vài giây.">
 <title>Geo3D — Hệ thống giải hình học không gian</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Outfit', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          primary: {
+            DEFAULT: '#2563eb',
+            light: '#3b82f6',
+            dark: '#1d4ed8'
+          }
+        }
+      }
+    }
+  }
+</script>
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../css/home.css">
 </head>
 <body>
 
-<div id="topbar-container"></div>
+<div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
 <script src="../js/auth.js"></script>
 <script src="../js/topbar.js"></script>
 <script src="../js/home.js"></script>
 <script>
   document.getElementById('topbar-container').innerHTML = renderTopbar('home');
-  window.addEventListener('DOMContentLoaded', initTopbar);
+  initTopbar();
 </script>
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-left">
-    <div class="hero-eyebrow">Hình học không gian thế hệ mới</div>
-    <h1>Giải bài 3D<br>từ <em>một tấm ảnh</em></h1>
-    <p class="hero-sub">AI nhận diện đề bài, dựng mô hình không gian, hướng dẫn từng bước — giúp học sinh thực sự hiểu, không chỉ chép đáp án.</p>
-    <div class="hero-actions">
-      <button class="btn-hero" onclick="window.location.href='solver.html'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Bắt đầu giải bài
-      </button>
-      <button class="btn-ghost" onclick="document.querySelector('.how-it-works').scrollIntoView({behavior: 'smooth'})">Xem demo →</button>
-    </div>
-    <div class="hero-stats">
-      <div class="stat-item">
-        <div class="stat-num">5<em>k+</em></div>
-        <div class="stat-label">Bài toán đã giải</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num">98<em>%</em></div>
-        <div class="stat-label">Độ chính xác</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num"><em>&lt;</em>3s</div>
-        <div class="stat-label">Thời gian phân tích</div>
-      </div>
-    </div>
-  </div>
+<div id="hero-container"></div>
+<script src="../js/components/home/hero.js"></script>
+<script>
+  document.getElementById('hero-container').innerHTML = renderHero();
+  window.addEventListener('DOMContentLoaded', initHeroVideo);
+</script>
 
-  <div class="hero-preview">
-    <video autoplay loop muted playsinline class="hero-video-float" disableRemotePlayback>
-      <source src="../assets/images/video.mp4" type="video/mp4">
-    </video>
-  </div>
-</section>
+<!-- FEATURES BENTO GRID -->
+<div id="features-container"></div>
+<script src="../js/components/home/features.js"></script>
+<script>
+  document.getElementById('features-container').innerHTML = renderFeatures();
+</script>
 
-<!-- HOW IT WORKS -->
-<section class="how-it-works">
-  <div class="app-wrapper">
-    <div class="section-header">
-      <div class="section-badge">Quy trình làm việc</div>
-      <h2 class="section-title">Giải toán chỉ với 3 bước đơn giản</h2>
-      <p class="section-subtitle">Từ ảnh đề bài đến lời giải hoàn chỉnh trong vài giây</p>
-    </div>
-    
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-number">01</div>
-        <div class="step-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-            <circle cx="12" cy="13" r="4"></circle>
-          </svg>
-        </div>
-        <h3 class="step-title">Chụp ảnh đề bài</h3>
-        <p class="step-desc">Chụp hoặc tải lên ảnh đề bài hình học không gian của bạn</p>
-      </div>
-      
-      <div class="step-arrow">→</div>
-      
-      <div class="step-card">
-        <div class="step-number">02</div>
-        <div class="step-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-          </svg>
-        </div>
-        <h3 class="step-title">AI phân tích</h3>
-        <p class="step-desc">Gemini AI tự động nhận diện và dựng mô hình 3D tương tác</p>
-      </div>
-      
-      <div class="step-arrow">→</div>
-      
-      <div class="step-card">
-        <div class="step-number">03</div>
-        <div class="step-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <h3 class="step-title">Nhận lời giải</h3>
-        <p class="step-desc">Xem lời giải chi tiết với hình minh họa và hướng dẫn từng bước</p>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- BENEFITS SECTION -->
+<div id="benefits-container"></div>
 
-<!-- FEATURES SECTION -->
-<div class="app-wrapper">
-  <div class="features">
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-          <circle cx="12" cy="13" r="4"></circle>
-        </svg>
-      </div>
-      <h3>Nhận diện AI</h3>
-      <p>Chụp ảnh đề bài, AI tự động phân tích và trích xuất thông tin hình học</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
-        </svg>
-      </div>
-      <h3>Mô hình 3D</h3>
-      <p>Dựng lại hình học không gian với khả năng xoay, zoom, quan sát mọi góc độ</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-        </svg>
-      </div>
-      <h3>Dựng từng bước</h3>
-      <p>Hướng dẫn chi tiết cách vẽ hình, giúp hiểu rõ quy trình dựng hình học</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-      </div>
-      <h3>Lời giải chi tiết</h3>
-      <p>Phân tích, gợi ý và trình bày lời giải đầy đủ với hình minh họa trực quan</p>
-    </div>
-  </div>
-</div>
+<!-- TESTIMONIALS SECTION -->
+<div id="testimonials-container"></div>
 
-<!-- HERO IMAGE SHOWCASE -->
-<section class="hero-showcase">
-  <div class="showcase-container">
-    <div class="showcase-content">
-      <div class="showcase-badge">✨ Công nghệ AI tiên tiến</div>
-      <h2 class="showcase-title">Giải toán hình học không gian<br>từ ảnh chụp</h2>
-      <p class="showcase-text">
-        Chỉ cần chụp ảnh đề bài, hệ thống AI của chúng tôi sẽ tự động nhận diện, 
-        phân tích và dựng mô hình 3D chính xác trong vài giây.
-      </p>
-      <div class="showcase-features">
-        <div class="showcase-feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Nhận diện tự động bằng Gemini AI</span>
-        </div>
-        <div class="showcase-feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Dựng mô hình 3D tương tác</span>
-        </div>
-        <div class="showcase-feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Lời giải từng bước chi tiết</span>
-        </div>
-        <div class="showcase-feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Hỗ trợ đa dạng dạng bài toán</span>
-        </div>
-      </div>
-      <button class="btn-hero" onclick="window.location.href='solver.html'">
-        Thử ngay miễn phí
-      </button>
-    </div>
-    <div class="showcase-image">
-      <div class="showcase-image-wrapper">
-        <img src="../assets/images/banner.jpg" alt="Giải toán hình học không gian với Geo3D" loading="lazy" />
-        <div class="showcase-image-overlay"></div>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- MARQUEE SLIDER & CTA -->
+<div id="marquee-container"></div>
 
-<!-- DEMO VIDEO SECTION -->
-<section class="demo-video-section">
-  <div class="app-wrapper">
-    <div class="section-header">
-      <div class="section-badge">Xem demo</div>
-      <h2 class="section-title">Trải nghiệm Geo3D trong hành động</h2>
-      <p class="section-subtitle">Xem cách Geo3D giải quyết bài toán hình học không gian một cách nhanh chóng và chính xác</p>
-    </div>
-    
-    <div class="demo-video-wrapper">
-      <div class="demo-video-container">
-        <video muted disableRemotePlayback preload="metadata" poster="../assets/images/banner.jpg">
-          <source src="../assets/images/video.mp4" type="video/mp4">
-          Trình duyệt của bạn không hỗ trợ video.
-        </video>
-        <div class="demo-video-overlay">
-          <button class="demo-play-btn" aria-label="Play demo video">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="demo-video-info">
-        <div class="demo-info-item">
-          <div class="demo-info-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
-          </div>
-          <div class="demo-info-text">
-            <h4>Nhanh chóng</h4>
-            <p>Phân tích và giải bài trong vài giây</p>
-          </div>
-        </div>
-        <div class="demo-info-item">
-          <div class="demo-info-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="6"></circle>
-              <circle cx="12" cy="12" r="2"></circle>
-            </svg>
-          </div>
-          <div class="demo-info-text">
-            <h4>Chính xác</h4>
-            <p>Độ chính xác lên đến 98%</p>
-          </div>
-        </div>
-        <div class="demo-info-item">
-          <div class="demo-info-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-          </div>
-          <div class="demo-info-text">
-            <h4>Dễ hiểu</h4>
-            <p>Lời giải chi tiết từng bước</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHY CHOOSE GEO3D -->
-<section class="why-choose">
-  <div class="app-wrapper">
-    <div class="section-header">
-      <div class="section-badge">Tại sao chọn Geo3D</div>
-      <h2 class="section-title">Học thông minh hơn, không chỉ học nhiều hơn</h2>
-    </div>
-    
-    <div class="benefits-grid">
-      <div class="benefit-card">
-        <div class="benefit-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-        </div>
-        <h3>Tiết kiệm thời gian</h3>
-        <p>Giải quyết bài toán trong vài giây thay vì hàng giờ loay hoay</p>
-      </div>
-      
-      <div class="benefit-card">
-        <div class="benefit-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="12" r="6"></circle>
-            <circle cx="12" cy="12" r="2"></circle>
-          </svg>
-        </div>
-        <h3>Hiểu sâu hơn</h3>
-        <p>Mô hình 3D tương tác giúp hình dung không gian một cách trực quan</p>
-      </div>
-      
-      <div class="benefit-card">
-        <div class="benefit-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-            <polyline points="17 6 23 6 23 12"></polyline>
-          </svg>
-        </div>
-        <h3>Cải thiện điểm số</h3>
-        <p>Học đúng phương pháp, nắm vững kiến thức, tự tin trong kỳ thi</p>
-      </div>
-      
-      <div class="benefit-card">
-        <div class="benefit-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
-          </svg>
-        </div>
-        <h3>Luyện tập không giới hạn</h3>
-        <p>Giải không giới hạn bài toán, rèn luyện kỹ năng mọi lúc mọi nơi</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
-<section class="testimonials">
-  <h2 class="testimonials-title">Học sinh nói gì về Geo3D</h2>
-  <div class="testimonials-grid">
-    <div class="testimonial-card">
-      <p class="testimonial-text">"Trước đây mình rất sợ hình học không gian, nhưng với Geo3D, mình có thể xoay mô hình 3D và hiểu rõ từng bước dựng hình. Điểm thi của mình đã tăng từ 5 lên 8!"</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">N</div>
-        <div class="testimonial-info">
-          <div class="testimonial-name">Nguyễn Minh Anh</div>
-          <div class="testimonial-role">Học sinh lớp 12A1</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="testimonial-card">
-      <p class="testimonial-text">"AI nhận diện đề bài rất nhanh và chính xác. Mình chỉ cần chụp ảnh là có ngay lời giải chi tiết. Tiết kiệm được rất nhiều thời gian ôn tập!"</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">T</div>
-        <div class="testimonial-info">
-          <div class="testimonial-name">Trần Hoàng Long</div>
-          <div class="testimonial-role">Học sinh lớp 11A3</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="testimonial-card">
-      <p class="testimonial-text">"Phần dựng hình từng bước giúp mình hiểu cách vẽ hình chính xác. Không còn bị mất điểm vì vẽ sai hình nữa. Cảm ơn Geo3D rất nhiều!"</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">L</div>
-        <div class="testimonial-info">
-          <div class="testimonial-name">Lê Thị Mai</div>
-          <div class="testimonial-role">Học sinh lớp 12A5</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA SECTION -->
-<section class="cta-section">
-  <div class="cta-card">
-    <div class="cta-content">
-      <h2 class="cta-title">Sẵn sàng chinh phục hình học không gian?</h2>
-      <p class="cta-subtitle">Tham gia cùng hàng nghìn học sinh đang sử dụng Geo3D để học tập hiệu quả hơn</p>
-      <button class="btn-hero" onclick="window.location.href='register.html'">
-        Bắt đầu miễn phí ngay
-      </button>
-    </div>
-  </div>
-</section>
+<script src="../js/components/home/benefits.js"></script>
+<script src="../js/components/home/testimonials.js"></script>
+<script>
+  document.getElementById('benefits-container').innerHTML = renderBenefits();
+  document.getElementById('testimonials-container').innerHTML = renderTestimonials();
+  document.getElementById('marquee-container').innerHTML = renderMarqueeSlider();
+</script>
 
 <!-- FOOTER -->
-<footer>
-  <div>
-    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
-    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+<footer class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10">
+  
+  <!-- Faded Huge Background Text -->
+  <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
+    <div class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
+      Geo3D
+    </div>
   </div>
-  <div style="font-size:12px;color:var(--ink-3)">
-    © 2024 Geo3D · Made with ❤️ for students
+
+  <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
+    <!-- Brand Info -->
+    <div class="flex flex-col max-w-[380px]">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
+        </div>
+        <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
+      </div>
+      <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
+        Manage geometry effortlessly.
+      </p>
+      
+      <!-- Social Icons -->
+      <div class="flex gap-4 opacity-60">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </div>
+    </div>
+    
+    <!-- Use Links -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
+      <ul class="list-none p-0 m-0 space-y-4">
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a></li>
+      </ul>
+    </div>
+
+    <!-- Company -->
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
+      <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
+        SPKT University<br/>
+        Ho Chi Minh City, VN 700000
+      </p>
+    </div>
+    
+  </div>
+  
+  <div class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
+    <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
+    <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
   </div>
 </footer>
 

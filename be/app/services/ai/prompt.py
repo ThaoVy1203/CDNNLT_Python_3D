@@ -161,51 +161,52 @@ def build_extraction_prompt(additional_context: str = "") -> str:
 SOLVE_PROBLEM_PROMPT = """
 Bạn là giáo viên toán chuyên về hình học không gian, đang hướng dẫn học sinh THPT.
 
-Hãy giải bài toán sau theo PHONG CÁCH HÌNH HỌC HỌC SINH:
+Hãy giải bài toán sau theo PHONG CÁCH NGẮN GỌN như trong sách giáo khoa:
 
 {problem_text}
 
-YÊU CẦU QUAN TRỌNG:
+YÊU CẦU BỮT BUỘC - TUÂN THỦ NGHIÊM NGẶT:
 
-1. **ƯU TIÊN HÌNH HỌC THUẦN TÚY:**
-   - Sử dụng các quan hệ hình học: vuông góc, song song, trung điểm, hình chiếu
-   - Áp dụng định lý: Pythagore, định lý 3 đường vuông góc, công thức khoảng cách
-   - CHỈ dùng tọa độ hóa khi THỰC SỰ cần thiết (bài toán phức tạp)
+1. **NGẮN GỌN - TỐI ĐA 5 BƯỚC:**
+   - CHỈ được phép TỐI ĐA 5 bước
+   - Mỗi bước CHỈ 1 câu ngắn (tối đa 150 ký tự)
+   - KHÔNG được lặp lại nội dung
+   - KHÔNG giải thích dài dòng
 
-2. **NGẮN GỌN VÀ RÕ RÀNG:**
-   - Tối đa 5-7 bước cho bài toán thông thường
-   - Mỗi bước giải thích rõ ràng, logic
-   - Không lặp lại các phép tính đơn giản
+2. **FORMAT BẮT BUỘC:**
+   - KHÔNG dùng LaTeX
+   - Dùng Unicode: √, ², ³, ⊥, ∥, ⇒
+   - Mỗi bước là 1 string trong mảng steps
 
-3. **ĐỊNH DẠNG:**
-   - KHÔNG dùng LaTeX trong JSON
-   - Dùng Unicode: √, ², ³, π, ∠, ⊥, ∥, ≈
-   - Ví dụ: "a√3/4" thay vì LaTeX
-   - Ví dụ: "SA²" thay vì "SA^2"
+3. **CẤU TRÚC:**
+   - Bước 1: Xác định điểm/quan hệ chính
+   - Bước 2-3: Áp dụng định lý/công thức
+   - Bước 4: Tính toán
+   - Bước 5: Kết quả
 
-4. **CẤU TRÚC LỜI GIẢI:**
-   - Bước 1: Phân tích đề bài, vẽ hình, xác định yếu tố cần tìm
-   - Bước 2-4: Áp dụng định lý, tính toán các đại lượng trung gian
-   - Bước cuối: Kết luận đáp án
-
-VÍ DỤ LỜI GIẢI TỐT (ngắn gọn, hình học):
+VÍ DỤ ĐÚNG (CHỈ 4 BƯỚC):
 {{
   "steps": [
-    "Bước 1: Gọi N là trung điểm AB. Do BC ∥ (SMN) nên d(BC, SM) = d(BC, (SMN)) = d(B, (SMN)) = d(A, (SMN))",
-    "Bước 2: Dựng AH ⊥ SN tại H. Vì SA ⊥ (ABCD) nên AH ⊥ (SMN). Do đó d(A, (SMN)) = AH = a√3/4",
-    "Bước 3: Trong tam giác vuông SAN, áp dụng công thức: 1/AH² = 1/AN² + 1/AS². Với AN = a/2, ta có: 1/(a√3/4)² = 1/(a/2)² + 1/AS²",
-    "Bước 4: Giải phương trình: 16/(3a²) = 4/a² + 1/AS² ⇒ AS² = 3a²/4 ⇒ SA = a√3/2",
-    "Bước 5: Thể tích khối chóp: V = (1/3) × S_đáy × h = (1/3) × a² × (a√3/2) = a³√3/6"
+    "Gọi N là trung điểm AB ⇒ BC ∥ (SMN), suy ra d(BC,SM) = d(A,(SMN))",
+    "Dựng AH ⊥ SN tại H ⇒ AH ⊥ (SMN), vậy d(A,(SMN)) = AH = a√3/4",
+    "Trong △SAN vuông: 1/AH² = 1/AN² + 1/AS² ⇒ SA = a√3/2",
+    "Vậy V = (1/3) × a² × (a√3/2) = a³√3/6"
   ],
   "result": "V = a³√3/6",
-  "formulas_used": ["Công thức khoảng cách từ điểm đến mặt phẳng", "Định lý 3 đường vuông góc", "Công thức thể tích khối chóp"]
+  "formulas_used": ["Khoảng cách điểm-mặt phẳng", "Định lý 3 đường vuông góc"]
 }}
 
-Trả về JSON với format:
+CẢNH BÁO:
+- KHÔNG được vượt quá 5 bước
+- KHÔNG được lặp lại nội dung
+- KHÔNG được giải thích dài dòng
+- BẮT BUỘC trả về JSON đúng format
+
+Trả về JSON:
 {{
-  "steps": ["Bước 1: ...", "Bước 2: ...", ...],
-  "result": "Kết quả cuối cùng",
-  "formulas_used": ["Công thức 1", "Công thức 2", ...]
+  "steps": ["Bước 1", "Bước 2", "Bước 3", "Bước 4", "Bước 5"],
+  "result": "Kết quả",
+  "formulas_used": ["Công thức 1", "Công thức 2"]
 }}
 """
 
@@ -278,7 +279,7 @@ YÊU CẦU:
 1. Đánh giá xem học sinh có hiểu đề bài không
 2. Kiểm tra xem ý tưởng có logic và đúng hướng không
 3. Cho điểm từ 0-10 (10 là hoàn hảo)
-4. Quyết định có nên mở khóa lời giải không (điểm >= 5)
+4. Quyết định có nên mở khóa lời giải không (điểm >= 3)
 
 Trả về JSON:
 {{
@@ -287,26 +288,73 @@ Trả về JSON:
   "feedback": "Phản hồi chi tiết cho học sinh (2-3 câu)"
 }}
 
-QUY TẮC ĐÁNH GIÁ (QUAN TRỌNG - ĐỪNG QUÁ NGHIÊM KHẮC):
-- Điểm 9-10: Ý tưởng xuất sắc, đầy đủ các bước, logic hoàn hảo
-- Điểm 7-8: Ý tưởng rất tốt, đúng hướng, đề cập đủ các bước chính
-- Điểm 5-6: Ý tưởng đúng hướng, có một số bước quan trọng (ĐỦ ĐỂ MỞ KHÓA)
-- Điểm 3-4: Có một vài ý đúng nhưng còn thiếu nhiều
-- Điểm 0-2: Chưa hiểu đề hoặc ý tưởng sai hoàn toàn
+HƯỚNG DẪN NHẬN DIỆN KÝ HIỆU TOÁN HỌC:
+- Vector: a⃗, b⃗, c⃗, AG'⃗, AA'⃗ (có thể viết a, b, c, AG', AA')
+- Trọng tâm: G, G', O
+- Công thức vector: AG' = (AA' + AB + AC)/3 hoặc (a + b + c)/3
+- (SMN), (ABCD), (SBC) = mặt phẳng
+- d(A, (SMN)) = khoảng cách từ điểm A đến mặt phẳng SMN
+- AH ⊥ SN = AH vuông góc với SN
+- BC ∥ (SMN) = BC song song với mặt phẳng SMN
 
-TIÊU CHÍ ĐÁNH GIÁ TÍCH CỰC (cho điểm cao):
-- Đề cập đến các điểm, đường quan trọng (N, M, H, SM, BC, AH...)
-- Nói về quan hệ hình học (vuông góc, song song, trung điểm...)
-- Đề cập đến phương pháp (dựng đường, tính khoảng cách, áp dụng định lý...)
-- Có logic từng bước (gọi, suy ra, do đó, vậy...)
-- Đề cập đến công thức hoặc định lý cần dùng
+QUY TẮC ĐÁNH GIÁ (RẤT QUAN TRỌNG - HÃY CỰC KỲ DỄ TÍNH):
 
-LƯU Ý: Nếu học sinh đã nắm được HƯỚNG GIẢI CHÍNH (dù chưa chi tiết), hãy cho điểm >= 5 để khuyến khích!
+**ĐIỂM 8-10: Xuất sắc**
+- Có đầy đủ các bước logic
+- Đề cập công thức cụ thể
+- Giải thích rõ ràng
+
+**ĐIỂM 6-7: Rất tốt**
+- Đúng hướng giải
+- Có công thức hoặc phương pháp
+- Logic rõ ràng
+
+**ĐIỂM 4-5: Tốt**
+- Đề cập phương pháp chính
+- Có một vài bước đúng
+- Hiểu được đề bài
+
+**ĐIỂM 3: Đạt (ĐỦ ĐỂ MỞ KHÓA)**
+- Đề cập BẤT KỲ khái niệm nào liên quan (trọng tâm, vector, công thức...)
+- Đề cập BẤT KỲ phương pháp nào (tính, áp dụng, thay...)
+- Có BẤT KỲ logic nào (gọi, suy ra, vậy...)
+- Đề cập BẤT KỲ điểm/đường nào trong đề (G', A, B, C, AA', AB, AC...)
+
+**ĐIỂM 1-2: Yếu**
+- Chỉ nói chung chung không cụ thể
+- Không đề cập gì liên quan đến đề bài
+
+**ĐIỂM 0: Không đạt**
+- "Cho tôi đáp án"
+- "Không biết"
+- Hoàn toàn sai hoặc không liên quan
+
+NGUYÊN TẮC QUAN TRỌNG NHẤT:
+🎯 Nếu học sinh đề cập đến BẤT KỲ nội dung nào trong đề bài → CHO ÍT NHẤT 3 ĐIỂM
+🎯 Nếu học sinh nói về "trọng tâm" → CHO ÍT NHẤT 4 ĐIỂM (vì đây là khái niệm chính)
+🎯 Nếu học sinh viết công thức (dù chưa hoàn chỉnh) → CHO ÍT NHẤT 5 ĐIỂM
+🎯 Nếu học sinh có logic đầy đủ → CHO 7-9 ĐIỂM
+🎯 LUÔN LUÔN ưu tiên MỞ KHÓA hơn là từ chối
+
+VÍ DỤ CỤ THỂ CHO BÀI VECTOR (PHẢI CHO >= 3 ĐIỂM):
+
+✅ "G' là trọng tâm" → 4 điểm (đã nắm khái niệm chính)
+✅ "Dùng công thức trọng tâm" → 5 điểm (biết phương pháp)
+✅ "AG' = (a + b + c)/3" → 6 điểm (có công thức)
+✅ "Gọi G' là trọng tâm tam giác A'B'C'. Vì G' là trọng tâm nên AG' = (AA' + AB + AC)/3" → 8 điểm (logic đầy đủ)
+✅ "Thay a = AA', b = AB, c = AC vào công thức" → 7 điểm (có bước thay thế)
+✅ "Đáp án là C" (nếu có giải thích trước đó) → 5-6 điểm
+✅ "Tính vector AG'" → 3 điểm (biết cần tính gì)
+✅ "Áp dụng tính chất trọng tâm" → 4 điểm (biết tính chất)
+
+❌ "Cho tôi đáp án" → 0 điểm
+❌ "Không biết làm" → 0 điểm
 
 FEEDBACK NÊN:
-- Khuyến khích và động viên nếu đúng hướng
-- Gợi ý cụ thể nếu còn thiếu
-- Tích cực, không quá khắt khe với học sinh
+✅ Rất khuyến khích và động viên
+✅ Khen ngợi những gì học sinh làm đúng
+✅ Nếu >= 3 điểm, LUÔN nói: "Tuyệt vời! Bạn đã nắm được hướng giải. Hãy xem lời giải chi tiết để hiểu rõ hơn!"
+✅ Tích cực, ấm áp, động viên
 """
 
 

@@ -4,156 +4,168 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luyện tập - Geo3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Outfit', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
 <link rel="stylesheet" href="../styles.css">
-<link rel="stylesheet" href="../css/practice.css">
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .animation-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
-<body>
+<body class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900 min-h-screen relative overflow-x-hidden flex flex-col">
 
-<div id="topbar-container"></div>
+<!-- Background Decorations -->
+<div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+
+<div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
 <script src="../js/auth.js"></script>
 <script src="../js/topbar.js"></script>
 <script>
   document.getElementById('topbar-container').innerHTML = renderTopbar('practice');
+  initTopbar();
   window.addEventListener('DOMContentLoaded', function() {
-    initTopbar();
     displayProblems();
   });
 </script>
 
-<div class="practice-container">
-    <h1 class="practice-title">Luyện tập hình học không gian</h1>
-    <p class="practice-subtitle">Rèn luyện kỹ năng với hệ thống bài tập từ cơ bản đến nâng cao</p>
+<main class="flex-1 w-full max-w-[1100px] mx-auto px-6 sm:px-12 pt-[140px] pb-24">
+  
+  <!-- Header -->
+  <div class="mb-12">
+    <h1 class="font-serif text-[40px] font-semibold text-slate-900 tracking-tight leading-tight mb-2">Luyện tập</h1>
+    <p class="text-[15px] text-slate-500 font-light">Rèn luyện kỹ năng với hệ thống bài tập từ cơ bản đến nâng cao</p>
   </div>
 
   <!-- Categories -->
-  <div class="categories-grid">
-    <div class="category-card" onclick="filterByCategory('pyramid')">
-      <div class="category-icon">🔺</div>
-      <h3 class="category-title">Hình chóp</h3>
-      <p class="category-desc">Các bài toán về hình chóp tam giác, tứ giác</p>
-      <div class="category-count">24 bài tập</div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div class="category-card bg-white/60 backdrop-blur-md border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] cursor-pointer hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-all duration-300" onclick="filterByCategory('pyramid', this)">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-[24px] mb-4">🔺</div>
+      <h3 class="font-serif text-[18px] font-semibold text-slate-900 mb-2">Hình chóp</h3>
+      <p class="text-[13px] text-slate-500 leading-relaxed mb-4">Các bài toán về hình chóp tam giác, tứ giác</p>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 inline-block px-3 py-1 rounded-full">24 bài tập</div>
     </div>
     
-    <div class="category-card" onclick="filterByCategory('prism')">
-      <div class="category-icon">📦</div>
-      <h3 class="category-title">Hình lăng trụ</h3>
-      <p class="category-desc">Lăng trụ đứng, lăng trụ xiên, thể tích</p>
-      <div class="category-count">18 bài tập</div>
+    <div class="category-card bg-white/60 backdrop-blur-md border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] cursor-pointer hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-all duration-300" onclick="filterByCategory('prism', this)">
+      <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-[24px] mb-4">📦</div>
+      <h3 class="font-serif text-[18px] font-semibold text-slate-900 mb-2">Hình lăng trụ</h3>
+      <p class="text-[13px] text-slate-500 leading-relaxed mb-4">Lăng trụ đứng, lăng trụ xiên, thể tích</p>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-full">18 bài tập</div>
     </div>
     
-    <div class="category-card" onclick="filterByCategory('sphere')">
-      <div class="category-icon">⚪</div>
-      <h3 class="category-title">Mặt cầu</h3>
-      <p class="category-desc">Phương trình mặt cầu, tiếp tuyến</p>
-      <div class="category-count">15 bài tập</div>
+    <div class="category-card bg-white/60 backdrop-blur-md border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] cursor-pointer hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-all duration-300" onclick="filterByCategory('sphere', this)">
+      <div class="w-12 h-12 rounded-2xl bg-fuchsia-50 flex items-center justify-center text-[24px] mb-4">⚪</div>
+      <h3 class="font-serif text-[18px] font-semibold text-slate-900 mb-2">Mặt cầu</h3>
+      <p class="text-[13px] text-slate-500 leading-relaxed mb-4">Phương trình mặt cầu, tiếp tuyến</p>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-fuchsia-600 bg-fuchsia-50 inline-block px-3 py-1 rounded-full">15 bài tập</div>
     </div>
   </div>
 
   <!-- Problems Section -->
-  <div class="problems-section">
-    <div class="section-header">
-      <h2 class="section-title">Bài tập phổ biến</h2>
-      <div class="difficulty-filters">
-        <button class="difficulty-btn easy active" onclick="filterDifficulty('easy')">Dễ</button>
-        <button class="difficulty-btn medium" onclick="filterDifficulty('medium')">Trung bình</button>
-        <button class="difficulty-btn hard" onclick="filterDifficulty('hard')">Khó</button>
-      </div>
-    </div>
-
-    <div class="problems-grid" id="problemsList">
-      <!-- Will be populated by JavaScript -->
+  <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <h2 class="font-serif text-[24px] font-semibold text-slate-900">Bài tập</h2>
+    
+    <!-- Difficulty Filters -->
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/80 shadow-sm">
+      <button class="difficulty-btn active px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 bg-emerald-500 text-white shadow-sm" onclick="filterDifficulty('easy', this)">Dễ</button>
+      <button class="difficulty-btn px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 text-slate-600 hover:bg-slate-100" onclick="filterDifficulty('medium', this)">Trung bình</button>
+      <button class="difficulty-btn px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 text-slate-600 hover:bg-slate-100" onclick="filterDifficulty('hard', this)">Khó</button>
     </div>
   </div>
-</div>
+
+  <div class="grid grid-cols-1 gap-4" id="problemsList">
+    <!-- Populated by JavaScript -->
+  </div>
+
+</main>
 
 <!-- FOOTER -->
-<footer>
-  <div>
-    <div class="logo" style="margin-bottom:8px">Geo<em>3D</em></div>
-    <p style="font-size:12px;color:var(--ink-3)">Hệ thống hỗ trợ giải hình học không gian bằng AI</p>
+<footer class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10 mt-auto">
+  <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
+    <div class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
+      GEO3D
+    </div>
   </div>
-  <div style="font-size:12px;color:var(--ink-3)">
-    © 2024 Geo3D · Made with ❤️ for students
+
+  <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
+    <div class="flex flex-col max-w-[380px]">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+          </svg>
+        </div>
+        <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
+      </div>
+      <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
+        Manage geometry effortlessly.
+      </p>
+      <div class="flex gap-4 opacity-60">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </div>
+    </div>
+    
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
+      <ul class="list-none p-0 m-0 space-y-4">
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a></li>
+        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a></li>
+      </ul>
+    </div>
+
+    <div class="flex flex-col">
+      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
+      <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
+        SPKT University<br/>
+        Ho Chi Minh City, VN 700000
+      </p>
+    </div>
+  </div>
+  
+  <div class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
+    <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
+    <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
   </div>
 </footer>
 
 <script>
 const problems = [
-  {
-    id: 1,
-    title: "Tính thể tích hình chóp S.ABCD có đáy là hình vuông",
-    category: "pyramid",
-    difficulty: "easy",
-    tags: ["Thể tích", "Hình vuông"],
-    completed: true
-  },
-  {
-    id: 2,
-    title: "Tính góc giữa đường thẳng và mặt phẳng trong hình chóp",
-    category: "pyramid",
-    difficulty: "medium",
-    tags: ["Góc", "Hình chóp"],
-    completed: false
-  },
-  {
-    id: 3,
-    title: "Tìm khoảng cách từ điểm đến mặt phẳng",
-    category: "pyramid",
-    difficulty: "medium",
-    tags: ["Khoảng cách", "Mặt phẳng"],
-    completed: true
-  },
-  {
-    id: 4,
-    title: "Chứng minh hai đường thẳng vuông góc trong không gian",
-    category: "prism",
-    difficulty: "easy",
-    tags: ["Vuông góc", "Chứng minh"],
-    completed: false
-  },
-  {
-    id: 5,
-    title: "Tính diện tích thiết diện của hình chóp",
-    category: "pyramid",
-    difficulty: "hard",
-    tags: ["Thiết diện", "Diện tích"],
-    completed: false
-  },
-  {
-    id: 6,
-    title: "Tìm tâm và bán kính mặt cầu ngoại tiếp tứ diện",
-    category: "sphere",
-    difficulty: "hard",
-    tags: ["Mặt cầu", "Tứ diện"],
-    completed: false
-  },
-  {
-    id: 7,
-    title: "Tính thể tích khối lăng trụ tam giác đều",
-    category: "prism",
-    difficulty: "easy",
-    tags: ["Thể tích", "Lăng trụ"],
-    completed: true
-  },
-  {
-    id: 8,
-    title: "Tính góc giữa hai mặt phẳng",
-    category: "pyramid",
-    difficulty: "medium",
-    tags: ["Góc", "Mặt phẳng"],
-    completed: false
-  }
+  { id: 1, title: "Tính thể tích hình chóp S.ABCD có đáy là hình vuông", category: "pyramid", difficulty: "easy", tags: ["Thể tích", "Hình vuông"], completed: true },
+  { id: 2, title: "Tính góc giữa đường thẳng và mặt phẳng trong hình chóp", category: "pyramid", difficulty: "medium", tags: ["Góc", "Hình chóp"], completed: false },
+  { id: 3, title: "Tìm khoảng cách từ điểm đến mặt phẳng", category: "pyramid", difficulty: "medium", tags: ["Khoảng cách", "Mặt phẳng"], completed: true },
+  { id: 4, title: "Chứng minh hai đường thẳng vuông góc trong không gian", category: "prism", difficulty: "easy", tags: ["Vuông góc", "Chứng minh"], completed: false },
+  { id: 5, title: "Tính diện tích thiết diện của hình chóp", category: "pyramid", difficulty: "hard", tags: ["Thiết diện", "Diện tích"], completed: false },
+  { id: 6, title: "Tìm tâm và bán kính mặt cầu ngoại tiếp tứ diện", category: "sphere", difficulty: "hard", tags: ["Mặt cầu", "Tứ diện"], completed: false },
+  { id: 7, title: "Tính thể tích khối lăng trụ tam giác đều", category: "prism", difficulty: "easy", tags: ["Thể tích", "Lăng trụ"], completed: true },
+  { id: 8, title: "Tính góc giữa hai mặt phẳng", category: "pyramid", difficulty: "medium", tags: ["Góc", "Mặt phẳng"], completed: false }
 ];
 
 let currentDifficulty = 'easy';
 let currentCategory = 'all';
-
-window.addEventListener('DOMContentLoaded', function() {
-  checkAuth();
-  displayProblems();
-});
 
 function displayProblems() {
   const filtered = problems.filter(p => {
@@ -165,54 +177,69 @@ function displayProblems() {
   const problemsList = document.getElementById('problemsList');
   
   if (filtered.length === 0) {
-    problemsList.innerHTML = '<p style="text-align:center;color:var(--ink-3);padding:40px;">Không tìm thấy bài tập phù hợp</p>';
+    problemsList.innerHTML = '<p class="text-center text-slate-400 py-10">Không tìm thấy bài tập phù hợp</p>';
     return;
   }
 
-  problemsList.innerHTML = filtered.map(problem => {
-    const difficultyClass = `difficulty-${problem.difficulty}`;
-    const difficultyText = {
-      easy: 'Dễ',
-      medium: 'Trung bình',
-      hard: 'Khó'
-    }[problem.difficulty];
+  problemsList.innerHTML = filtered.map((problem, index) => {
+    let diffClass = '';
+    let diffText = '';
+    if (problem.difficulty === 'easy') { diffClass = 'bg-emerald-50 text-emerald-600 border-emerald-100'; diffText = 'Dễ'; }
+    if (problem.difficulty === 'medium') { diffClass = 'bg-amber-50 text-amber-600 border-amber-100'; diffText = 'Trung bình'; }
+    if (problem.difficulty === 'hard') { diffClass = 'bg-rose-50 text-rose-600 border-rose-100'; diffText = 'Khó'; }
+
+    const statusHtml = problem.completed
+      ? `<div class="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>`
+      : `<div class="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>`;
 
     return `
-      <div class="problem-card" onclick="startProblem(${problem.id})">
-        <div class="problem-number">#${problem.id}</div>
-        
-        <div class="problem-info">
-          <h3 class="problem-title">${problem.title}</h3>
-          <div class="problem-tags">
-            ${problem.tags.map(tag => `<span class="problem-tag">${tag}</span>`).join('')}
+      <div class="bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-[20px] p-5 cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-all duration-300 animation-fadeIn flex flex-col sm:flex-row sm:items-center gap-4" style="animation-delay: ${index * 50}ms" onclick="startProblem(${problem.id})">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-[12px] font-mono text-slate-400">#${problem.id}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${diffClass}">${diffText}</span>
+          </div>
+          <h3 class="font-serif text-[16px] font-semibold text-slate-900 truncate mb-3">${problem.title}</h3>
+          <div class="flex flex-wrap gap-2">
+            ${problem.tags.map(tag => `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-medium border border-slate-200">${tag}</span>`).join('')}
           </div>
         </div>
-        
-        <div class="problem-difficulty ${difficultyClass}">
-          ${difficultyText}
-        </div>
-        
-        <div class="problem-status ${problem.completed ? 'status-completed' : 'status-locked'}">
-          ${problem.completed ? '✓' : '🔒'}
+        <div class="flex-shrink-0 mt-3 sm:mt-0 self-end sm:self-auto ml-0 sm:ml-4">
+          ${statusHtml}
         </div>
       </div>
     `;
   }).join('');
 }
 
-function filterDifficulty(difficulty) {
+function filterDifficulty(difficulty, btnElement) {
   currentDifficulty = difficulty;
   
+  // reset all buttons
   document.querySelectorAll('.difficulty-btn').forEach(btn => {
-    btn.classList.remove('active');
+    btn.className = "difficulty-btn px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 text-slate-600 hover:bg-slate-100";
   });
-  event.target.classList.add('active');
+  
+  // set active button
+  let activeClass = "";
+  if(difficulty === 'easy') activeClass = "bg-emerald-500 text-white shadow-sm";
+  if(difficulty === 'medium') activeClass = "bg-amber-500 text-white shadow-sm";
+  if(difficulty === 'hard') activeClass = "bg-rose-500 text-white shadow-sm";
+  
+  btnElement.className = `difficulty-btn active px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 ${activeClass}`;
   
   displayProblems();
 }
 
-function filterByCategory(category) {
-  currentCategory = category;
+function filterByCategory(category, cardElement) {
+  if (currentCategory === category) {
+    currentCategory = 'all';
+    document.querySelectorAll('.category-card').forEach(card => card.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/30'));
+  } else {
+    currentCategory = category;
+    document.querySelectorAll('.category-card').forEach(card => card.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/30'));
+    cardElement.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/30');
+  }
   displayProblems();
 }
 
@@ -225,6 +252,5 @@ function startProblem(id) {
   }
 }
 </script>
-
 </body>
 </html>
