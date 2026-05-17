@@ -19,6 +19,9 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     
+    # Serper.dev (Google Search API)
+    SERPER_API_KEY: str = os.getenv("SERPER_API_KEY", "")
+    
     # File Search
     USE_FILE_SEARCH: bool = os.getenv("USE_FILE_SEARCH", "true").lower() == "true"
     DOCUMENTS_PATH: str = os.getenv("DOCUMENTS_PATH", "Documents")

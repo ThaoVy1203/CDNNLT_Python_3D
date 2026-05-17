@@ -933,6 +933,38 @@ function showTabAccessDenied(tabIndex) {
 let _uploadInProgress = false;
 let _selectedFile = null; // Store selected file for later analysis
 
+// CRITICAL: Prevent accidental page reload during upload
+window.addEventListener('beforeunload', (e) => {
+  if (_uploadInProgress) {
+    e.preventDefault();
+    e.returnValue = 'Đang phân tích ảnh, bạn có chắc muốn rời khỏi trang?';
+    return e.returnValue;
+  }
+});
+
+// CRITICAL: Log any navigation attempts
+let _navigationAttempts = 0;
+const _originalPushState = history.pushState;
+const _originalReplaceState = history.replaceState;
+
+history.pushState = function() {
+  console.log('⚠️ Navigation attempt detected (pushState):', arguments);
+  _navigationAttempts++;
+  return _originalPushState.apply(history, arguments);
+};
+
+history.replaceState = function() {
+  console.log('⚠️ Navigation attempt detected (replaceState):', arguments);
+  _navigationAttempts++;
+  return _originalReplaceState.apply(history, arguments);
+};
+
+window.addEventListener('popstate', (e) => {
+  console.log('⚠️ Navigation attempt detected (popstate):', e);
+  _navigationAttempts++;
+});
+
+
 async function handleFileSelect(event) {
   const file = event && event.target && event.target.files && event.target.files[0];
   if (!file) return;
@@ -985,10 +1017,10 @@ async function showImagePreview(file) {
     <p>${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
     ${imgTag}
     <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
-      <button class="btn-line" onclick="event.stopPropagation();selectNewImage()">
+      <button class="btn-line" onclick="event.preventDefault();event.stopPropagation();selectNewImage()">
         🔄 Chọn ảnh khác
       </button>
-      <button class="btn-filled" onclick="event.stopPropagation();analyzeSelectedImage()" style="padding:12px 32px;">
+      <button class="btn-filled" onclick="event.preventDefault();event.stopPropagation();analyzeSelectedImage(event)" style="padding:12px 32px;">
         ✨ Phân tích bài toán
       </button>
     </div>
@@ -1003,11 +1035,38 @@ function selectNewImage() {
   const input = document.getElementById('imageInput');
   if (input) input.value = '';
   
+  // Reset upload zone to initial state
+  const uploadZone = document.querySelector('.upload-zone');
+  if (uploadZone) {
+    uploadZone.onclick = () => document.getElementById('imageInput').click();
+    uploadZone.style.cursor = 'pointer';
+    
+    uploadZone.innerHTML = `
+      <div class="upload-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <h3>Kéo thả ảnh vào đây</h3>
+      <p>hoặc nhấn để chọn từ thiết bị — JPG, PNG, PDF · tối đa 10MB</p>
+      <button class="btn-filled" onclick="event.stopPropagation();document.getElementById('imageInput').click()">Chọn ảnh</button>
+    `;
+  }
+  
   // Trigger file dialog
-  input.click();
+  if (input) input.click();
 }
 
-async function analyzeSelectedImage() {
+async function analyzeSelectedImage(event) {
+  // CRITICAL: Stop event propagation to prevent triggering parent onclick
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+  
   if (!_selectedFile) {
     alert('Vui lòng chọn ảnh trước!');
     return;
@@ -1106,7 +1165,11 @@ async function analyzeSelectedImage() {
       <p>${_selectedFile.name} · ${(_selectedFile.size/1024).toFixed(1)} KB</p>
       ${imgTag}
       <button class="btn-line" style="margin-top:10px;"
-        onclick="event.stopPropagation();selectNewImage()">Chọn ảnh khác</button>`;
+        onclick="event.preventDefault();event.stopPropagation();selectNewImage()">Chọn ảnh khác</button>`;
+    
+    // CRITICAL: Remove onclick from uploadZone to prevent re-triggering
+    uploadZone.onclick = null;
+    uploadZone.style.cursor = 'default';
 
     // Hiển thị đề bài
     const ptEl = recognizedCard.querySelector('.problem-text');
@@ -1114,6 +1177,8 @@ async function analyzeSelectedImage() {
     const badgeDiv = recognizedCard.querySelector('div');
     if (badgeDiv) badgeDiv.innerHTML = `<span class="badge badge-gold">${problemType}</span>`;
     recognizedCard.style.display = 'block';
+    
+    console.log('✅ Step 1: Recognized card displayed');
 
     // Hiển thị yếu tố hình học
     geometryInfo.innerHTML = `<p class="iw-title">Yếu tố hình học</p>
@@ -1129,24 +1194,46 @@ async function analyzeSelectedImage() {
     if (questions.length > 0)
       geometryInfo.innerHTML += `<div class="info-row"><span class="ir-key">Yêu cầu</span><span class="ir-val">${questions[0]}</span></div>`;
 
+    console.log('✅ Step 2: Geometry info displayed');
+
     // Hiện sidebar
     geometryInfo.style.display = 'block';
     if (infoDivider)  infoDivider.style.display  = 'block';
     if (similarProbs) similarProbs.style.display = 'block';
     if (nextStepBtn)  nextStepBtn.style.display  = 'block';
     if (uploadTips)   uploadTips.style.display   = 'none';
+    
+    console.log('✅ Step 3: Sidebar elements displayed');
 
     setTimeout(() => recognizedCard.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
-    setTimeout(() => { if (currentProblemId) load3DGeometry(currentProblemId); }, 1500);
+    
+    console.log('✅ Step 4: Scroll initiated');
+    
+    setTimeout(() => { 
+      if (currentProblemId) {
+        console.log('✅ Step 5: Starting 3D load for problem:', currentProblemId);
+        load3DGeometry(currentProblemId);
+        
+        // Load similar problems
+        loadSimilarProblems(currentProblemId);
+      }
+    }, 1500);
     
     // Update tab lock status after successful upload (with slight delay to ensure DOM is ready)
     setTimeout(() => {
       console.log('🔓 Updating tab lock status after upload. currentProblemId:', currentProblemId);
       updateTabLockStatus();
     }, 100);
+    
+    console.log('✅ Upload flow completed successfully - UI should be visible now');
 
   } catch (err) {
     console.error('Upload error:', err);
+    
+    // CRITICAL: Remove onclick from uploadZone before updating HTML
+    uploadZone.onclick = null;
+    uploadZone.style.cursor = 'default';
+    
     uploadZone.innerHTML = `
       <div class="upload-icon" style="background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
@@ -1157,10 +1244,10 @@ async function analyzeSelectedImage() {
       <h3 style="color:#dc2626;">Lỗi phân tích</h3>
       <p>${err.message || 'Không thể kết nối server'}</p>
       <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
-        <button class="btn-line" onclick="event.stopPropagation();selectNewImage()">
+        <button class="btn-line" onclick="event.preventDefault();event.stopPropagation();selectNewImage()">
           🔄 Chọn ảnh khác
         </button>
-        <button class="btn-filled" onclick="event.stopPropagation();analyzeSelectedImage()">
+        <button class="btn-filled" onclick="event.preventDefault();event.stopPropagation();analyzeSelectedImage(event)">
           🔄 Thử lại
         </button>
       </div>`;
@@ -2777,6 +2864,109 @@ async function loadProblemFromHistory(problemId) {
         <button class="btn-filled" onclick="event.stopPropagation();document.getElementById('imageInput').click()">Chọn ảnh</button>
       `;
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD SIMILAR PROBLEMS (Bài toán tương tự)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Load danh sách bài toán tương tự từ API
+ * @param {number} maBaiToan - Mã bài toán cần tìm bài tương tự
+ */
+async function loadSimilarProblems(maBaiToan) {
+  const similarWidget = document.getElementById('similar-problems');
+  if (!similarWidget) {
+    console.warn('⚠️ Similar problems widget not found');
+    return;
+  }
+  
+  try {
+    console.log('🔍 Loading similar problems for:', maBaiToan);
+    
+    // Show loading state
+    similarWidget.innerHTML = `
+      <p class="iw-title">Ngân hàng bài tương tự</p>
+      <p style="font-size:13px;color:var(--ink-3);margin-top:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" style="display:inline-block;vertical-align:middle;animation:spin 1s linear infinite;margin-right:6px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 6v6l4 2"></path>
+        </svg>
+        <span class="dots">Đang tìm kiếm</span>
+      </p>
+    `;
+    similarWidget.style.display = 'block';
+    
+    // Call API
+    const response = await fetch(`http://127.0.0.1:8000/bai-toan/${maBaiToan}/similar`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ Similar problems response:', data);
+    
+    if (data.success && data.data && data.data.length > 0) {
+      // Render similar problems
+      let html = `
+        <p class="iw-title">Ngân hàng bài tương tự</p>
+        <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px;">
+          Tìm thấy <span style="color:var(--gold);font-weight:500;">${data.data.length} bài tập</span> cùng dạng
+        </p>
+      `;
+      
+      data.data.forEach((item, index) => {
+        const difficultyColor = item.difficulty === 'Khó' ? 'var(--red)' 
+                              : item.difficulty === 'Trung bình' ? 'var(--gold)' 
+                              : 'var(--teal)';
+        
+        html += `
+          <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;transition:all 0.2s;">
+            <a href="${item.url}" target="_blank" rel="noopener noreferrer" 
+               style="color:var(--indigo);font-weight:500;font-size:13px;text-decoration:none;display:block;margin-bottom:4px;"
+               onmouseover="this.style.color='var(--gold)'" 
+               onmouseout="this.style.color='var(--indigo)'">
+              ${index + 1}. ${item.title}
+            </a>
+            <p style="font-size:12px;color:var(--ink-3);margin:4px 0 0 0;line-height:1.5;">${item.summary}</p>
+            <div style="margin-top:6px;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:11px;color:var(--ink-4);">📚 ${item.source}</span>
+              ${item.difficulty ? `<span style="font-size:11px;color:${difficultyColor};font-weight:500;">⭐ ${item.difficulty}</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      
+      similarWidget.innerHTML = html;
+      console.log('✅ Similar problems rendered successfully');
+      
+    } else {
+      // No results found
+      similarWidget.innerHTML = `
+        <p class="iw-title">Ngân hàng bài tương tự</p>
+        <p style="font-size:13px;color:var(--ink-3);margin-top:8px;">
+          💡 Chưa tìm thấy bài tương tự. AI đang học thêm dữ liệu!
+        </p>
+      `;
+      console.log('ℹ️ No similar problems found');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error loading similar problems:', error);
+    
+    // Show error state
+    similarWidget.innerHTML = `
+      <p class="iw-title">Ngân hàng bài tương tự</p>
+      <p style="font-size:13px;color:var(--red);margin-top:8px;">
+        ⚠️ Không thể tải bài tương tự. Vui lòng thử lại sau.
+      </p>
+      <button class="btn-line" style="margin-top:8px;font-size:12px;padding:6px 12px;" 
+              onclick="loadSimilarProblems(${maBaiToan})">
+        🔄 Thử lại
+      </button>
+    `;
   }
 }
 

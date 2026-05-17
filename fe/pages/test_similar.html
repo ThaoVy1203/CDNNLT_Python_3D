@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Similar Problems</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+    .error { background: #fee; border-color: #c00; }
+    .success { background: #efe; border-color: #0c0; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    input { padding: 8px; font-size: 14px; width: 200px; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test API Tìm Bài Toán Tương Tự</h1>
+  
+  <div>
+    <label>Mã Bài Toán:</label>
+    <input type="number" id="problemId" value="43" />
+    <button onclick="testAPI()">Test API</button>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+    async function testAPI() {
+      const problemId = document.getElementById('problemId').value;
+      const resultDiv = document.getElementById('result');
+      
+      resultDiv.innerHTML = '<div class="result">⏳ Đang gọi API...</div>';
+      
+      try {
+        console.log('🔍 Calling API for problem:', problemId);
+        
+        const response = await fetch(`http://127.0.0.1:8000/bai-toan/${problemId}/similar`);
+        
+        console.log('📡 Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ API Response:', data);
+        
+        if (data.success && data.data && data.data.length > 0) {
+          let html = '<div class="result success">';
+          html += `<h3>✅ Tìm thấy ${data.data.length} bài toán tương tự:</h3>`;
+          
+          data.data.forEach((item, index) => {
+            html += `
+              <div style="margin: 10px 0; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 5px;">
+                <strong>${index + 1}. ${item.title}</strong><br>
+                <small>${item.summary}</small><br>
+                <a href="${item.url}" target="_blank">🔗 ${item.source}</a> | 
+                <span>⭐ ${item.difficulty || 'N/A'}</span>
+              </div>
+            `;
+          });
+          
+          html += '</div>';
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<div class="result">ℹ️ Không tìm thấy bài toán tương tự</div>';
+        }
+        
+      } catch (error) {
+        console.error('❌ Error:', error);
+        resultDiv.innerHTML = `
+          <div class="result error">
+            <h3>❌ Lỗi:</h3>
+            <p>${error.message}</p>
+            <hr>
+            <h4>Kiểm tra:</h4>
+            <ul>
+              <li>Backend có chạy không? <code>http://127.0.0.1:8000/docs</code></li>
+              <li>Bảng BAI_TOAN_TUONG_TU_CACHE đã tạo chưa?</li>
+              <li>Mã bài toán ${problemId} có tồn tại không?</li>
+            </ul>
+          </div>
+        `;
+      }
+    }
+    
+    // Auto test khi load trang
+    window.onload = () => {
+      console.log('🧪 Test page loaded');
+      console.log('💡 Nhập mã bài toán và bấm "Test API"');
+    };
+  </script>
+</body>
+</html>

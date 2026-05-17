@@ -68,6 +68,22 @@ CREATE TABLE DUNGHINH3D (
     ngayTao DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (maBaiToan) REFERENCES BAITOAN(maBaiToan)
 );
+
+-- ============================================================
+-- BẢNG CACHE CHO TÌM BÀI TOÁN TƯƠNG TỰ
+-- ============================================================
+CREATE TABLE BAI_TOAN_TUONG_TU_CACHE (
+    maCache INT IDENTITY(1,1) PRIMARY KEY,
+    tuKhoa NVARCHAR(500) NOT NULL UNIQUE,  -- Keywords để search (vd: "hình chóp, góc, vuông góc")
+    ketQua NVARCHAR(MAX),                   -- JSON array kết quả từ Gemini
+    ngayTao DATETIME DEFAULT GETDATE(),
+    lanCapNhat DATETIME DEFAULT GETDATE()
+);
+
+-- Index để tìm nhanh theo keywords
+CREATE INDEX idx_tuKhoa ON BAI_TOAN_TUONG_TU_CACHE(tuKhoa);
+-- Index để xóa cache cũ
+CREATE INDEX idx_ngayTao ON BAI_TOAN_TUONG_TU_CACHE(ngayTao);
 GO
 
 
@@ -76,3 +92,4 @@ SELECT * FROM BAITOAN;
 SELECT * FROM DULIEUHINHHOC;
 SELECT * FROM LOIGIAI;
 SELECT * FROM DUNGHINH3D;
+SELECT * FROM BAI_TOAN_TUONG_TU_CACHE;
