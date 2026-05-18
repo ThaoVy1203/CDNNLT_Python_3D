@@ -39,8 +39,8 @@ class WebSearchService:
             List các kết quả search với URL thật
         """
         try:
-            # Tạo query tối ưu cho bài toán hình học
-            query = f"{keywords} hình học không gian lớp 11 12"
+            # Tạo query tối ưu cho BÀI TẬP hình học (không phải lý thuyết)
+            query = f"{keywords} bài tập câu hỏi giải hình học không gian lớp 11 12"
             
             print(f"🔍 Searching Google via Serper for: {query}")
             
@@ -89,6 +89,9 @@ class WebSearchService:
                         'snippet': snippet,
                         'domain': self._extract_domain(url)
                     })
+                    print(f"   ✅ Valid: {url}")
+                else:
+                    print(f"   ❌ Filtered: {url}")
             
             print(f"✅ Found {len(valid_results)} valid results")
             
@@ -131,7 +134,68 @@ class WebSearchService:
         ]
         
         # Chấp nhận nếu domain chứa keyword hợp lệ
-        return any(keyword in domain.lower() for keyword in valid_keywords)
+        if not any(keyword in domain.lower() for keyword in valid_keywords):
+            return False
+        
+        # Filter: Chỉ giữ "problem pages" (trang bài toán cụ thể)
+        return self._is_problem_page(url)
+    
+    def _is_problem_page(self, url: str) -> bool:
+        """
+        Kiểm tra URL có phải là trang bài toán cụ thể không
+        
+        BẮT BUỘC phải có 1 trong các pattern:
+        - /question/
+        - /cau-hoi/
+        - /bai-tap/
+        - /giai-cau-hoi/
+        - /problem/
+        
+        Args:
+            url: URL cần kiểm tra
+        
+        Returns:
+            True nếu là trang bài toán cụ thể
+        """
+        url_lower = url.lower()
+        
+        # ❌ Loại bỏ collection pages TRƯỚC (chỉ loại những cái chắc chắn là tổng hợp)
+        exclude_patterns = [
+            '/chuyen-de/',    # Chuyên đề tổng hợp
+            '/tong-hop/',     # Tổng hợp
+            '/ly-thuyet/',    # Lý thuyết
+            '/collection/',
+            '/category/',
+            '/tag/'
+        ]
+        
+        for pattern in exclude_patterns:
+            if pattern in url_lower:
+                print(f"⚠️ Filtered out collection page: {url[:80]}")
+                return False
+        
+        # ✅ BẮT BUỘC phải có 1 trong các pattern này
+        required_patterns = [
+            '/question/',
+            '/cau-hoi/',
+            '/bai-tap/',      # Chấp nhận bài tập
+            '/giai-cau-hoi/',
+            '/problem/',
+            '/exercise/',
+            '/quiz/',
+            '/exam',          # Chấp nhận exam/đề thi
+            '-a',             # Pattern của loigiaihay: ...-a123.html
+            '-c',             # Pattern khác
+        ]
+        
+        # Chỉ chấp nhận nếu có pattern bắt buộc
+        for pattern in required_patterns:
+            if pattern in url_lower:
+                return True
+        
+        # Không có pattern bắt buộc → Loại bỏ
+        print(f"⚠️ No required pattern found: {url[:80]}")
+        return False
     
     def _extract_domain(self, url: str) -> str:
         """Trích xuất domain từ URL"""
