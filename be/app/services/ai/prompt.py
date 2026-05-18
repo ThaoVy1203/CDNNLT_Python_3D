@@ -14,7 +14,11 @@ Trích xuất các thông tin sau từ bài toán hình học:
 2. **problem_type**: Loại hình học (hình chóp, lăng trụ, tứ diện, hình hộp...)
 3. **confidence_score**: Độ tin cậy của việc trích xuất (0.0 - 1.0)
 4. **given_conditions**: Danh sách các điều kiện cho trước
-   - Ví dụ: ["AB = 3", "BC = 4", "SA vuông góc (ABC)"]
+   - **QUAN TRỌNG**: MỖI ĐỘ DÀI / RÀNG BUỘC PHẢI LÀ 1 PHẦN TỬ RIÊNG
+   - Ví dụ ĐÚNG: ["AB = 3", "BC = 4", "SA = a√3", "SA vuông góc (ABC)", "Tam giác ABC vuông tại B"]
+   - Ví dụ SAI: ["Tam giác ABC vuông tại B với AB = 3, BC = 4"] (gộp nhiều thông tin)
+   - Format độ dài: "TÊN_CẠNH = giá_trị" (VD: "AB = a", "SA = a√3", "BC = 2a")
+   - Giá trị giữ nguyên dạng đại số: dùng "a", "a√2", "2a√3" thay vì số thập phân
 5. **questions**: Danh sách câu hỏi cần giải quyết
    - Ví dụ: ["Tính thể tích", "Tính khoảng cách từ A đến (SBC)"]
 6. **points**: Danh sách các điểm
@@ -27,10 +31,11 @@ Trích xuất các thông tin sau từ bài toán hình học:
    - Các loại: "vuông góc", "song song", "bằng nhau", "thuộc"
 
 **YÊU CẦU QUAN TRỌNG VỀ FORMAT:**
-- KHÔNG sử dụng ký hiệu LaTeX (như \frac, \sqrt) trong JSON
+- KHÔNG sử dụng ký hiệu LaTeX (như \\frac, \\sqrt) trong JSON
 - Dùng ký hiệu Unicode: √ (căn), ² (bình phương), ³ (lập phương), π, ∠, ⊥, ∥
-- Ví dụ: thay vì "\frac{a\sqrt{3}}{4}" hãy viết "a√3/4" hoặc "(a√3)/4"
+- Ví dụ: thay vì "\\frac{a\\sqrt{3}}{4}" hãy viết "a√3/4" hoặc "(a√3)/4"
 - Ví dụ: thay vì "a^2" hãy viết "a²"
+- TÁCH RIÊNG mỗi độ dài, mỗi quan hệ thành một phần tử trong given_conditions
 
 Trả về JSON với cấu trúc trên.
 """

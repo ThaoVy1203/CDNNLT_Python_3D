@@ -33,3 +33,9 @@ class DungHinh3DRepository:
         query = "SELECT * FROM DUNGHINH3D WHERE maDungHinh = %s"
         results = self.db.execute_query(query, (ma_dung_hinh,))
         return results[0] if results else None
+
+    def delete_by_bai_toan(self, ma_bai_toan: int) -> bool:
+        """Xóa dữ liệu dựng hình theo mã bài toán (dùng khi force refresh)"""
+        query = "DELETE FROM DUNGHINH3D WHERE maBaiToan = %s"
+        self.db.execute_query(query, (ma_bai_toan,))
+        return True

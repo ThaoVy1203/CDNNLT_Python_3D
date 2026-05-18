@@ -72,10 +72,14 @@ class ApiService {
   /**
    * Step 3: Generate 3D rendering instructions
    * @param {number} problemId - Problem ID from step 1
+   * @param {boolean} forceRefresh - Bỏ qua cache, render lại từ đầu
    * @returns {Promise<Object>}
    */
-  async render3D(problemId) {
-    return this.request(`/geometry/render-3d/${problemId}`, {
+  async render3D(problemId, forceRefresh = false) {
+    const url = forceRefresh
+      ? `/geometry/render-3d/${problemId}?force_refresh=true`
+      : `/geometry/render-3d/${problemId}`;
+    return this.request(url, {
       method: 'POST',
     });
   }

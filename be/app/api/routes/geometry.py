@@ -116,12 +116,25 @@ async def upload_and_save_problem(
 
         print("Step 3: Saving to DULIEUHINHHOC...")
         try:
+            # Gộp given_conditions + relationships vào cacQuanHe để DB lưu trữ đầy đủ
+            # given_conditions: ["AB = a", "BC = a√2", "SA = a√3", ...]
+            # relationships: [{"type": "vuông góc", "entities": [...]}, ...]
+            given_conditions = extraction.get("given_conditions", [])
+            relationships = extraction.get("relationships", [])
+            
+            # Lưu dạng dict để dễ phân biệt khi đọc lại
+            cac_quan_he_data = {
+                "given_conditions": given_conditions,
+                "relationships": relationships
+            }
+            
             du_lieu_id = du_lieu_repo.create_from_dict({
                 "maBaiToan": ma_bai_toan,
                 "toaDoDiem": json.dumps(visualization.get("points", {}), ensure_ascii=False),
                 "cacCanh": json.dumps(visualization.get("edges", []), ensure_ascii=False),
-                "cacQuanHe": json.dumps(extraction.get("relationships", []), ensure_ascii=False)
+                "cacQuanHe": json.dumps(cac_quan_he_data, ensure_ascii=False)
             })
+            print(f"   ✓ Saved DULIEUHINHHOC with {len(given_conditions)} conditions, {len(relationships)} relationships")
         except Exception as e:
             import traceback
             print(f"ERROR saving to DULIEUHINHHOC: {e}")
@@ -241,12 +254,13 @@ async def solve_problem_with_ai(ma_bai_toan: int):
 # ============================================================
 
 @router.post("/render-3d/{ma_bai_toan}")
-async def render_3d_geometry(ma_bai_toan: int):
+async def render_3d_geometry(ma_bai_toan: int, force_refresh: bool = False):
     """
     Bước 2: Tạo dữ liệu dựng hình 3D từ bài toán đã phân tích.
     
-    Tích hợp GeometrySolver để render hình học không gian 3D.
-    SỬ DỤNG DỮ LIỆU GEMINI AI EXTRACTION thay vì parse lại text.
+    Args:
+        ma_bai_toan: Mã bài toán
+        force_refresh: True = bỏ qua cache, render lại từ đầu (dùng khi cập nhật code solver)
     
     Returns:
         - geometry: points, edges, faces, steps, annotations, camera
@@ -260,24 +274,32 @@ async def render_3d_geometry(ma_bai_toan: int):
         if not bai_toan:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài toán")
         
-        # Kiểm tra cache
-        existing = dung_hinh_repo.get_by_bai_toan(ma_bai_toan)
-        if existing:
-            return {
-                "success": True,
-                "message": "Đã có dữ liệu dựng hình 3D",
-                "data": {
-                    "dungHinhId": existing.get("maDungHinh"),
-                    "geometry": json.loads(existing.get("thamSo", "{}")),
-                    "threejs": {
-                        "steps": json.loads(existing.get("cacBuocVe", "[]")),
-                        "functions": json.loads(existing.get("hamThreeJS", "[]")),
-                        "code": existing.get("codeThreeJS", ""),
-                        "guide": existing.get("huongDanVe", "")
-                    },
-                    "fromCache": True
+        # Kiểm tra cache (bỏ qua nếu force_refresh)
+        if not force_refresh:
+            existing = dung_hinh_repo.get_by_bai_toan(ma_bai_toan)
+            if existing:
+                return {
+                    "success": True,
+                    "message": "Đã có dữ liệu dựng hình 3D",
+                    "data": {
+                        "dungHinhId": existing.get("maDungHinh"),
+                        "geometry": json.loads(existing.get("thamSo", "{}")),
+                        "threejs": {
+                            "steps": json.loads(existing.get("cacBuocVe", "[]")),
+                            "functions": json.loads(existing.get("hamThreeJS", "[]")),
+                            "code": existing.get("codeThreeJS", ""),
+                            "guide": existing.get("huongDanVe", "")
+                        },
+                        "fromCache": True
+                    }
                 }
-            }
+        else:
+            # Xóa cache cũ để render lại
+            print(f"🔄 [render-3d] Force refresh mode - xóa cache cũ cho bài {ma_bai_toan}")
+            try:
+                dung_hinh_repo.delete_by_bai_toan(ma_bai_toan)
+            except Exception as e:
+                print(f"   Warning: Không xóa được cache cũ: {e}")
         
         # Lấy dữ liệu hình học từ DULIEUHINHHOC (Gemini extraction)
         du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
@@ -300,17 +322,23 @@ async def render_3d_geometry(ma_bai_toan: int):
                 if toa_do_diem:
                     extraction_data["points"] = list(toa_do_diem.keys())
                 
-                # Parse cacQuanHe (relationships from Gemini)
-                cac_quan_he = json.loads(du_lieu.get("cacQuanHe", "[]"))
-                if cac_quan_he:
-                    extraction_data["relationships"] = cac_quan_he
+                # Parse cacQuanHe - hỗ trợ cả format cũ (list) và format mới (dict)
+                cac_quan_he_raw = json.loads(du_lieu.get("cacQuanHe", "[]"))
+                if isinstance(cac_quan_he_raw, dict):
+                    # Format mới: {"given_conditions": [...], "relationships": [...]}
+                    extraction_data["given_conditions"] = cac_quan_he_raw.get("given_conditions", [])
+                    extraction_data["relationships"] = cac_quan_he_raw.get("relationships", [])
+                    print(f"   [render-3d] Loaded {len(extraction_data['given_conditions'])} conditions from DB")
+                elif isinstance(cac_quan_he_raw, list):
+                    # Format cũ: chỉ có relationships
+                    extraction_data["relationships"] = cac_quan_he_raw
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse DULIEUHINHHOC data: {e}")
         
-        # Extract given_conditions and questions from problem_text
-        # This is a simple extraction - Gemini should have done this better
+        # Fallback: Nếu given_conditions vẫn rỗng, parse từ problem_text
+        # (cho trường hợp data cũ chưa lưu given_conditions)
         problem_text = extraction_data["problem_text"]
-        if problem_text:
+        if not extraction_data["given_conditions"] and problem_text:
             # Split by sentences
             sentences = problem_text.split('.')
             for sentence in sentences:
@@ -404,34 +432,47 @@ async def get_full_problem(ma_bai_toan: int):
         extraction = None
         if du_lieu:
             try:
-                # Parse các quan hệ từ database
-                cac_quan_he = json.loads(du_lieu.get("cacQuanHe", "[]"))
+                # Parse các quan hệ từ database (hỗ trợ format mới {given_conditions, relationships})
+                cac_quan_he_raw = json.loads(du_lieu.get("cacQuanHe", "[]"))
                 toa_do_diem = json.loads(du_lieu.get("toaDoDiem", "{}"))
                 
                 # Tạo extraction data từ deBaiTho
                 problem_text = bai_toan.get("deBaiTho", "")
                 
-                # Extract given_conditions và questions từ problem_text
                 given_conditions = []
-                questions = []
+                relationships = []
                 
-                if problem_text:
+                # Nếu DB lưu format mới (dict) thì lấy trực tiếp
+                if isinstance(cac_quan_he_raw, dict):
+                    given_conditions = cac_quan_he_raw.get("given_conditions", [])
+                    relationships = cac_quan_he_raw.get("relationships", [])
+                elif isinstance(cac_quan_he_raw, list):
+                    relationships = cac_quan_he_raw
+                
+                # Fallback: parse từ problem_text nếu DB chưa có given_conditions
+                questions = []
+                if not given_conditions and problem_text:
                     sentences = problem_text.split('.')
                     for sentence in sentences:
                         sentence = sentence.strip()
                         if not sentence:
                             continue
                         
-                        # Check if it's a question
                         if '?' in sentence or 'tính' in sentence.lower() or 'tìm' in sentence.lower():
                             questions.append(sentence)
-                        # Check if it's a given condition
                         elif '=' in sentence or 'vuông góc' in sentence.lower() or '⊥' in sentence:
                             given_conditions.append(sentence)
                         elif 'hình' in sentence.lower() or 'cạnh' in sentence.lower():
                             given_conditions.append(sentence)
                         elif 'trung điểm' in sentence.lower() or 'tâm' in sentence.lower():
                             given_conditions.append(sentence)
+                else:
+                    # Vẫn parse questions từ problem_text vì DB không lưu
+                    if problem_text:
+                        for sentence in problem_text.split('.'):
+                            sentence = sentence.strip()
+                            if sentence and ('?' in sentence or 'tính' in sentence.lower() or 'tìm' in sentence.lower()):
+                                questions.append(sentence)
                 
                 extraction = {
                     "problem_text": problem_text,
@@ -439,7 +480,7 @@ async def get_full_problem(ma_bai_toan: int):
                     "given_conditions": given_conditions,
                     "questions": questions,
                     "points": list(toa_do_diem.keys()) if toa_do_diem else [],
-                    "relationships": cac_quan_he
+                    "relationships": relationships
                 }
             except Exception as e:
                 print(f"Warning: Could not parse extraction data: {e}")

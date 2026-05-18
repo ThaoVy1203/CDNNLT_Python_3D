@@ -200,10 +200,25 @@ class GeometrySolver:
         if points:
             constraints["points_list"] = points
         
+        # Store raw conditions & problem_text để các hàm solve có thể đọc thêm
+        # (VD: _solve_prism cần biết "lăng trụ đứng" hay không)
+        constraints["given_conditions"] = given_conditions
+        constraints["problem_text"] = problem_text
+        
         return constraints
     
     def _parse_base_from_conditions(self, conditions: List[str], problem_text: str) -> Optional[Dict]:
         """Parse thông tin đáy từ given_conditions"""
+        # Helper: kiểm tra chuỗi có "hình vuông" thực sự không (không phải "vuông góc"/"tam giác vuông")
+        def is_real_square(text: str) -> bool:
+            t = text.lower()
+            if "hình vuông" in t:
+                return True
+            # "vuông cạnh a" cũng coi là hình vuông (VD: "đáy ABCD là vuông cạnh a")
+            if "vuông cạnh" in t or "vuông tâm" in t:
+                return True
+            return False
+        
         for condition in conditions:
             # Ensure condition is string
             if not isinstance(condition, str):
@@ -211,26 +226,25 @@ class GeometrySolver:
             
             condition_lower = condition.lower()
             
-            # Hình vuông
-            if "hình vuông" in condition_lower or "vuông" in condition_lower:
-                # Try to extract side length
+            # ƯU TIÊN: Tam giác vuông (check TRƯỚC hình vuông để tránh nhầm "vuông tại B")
+            if "tam giác vuông" in condition_lower or "vuông tại" in condition_lower:
                 side = self._extract_number(condition, default=1.0)
-                return {"type": "square", "side": side}
+                return {"type": "right_triangle", "side": side}
             
             # Tam giác đều
             elif "tam giác đều" in condition_lower:
                 side = self._extract_number(condition, default=1.0)
                 return {"type": "equilateral_triangle", "side": side}
             
-            # Tam giác vuông
-            elif "tam giác vuông" in condition_lower:
-                side = self._extract_number(condition, default=1.0)
-                return {"type": "right_triangle", "side": side}
-            
             # Tam giác thường
             elif "tam giác" in condition_lower:
                 side = self._extract_number(condition, default=1.0)
                 return {"type": "triangle", "side": side}
+            
+            # Hình vuông (chỉ match "hình vuông" thực sự, không match "vuông góc")
+            elif is_real_square(condition):
+                side = self._extract_number(condition, default=1.0)
+                return {"type": "square", "side": side}
             
             # Hình chữ nhật
             elif "hình chữ nhật" in condition_lower or "chữ nhật" in condition_lower:
@@ -241,13 +255,19 @@ class GeometrySolver:
                 else:
                     return {"type": "rectangle", "width": 1.0, "height": 1.5}
         
-        # Fallback: check problem_text
+        # Fallback: check problem_text (CŨNG ƯU TIÊN TAM GIÁC TRƯỚC)
         if isinstance(problem_text, str):
             text_lower = problem_text.lower()
-            if "hình vuông" in text_lower or "vuông" in text_lower:
-                return {"type": "square", "side": 1.0}
+            if "tam giác vuông" in text_lower or "vuông tại" in text_lower:
+                return {"type": "right_triangle", "side": 1.0}
             elif "tam giác đều" in text_lower:
                 return {"type": "equilateral_triangle", "side": 1.0}
+            elif "tam giác" in text_lower:
+                return {"type": "triangle", "side": 1.0}
+            elif "hình vuông" in text_lower:
+                return {"type": "square", "side": 1.0}
+            elif "hình chữ nhật" in text_lower or "chữ nhật" in text_lower:
+                return {"type": "rectangle", "width": 1.0, "height": 1.5}
         
         return None
     
@@ -469,6 +489,8 @@ class GeometrySolver:
             Ví dụ: {"AB": 4.0, "SA": 6.0, "base_side": 4.0, "height": 6.0}
         """
         lengths = {}
+        # Lưu cả biểu thức gốc để dùng làm label đẹp ("a√3" thay vì 1.732...)
+        raw_labels = {}
         
         # Lấy độ dài cạnh đáy
         base = constraints.get("base", {})
@@ -489,20 +511,40 @@ class GeometrySolver:
             edge_name = apex.get("edge_name", "SA")
             lengths[edge_name] = height_value
         
-        # Parse từ given_conditions nếu có
-        given_conditions = constraints.get("given_conditions", [])
-        for condition in given_conditions:
-            if not isinstance(condition, str):
-                continue
-            
-            # Parse "AB = 4", "SA = 6", etc.
-            match = re.search(r'([A-Z]{2})\s*=\s*(\d+\.?\d*)', condition)
-            if match:
-                edge_name = match.group(1)
-                value = float(match.group(2))
-                lengths[edge_name] = value
-                print(f"   [_extract_actual_lengths] Found {edge_name} = {value}")
+        # Pattern parse "AB = a√3", "SA = 6", "BC = a√2"... 
+        # Dùng findall để bắt TẤT CẢ matches trong 1 chuỗi (không chỉ match đầu)
+        # Group 1: tên cạnh (2 chữ in hoa, có thể có dấu '), Group 2: biểu thức bên phải dấu =
+        edge_pattern = r"([A-Z][A-Z'’]?)\s*=\s*([0-9a-zA-Z√√.]+(?:\s*[/√][0-9a-zA-Z]+)*)"
         
+        def parse_text(text: str, source: str = ""):
+            """Tìm tất cả 'XX = value' trong text và lưu vào lengths/raw_labels"""
+            if not isinstance(text, str):
+                return
+            for m in re.finditer(edge_pattern, text):
+                edge_name = m.group(1)
+                value_str = m.group(2).strip()
+                # Loại bỏ dấu câu thừa ở cuối (., ,, ;, :, !, ?)
+                value_str = re.sub(r"[.,;:!?]+$", "", value_str).strip()
+                # Loại bỏ dấu chấm thập phân thừa nếu nó nằm cuối số nguyên (VD: "2." → "2")
+                if value_str.endswith("."):
+                    value_str = value_str.rstrip(".")
+                # Bỏ qua nếu value rỗng sau khi strip
+                if not value_str:
+                    continue
+                value = self._extract_number(value_str, default=1.0)
+                lengths[edge_name] = value
+                raw_labels[edge_name] = re.sub(r"\s+", "", value_str)
+                print(f"   [_extract_actual_lengths] [{source}] {edge_name} = '{value_str}' → {value}")
+        
+        # Parse từ given_conditions (có thể từng item gộp nhiều thông tin)
+        for condition in constraints.get("given_conditions", []) or []:
+            parse_text(condition, source="conditions")
+        
+        # Parse luôn problem_text để bắt thông tin bị Gemini bỏ sót khi tách conditions
+        parse_text(constraints.get("problem_text", ""), source="problem_text")
+        
+        # Gắn raw_labels vào lengths qua key đặc biệt để _solve_pyramid đọc được
+        lengths["__raw__"] = raw_labels
         return lengths
     
     def _extract_constraints(self, problem_text: str, shape_type: str) -> Dict:
@@ -538,6 +580,18 @@ class GeometrySolver:
         apex = constraints.get("apex", {"height": 1.414, "perpendicular_to_base": True})
         special_points = constraints.get("special_points", {})
         
+        # Nếu base chưa xác định, suy ra từ danh sách điểm Gemini trả về
+        if base is None or base.get("type") is None:
+            points_list = constraints.get("points_list", [])
+            # Loại bỏ đỉnh S (apex), đếm số điểm đáy
+            base_points = [p for p in points_list if p != "S"]
+            if len(base_points) == 3:
+                base = {"type": "equilateral_triangle", "side": 1.0}
+                print(f"   [Pyramid] Inferred triangle base from points: {base_points}")
+            else:
+                base = {"type": "square", "side": 1.0}
+                print(f"   [Pyramid] Defaulting to square base")
+        
         # Get dimensions
         a = base.get("side", 1.0)
         h = apex.get("height", 1.414)
@@ -570,12 +624,33 @@ class GeometrySolver:
                 "S": [a/2, h, h_triangle/3]  # S ở trên tâm tam giác
             }
         elif base.get("type") == "right_triangle":
-            # Tam giác vuông ABC
+            # Tam giác vuông tại B (mặc định) - hai cạnh AB, BC vuông góc tại B
+            # Cố gắng đọc độ dài thực tế từ given_conditions (AB, BC)
+            actual = self._extract_actual_lengths(constraints)
+            ab_len = actual.get("AB", a)
+            bc_len = actual.get("BC", a)
+            
+            # Nếu vẫn lấy default 1 cho BC, thử đọc từ raw_labels
+            raw = actual.get("__raw__", {})
+            print(f"   [Pyramid right_triangle] actual={actual}, raw={raw}")
+            
+            # Đặt B ở gốc để dễ thấy góc vuông tại B
+            # B = (0,0,0); A nằm trên trục X (+AB); C nằm trên trục Z (+BC)
+            points = {
+                "B": [0, 0, 0],
+                "A": [ab_len, 0, 0],
+                "C": [0, 0, bc_len],
+                "S": [ab_len, h, 0]  # S thẳng đứng phía trên A (vì SA ⊥ đáy)
+            }
+            print(f"   [Pyramid] Right triangle base at B: AB={ab_len}, BC={bc_len}, SA={h}")
+        elif base.get("type") == "triangle":
+            # Tam giác thường ABC (dùng tọa độ tam giác đều làm mặc định)
+            h_triangle = a * math.sqrt(3) / 2
             points = {
                 "A": [0, 0, 0],
                 "B": [a, 0, 0],
-                "C": [0, 0, a],
-                "S": [0, h, 0]  # S ở phía trên A
+                "C": [a/2, 0, h_triangle],
+                "S": [a/2, h, h_triangle/3]
             }
         else:
             # Default: square
@@ -780,17 +855,45 @@ class GeometrySolver:
         
         # Parse độ dài thực tế từ constraints
         actual_lengths = self._extract_actual_lengths(constraints)
+        raw_labels = actual_lengths.pop("__raw__", {})
         print(f"   [Annotations] Actual lengths: {actual_lengths}")
+        print(f"   [Annotations] Raw labels: {raw_labels}")
+        
+        def fmt_label(edge_name: str, fallback: str = "a") -> str:
+            """
+            Lấy label đẹp cho cạnh: 
+            - Ưu tiên tuyệt đối biểu thức gốc từ đề bài (VD: 'a√3', 'a√2', 'a')
+            - KHÔNG BAO GIỜ trả về số thập phân kiểu '1.7' hoặc '1.414'
+            """
+            # Ưu tiên 1: Biểu thức gốc lấy thẳng từ given_conditions
+            if edge_name in raw_labels and raw_labels[edge_name]:
+                return raw_labels[edge_name]
+            # Ưu tiên 2: Thử tên cạnh đảo ngược (BA thay vì AB)
+            reversed_name = edge_name[::-1] if len(edge_name) == 2 else None
+            if reversed_name and reversed_name in raw_labels and raw_labels[reversed_name]:
+                return raw_labels[reversed_name]
+            # Không có raw label → dùng fallback theo giá trị số
+            val = actual_lengths.get(edge_name)
+            if val is None:
+                return fallback
+            # Số nguyên đẹp (1, 2, 3...) → trả thẳng
+            if abs(val - round(val)) < 0.01:
+                return str(int(round(val)))
+            # Gần với 1.0 (default 'a') → dùng fallback
+            if abs(val - 1.0) < 0.01:
+                return fallback
+            # Còn lại không có biểu thức → dùng fallback (KHÔNG hiển thị số thập phân)
+            return fallback
         
         # Ghi chú độ dài cạnh đáy
         if "D" in points:
             # Hình vuông - tất cả cạnh bằng nhau
-            base_length = actual_lengths.get("AB", actual_lengths.get("base_side", a))
+            label_text = fmt_label("AB", fallback="a")
             
             # Ghi độ dài lên 1 cạnh (ví dụ AB)
             annotations["edges"].append({
                 "edge": "A-B",
-                "label": f"{base_length}" if base_length != 1.0 else "a",
+                "label": label_text,
                 "position": "bottom",
                 "color": "black"
             })
@@ -802,24 +905,38 @@ class GeometrySolver:
                 "description": "Các cạnh đáy bằng nhau"
             })
         else:
-            # Tam giác
-            base_length = actual_lengths.get("AB", actual_lengths.get("base_side", a))
-            annotations["edges"].append({
-                "edge": "A-B",
-                "label": f"{base_length}" if base_length != 1.0 else "a",
-                "position": "bottom",
-                "color": "black"
-            })
+            # Tam giác - ghi label cho TỪNG cạnh (vì có thể độ dài khác nhau như AB=a, BC=a√2)
+            for edge_pair in [("A", "B"), ("B", "C"), ("C", "A")]:
+                edge_key = edge_pair[0] + edge_pair[1]
+                edge_key_rev = edge_pair[1] + edge_pair[0]
+                # Ưu tiên đọc theo đúng tên trong đề (AB, BC, CA)
+                if edge_key in raw_labels:
+                    label_text = raw_labels[edge_key]
+                elif edge_key_rev in raw_labels:
+                    label_text = raw_labels[edge_key_rev]
+                elif edge_key in actual_lengths:
+                    label_text = fmt_label(edge_key, fallback="a")
+                elif edge_pair == ("A", "B"):
+                    label_text = "a"  # Mặc định cạnh AB là "a"
+                else:
+                    continue  # Không có dữ liệu cho cạnh này → bỏ qua
+                
+                annotations["edges"].append({
+                    "edge": f"{edge_pair[0]}-{edge_pair[1]}",
+                    "label": label_text,
+                    "position": "bottom",
+                    "color": "black"
+                })
         
         # Ghi chú chiều cao SA
         if apex.get("perpendicular_to_base", True):
             edge_name = apex.get("edge_name", "SA")
-            height_value = actual_lengths.get("SA", actual_lengths.get("height", h))
+            sa_label = fmt_label(edge_name, fallback="h")
             
             # Ghi độ dài SA
             annotations["edges"].append({
                 "edge": "S-A",
-                "label": f"{height_value}" if height_value != 1.414 else "h",
+                "label": sa_label,
                 "position": "left",
                 "color": "teal"
             })
@@ -907,10 +1024,10 @@ class GeometrySolver:
             })
             
             # Ghi chú đường SM
-            sm_length = actual_lengths.get("SM", None)
+            sm_label = fmt_label("SM", fallback="SM")
             annotations["edges"].append({
                 "edge": "S-M",
-                "label": f"SM = {sm_length}" if sm_length else "SM",
+                "label": sm_label,
                 "position": "right",
                 "color": "gold"
             })
@@ -955,18 +1072,50 @@ class GeometrySolver:
         }
     
     def _solve_prism(self, constraints: Dict) -> Dict[str, Any]:
-        """Giải lăng trụ"""
+        """
+        Giải lăng trụ.
+        - Mặc định: vẽ lăng trụ XIÊN (tránh trùng hình đặc biệt)
+        - Chỉ vẽ ĐỨNG khi đề bài nói rõ "lăng trụ đứng"
+        """
         base = constraints.get("base", {})
         a = base.get("side", 1.0)
         h = constraints.get("height", 1.0)
         
+        # Kiểm tra xem có phải lăng trụ ĐỨNG không (đọc từ given_conditions hoặc problem_text)
+        is_upright = False
+        given_conditions = constraints.get("given_conditions", []) or []
+        problem_text = constraints.get("problem_text", "") or ""
+        
+        # Check trong given_conditions
+        for cond in given_conditions:
+            if isinstance(cond, str) and "lăng trụ đứng" in cond.lower():
+                is_upright = True
+                break
+        
+        # Check trong problem_text (fallback)
+        if not is_upright and isinstance(problem_text, str):
+            if "lăng trụ đứng" in problem_text.lower():
+                is_upright = True
+        
+        if is_upright:
+            # Lăng trụ ĐỨNG: đáy trên thẳng phía trên đáy dưới
+            offset_x, offset_z = 0, 0
+            print(f"   [Prism] Drawing UPRIGHT prism (đề bài yêu cầu lăng trụ đứng)")
+        else:
+            # Lăng trụ XIÊN (mặc định)
+            offset_x = a * 0.35  # Dịch sang phải 35% cạnh
+            offset_z = a * 0.20  # Dịch ra trước 20% cạnh
+            print(f"   [Prism] Drawing OBLIQUE prism (mặc định, offset x={offset_x}, z={offset_z})")
+        
         points = {
+            # Đáy dưới ABC (tam giác đều, y = 0)
             "A": [0, 0, 0],
             "B": [a, 0, 0],
             "C": [a/2, 0, a * math.sqrt(3)/2],
-            "A'": [0, h, 0],
-            "B'": [a, h, 0],
-            "C'": [a/2, h, a * math.sqrt(3)/2]
+            # Đáy trên A'B'C' (y = h, có offset nếu xiên)
+            "A'": [0 + offset_x, h, 0 + offset_z],
+            "B'": [a + offset_x, h, 0 + offset_z],
+            "C'": [a/2 + offset_x, h, a * math.sqrt(3)/2 + offset_z]
         }
         
         edges = [

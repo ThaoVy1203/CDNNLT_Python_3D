@@ -331,25 +331,26 @@
       // Create label sprite with TRANSPARENT background
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
-      canvas.width = 256;
-      canvas.height = 128;
+      // Tăng kích thước canvas để chữ sắc nét hơn
+      canvas.width = 512;
+      canvas.height = 256;
       
       // Clear canvas (transparent background)
       context.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Set font
-      context.font = 'Bold 36px Arial';
+      // Set font - tăng size cho dễ đọc
+      context.font = 'Bold 80px Arial';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       
       // Add white outline for better visibility
-      context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-      context.lineWidth = 6;
-      context.strokeText(text, 128, 64);
+      context.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+      context.lineWidth = 12;
+      context.strokeText(text, 256, 128);
       
       // Text in gold color
       context.fillStyle = '#a07840'; // Gold color
-      context.fillText(text, 128, 64);
+      context.fillText(text, 256, 128);
       
       const texture = new THREE.CanvasTexture(canvas);
       const material = new THREE.SpriteMaterial({
@@ -358,8 +359,9 @@
         depthTest: false
       });
       const sprite = new THREE.Sprite(material);
-      sprite.position.set(midpoint[0], midpoint[1] + 0.15, midpoint[2]);
-      sprite.scale.set(0.4, 0.2, 1);
+      sprite.position.set(midpoint[0], midpoint[1] + 0.18, midpoint[2]);
+      // Tăng scale để label to hơn trong cảnh 3D
+      sprite.scale.set(0.7, 0.35, 1);
       sprite.visible = false; // Hidden by default, will show in steps
       
       // Store edge name for step-by-step display

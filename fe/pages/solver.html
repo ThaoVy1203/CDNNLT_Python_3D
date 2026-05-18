@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -670,6 +670,10 @@ if (typeof THREE === 'undefined') {
 let currentProblemId = null;
 let currentProblemData = null;
 
+// ⚙️ FEATURE FLAGS - Đặt true/false để bật/tắt tính năng tốn API
+// 👉 Khi cần BẬT lại "Ngân hàng bài tương tự", đổi thành: true
+const ENABLE_SIMILAR_PROBLEMS = false;  // Tắt để tiết kiệm lượt API hàng ngày
+
 // Solver-specific construction steps state (avoid conflict with script.js)
 let solverCurrentStep = 3;
 let solverTotalSteps = 5; // Changed from const to let
@@ -1199,7 +1203,7 @@ async function analyzeSelectedImage(event) {
     // Hiện sidebar
     geometryInfo.style.display = 'block';
     if (infoDivider)  infoDivider.style.display  = 'block';
-    if (similarProbs) similarProbs.style.display = 'block';
+    if (similarProbs && ENABLE_SIMILAR_PROBLEMS) similarProbs.style.display = 'block';
     if (nextStepBtn)  nextStepBtn.style.display  = 'block';
     if (uploadTips)   uploadTips.style.display   = 'none';
     
@@ -1214,8 +1218,12 @@ async function analyzeSelectedImage(event) {
         console.log('✅ Step 5: Starting 3D load for problem:', currentProblemId);
         load3DGeometry(currentProblemId);
         
-        // Load similar problems
-        loadSimilarProblems(currentProblemId);
+        // Load similar problems (chỉ khi flag bật để tiết kiệm API)
+        if (ENABLE_SIMILAR_PROBLEMS) {
+          loadSimilarProblems(currentProblemId);
+        } else {
+          console.log('⏸️ Similar problems disabled (ENABLE_SIMILAR_PROBLEMS=false)');
+        }
       }
     }, 1500);
     
@@ -2049,7 +2057,8 @@ async function load3DGeometry(problemId) {
     console.log('📊 Loading 3D geometry from DUNGHINH3D table for problem:', problemId);
     
     // Call API to get 3D geometry data from DUNGHINH3D table
-    const response = await apiService.render3D(problemId);
+    // force_refresh=true để luôn render lại với code mới nhất (bỏ cache cũ trong DB)
+    const response = await apiService.render3D(problemId, true);
     
     console.log('✅ API response:', response);
     
@@ -2758,8 +2767,14 @@ async function loadProblemFromHistory(problemId) {
       const similarProblems = document.getElementById('similar-problems');
       if (similarProblems) similarProblems.style.display = 'block';
       
-      // Load similar problems data
-      loadSimilarProblems(problemId);
+      // Load similar problems data (chỉ khi flag bật để tiết kiệm API)
+      if (ENABLE_SIMILAR_PROBLEMS) {
+        loadSimilarProblems(problemId);
+      } else {
+        console.log('⏸️ Similar problems disabled (ENABLE_SIMILAR_PROBLEMS=false)');
+        // Ẩn widget vì không có data
+        if (similarProblems) similarProblems.style.display = 'none';
+      }
     }
     
     // 4. Hide upload tips, show next step button
