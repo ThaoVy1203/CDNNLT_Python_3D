@@ -2757,6 +2757,9 @@ async function loadProblemFromHistory(problemId) {
       
       const similarProblems = document.getElementById('similar-problems');
       if (similarProblems) similarProblems.style.display = 'block';
+      
+      // Load similar problems data
+      loadSimilarProblems(problemId);
     }
     
     // 4. Hide upload tips, show next step button
