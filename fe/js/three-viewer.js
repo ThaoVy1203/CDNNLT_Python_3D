@@ -27,6 +27,12 @@
       this.grid = null;
       this.axes = null;
       this.animationId = null;
+
+      // === Dynamic hidden-line rendering ===
+      this._structuralEdges = [];  // Edges that participate in occlusion check
+      this._faceMeshes = [];       // Face meshes for raycasting
+      this._lastOcclusionCheck = 0; // Timestamp of last occlusion check
+      this._raycaster = null;       // Reusable raycaster instance
     }
 
     init(canvasId) {
@@ -159,14 +165,22 @@
     }
 
     startAnimation() {
-      const animate = () => {
-        this.animationId = requestAnimationFrame(animate);
-        if (this.controls) {
-          this.controls.update();
+      const self = this;
+      const animate = function(time) {
+        self.animationId = requestAnimationFrame(animate);
+        if (self.controls) {
+          self.controls.update();
         }
-        this.renderer.render(this.scene, this.camera);
+
+        // Throttled occlusion check (~150ms interval)
+        if (time - self._lastOcclusionCheck > 150) {
+          self._updateOcclusion();
+          self._lastOcclusionCheck = time;
+        }
+
+        self.renderer.render(self.scene, self.camera);
       };
-      animate();
+      animate(0);
     }
 
     loadGeometry(data) {
@@ -189,14 +203,44 @@
       // Build edges
       data.edges.forEach((edge) => {
         const edgeName = edge.start + '-' + edge.end;
+        const style = edge.style || 'solid';
         const line = this.createEdge(
           data.points[edge.start],
           data.points[edge.end],
           edgeName,
-          edge.style || 'solid'
+          style
         );
         this.objects.set(edgeName, line);
         this.scene.add(line);
+
+        // Đăng ký structural edge cho dynamic occlusion (nét đứt tự động)
+        if (style === 'solid') {
+          const start = data.points[edge.start];
+          const end = data.points[edge.end];
+          const p1 = new THREE.Vector3(start[0], start[1], start[2]);
+          const p2 = new THREE.Vector3(end[0], end[1], end[2]);
+          const hexColor = 0x3d52a0;
+
+          const solidMat = new THREE.LineBasicMaterial({
+            color: hexColor,
+            linewidth: 2,
+          });
+          const dashedMat = new THREE.LineDashedMaterial({
+            color: hexColor,
+            linewidth: 1,
+            dashSize: 0.1,
+            gapSize: 0.05,
+          });
+          this._structuralEdges.push({
+            line: line,
+            solidMat: solidMat,
+            dashedMat: dashedMat,
+            p1: p1.clone(),
+            p2: p2.clone(),
+            midpoint: p1.clone().add(p2).multiplyScalar(0.5),
+            isCurrentlyDashed: false,
+          });
+        }
       });
 
       // Build faces
@@ -204,6 +248,9 @@
         const mesh = this.createFace(face.vertices.map(v => data.points[v]));
         this.objects.set('face_' + index, mesh);
         this.scene.add(mesh);
+
+        // Đăng ký face mesh cho occlusion raycasting
+        this._faceMeshes.push(mesh);
       });
 
       // Build annotations (ký hiệu hình học)
@@ -212,6 +259,9 @@
       }
 
       this.fitCamera();
+
+      // Force occlusion check
+      this._updateOcclusion();
     }
 
     buildAnnotations(annotations, points) {
@@ -916,6 +966,10 @@
         }
       });
       this.objects.clear();
+
+      // Reset occlusion tracking
+      this._structuralEdges = [];
+      this._faceMeshes = [];
       
       // Also clear annotations
       this.clearAnnotations();
@@ -956,6 +1010,10 @@
         const fn = (c || {}).fn;
         return fn && fn !== 'setCamera';
       }).length;
+
+      // Force occlusion check ngay sau khi load xong
+      // (không đợi animation loop 150ms)
+      this._updateOcclusion();
     }
 
     /**
@@ -969,6 +1027,8 @@
 
       let drawCount = 0;
       const upTo = [];
+      const faceCmdsAfter = []; // Face commands chưa đến step nhưng cần cho occlusion
+
       for (const cmd of this.commandList) {
         const fn = (cmd || {}).fn;
         // setCamera không tính vào step số, nhưng vẫn push để giữ camera
@@ -976,13 +1036,37 @@
           upTo.push(cmd);
           continue;
         }
-        // Đã đủ số lệnh vẽ → dừng (KHÔNG push lệnh hiện tại)
-        if (drawCount >= idx) break;
+        // Đã đủ số lệnh vẽ → thu thập drawFace còn lại cho occlusion
+        if (drawCount >= idx) {
+          if (fn === 'drawFace') {
+            faceCmdsAfter.push(cmd);
+          }
+          continue;
+        }
         upTo.push(cmd);
         drawCount++;
       }
       this.executeCommands(upTo);
+
+      // Vẽ thêm các face chưa đến step (ẩn) để raycaster occlusion hoạt động.
+      // Chỉ vẽ được nếu tất cả điểm của face đã tồn tại.
+      for (const faceCmd of faceCmdsAfter) {
+        const a = faceCmd.args || {};
+        const pointNames = a.points || [];
+        // Kiểm tra tất cả điểm đã được vẽ chưa
+        const allPointsExist = pointNames.every(n => this.objects.has(n));
+        if (allPointsExist) {
+          const mesh = this.drawFace(pointNames, a.opts);
+          if (mesh) {
+            mesh.visible = false;
+          }
+        }
+      }
+
       this.currentStep = idx;
+
+      // Force occlusion check
+      this._updateOcclusion();
     }
 
     /**
@@ -1056,14 +1140,18 @@
         ? new THREE.Color(opts.color).getHex()
         : (style === 'dashed' ? 0x2c3e50 : 0x3d52a0);
 
-      const pts = [
-        new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z),
-        new THREE.Vector3(toPos.x,   toPos.y,   toPos.z),
-      ];
+      const p1 = new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z);
+      const p2 = new THREE.Vector3(toPos.x,   toPos.y,   toPos.z);
+      const pts = [p1, p2];
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
 
       let line;
+      // Structural edge: no explicit style or style=solid, AND no special color
+      // These edges participate in dynamic occlusion (solid ↔ dashed)
+      const isStructural = (style === 'solid' && !opts.color);
+
       if (style === 'dashed') {
+        // AI-designated dashed edges (diagonals, medians, etc.) — always dashed
         const mat = new THREE.LineDashedMaterial({
           color: hexColor,
           linewidth: opts.linewidth || 1,
@@ -1073,6 +1161,7 @@
         line = new THREE.Line(geo, mat);
         line.computeLineDistances();
       } else {
+        // Solid edge — start as solid, may switch to dashed via occlusion
         const mat = new THREE.LineBasicMaterial({
           color: hexColor,
           linewidth: opts.linewidth || 2,
@@ -1084,6 +1173,29 @@
       line.visible = true;
       this.scene.add(line);
       this.objects.set(edgeName, line);
+
+      // Register structural edge for dynamic occlusion checking
+      if (isStructural) {
+        const solidMat = new THREE.LineBasicMaterial({
+          color: hexColor,
+          linewidth: opts.linewidth || 2,
+        });
+        const dashedMat = new THREE.LineDashedMaterial({
+          color: hexColor,
+          linewidth: opts.linewidth || 1,
+          dashSize: 0.1,
+          gapSize: 0.05,
+        });
+        this._structuralEdges.push({
+          line: line,
+          solidMat: solidMat,
+          dashedMat: dashedMat,
+          p1: p1.clone(),
+          p2: p2.clone(),
+          midpoint: p1.clone().add(p2).multiplyScalar(0.5),
+          isCurrentlyDashed: false,
+        });
+      }
 
       // Gắn nhãn độ dài nếu có
       if (opts.label) {
@@ -1159,6 +1271,10 @@
       mesh.visible = true;
       this.scene.add(mesh);
       this.objects.set(faceId, mesh);
+
+      // Track face mesh for occlusion raycasting
+      this._faceMeshes.push(mesh);
+
       return mesh;
     }
 
@@ -1379,6 +1495,151 @@
         }
       });
       return pts;
+    }
+
+    // ─── Dynamic Hidden-Line Rendering ────────────────────────────
+
+    /**
+     * Kiểm tra occlusion cho tất cả structural edges.
+     * Dùng Raycaster bắn tia từ camera đến nhiều điểm trên cạnh.
+     * Nếu tia bị face mesh chắn trước → cạnh bị khuất → nét đứt.
+     *
+     * Cải tiến:
+     * - Kiểm tra 5 sample points thay vì 3 để chính xác hơn
+     * - Loại bỏ face chứa cạnh đang kiểm tra (tránh self-occlusion)
+     * - Margin lớn hơn (0.05) để tránh floating point issues
+     */
+    _updateOcclusion() {
+      if (!this.camera || this._structuralEdges.length === 0) return;
+
+      // Lọc face meshes cho raycasting:
+      // Raycaster mặc định bỏ qua object invisible, nên ta tạm set visible = true
+      // cho các face ẩn trong lúc raycast, rồi restore lại sau.
+      const allFaces = this._faceMeshes.filter(m => m != null);
+      if (allFaces.length === 0) return;
+
+      // Tạm bật visible cho tất cả face meshes
+      const hiddenFaces = [];
+      for (let f = 0; f < allFaces.length; f++) {
+        if (!allFaces[f].visible) {
+          allFaces[f].visible = true;
+          hiddenFaces.push(allFaces[f]);
+        }
+      }
+
+      if (!this._raycaster) {
+        this._raycaster = new THREE.Raycaster();
+      }
+      const raycaster = this._raycaster;
+      const camPos = this.camera.position;
+      const direction = new THREE.Vector3();
+
+      for (let i = 0; i < this._structuralEdges.length; i++) {
+        const edgeInfo = this._structuralEdges[i];
+        const line = edgeInfo.line;
+        if (!line.visible) continue;
+
+        // Kiểm tra ở 5 điểm dọc cạnh: 0.1, 0.3, 0.5, 0.7, 0.9
+        let occludedCount = 0;
+        const sampleFractions = [0.1, 0.3, 0.5, 0.7, 0.9];
+        const totalSamples = sampleFractions.length;
+
+        // Tìm các face chứa cạnh này (cache kết quả để tránh tính lại mỗi frame)
+        if (!edgeInfo._cachedEdgeFaces) {
+          edgeInfo._cachedEdgeFaces = this._findFacesContainingEdge(edgeInfo, allFaces);
+        }
+        const edgeFaces = edgeInfo._cachedEdgeFaces;
+        // Danh sách face dùng để raycast (loại bỏ face chứa cạnh)
+        const testFaces = allFaces.filter(f => !edgeFaces.includes(f));
+
+        // Nếu không còn face nào để test → cạnh không bị khuất
+        if (testFaces.length === 0) {
+          if (edgeInfo.isCurrentlyDashed) {
+            line.material = edgeInfo.solidMat;
+            edgeInfo.isCurrentlyDashed = false;
+          }
+          continue;
+        }
+
+        for (let s = 0; s < totalSamples; s++) {
+          const t = sampleFractions[s];
+          const samplePt = edgeInfo.p1.clone().lerp(edgeInfo.p2, t);
+          direction.copy(samplePt).sub(camPos).normalize();
+          raycaster.set(camPos, direction);
+
+          const intersects = raycaster.intersectObjects(testFaces, false);
+          const distToSample = camPos.distanceTo(samplePt);
+
+          // Có mặt chắn trước sample point (margin 0.05 để tránh FP issues)
+          let blocked = false;
+          for (let j = 0; j < intersects.length; j++) {
+            if (intersects[j].distance < distToSample - 0.05) {
+              blocked = true;
+              break;
+            }
+          }
+          if (blocked) occludedCount++;
+        }
+
+        // Nếu >= 3/5 sample points bị che → cạnh bị khuất
+        const isOccluded = occludedCount >= 3;
+
+        if (isOccluded && !edgeInfo.isCurrentlyDashed) {
+          // Chuyển sang nét đứt
+          line.material = edgeInfo.dashedMat;
+          line.computeLineDistances();
+          edgeInfo.isCurrentlyDashed = true;
+        } else if (!isOccluded && edgeInfo.isCurrentlyDashed) {
+          // Chuyển về nét liền
+          line.material = edgeInfo.solidMat;
+          edgeInfo.isCurrentlyDashed = false;
+        }
+      }
+
+      // Restore visibility cho các face đã tạm bật
+      for (let f = 0; f < hiddenFaces.length; f++) {
+        hiddenFaces[f].visible = false;
+      }
+    }
+
+    /**
+     * Tìm các face mesh chứa cạnh (edge endpoints nằm trên face).
+     * Dùng để loại trừ self-occlusion khi raycast.
+     */
+    _findFacesContainingEdge(edgeInfo, faceMeshes) {
+      const result = [];
+      const p1 = edgeInfo.p1;
+      const p2 = edgeInfo.p2;
+      const EPSILON = 0.01;
+
+      for (let i = 0; i < faceMeshes.length; i++) {
+        const mesh = faceMeshes[i];
+        const posAttr = mesh.geometry.getAttribute('position');
+        if (!posAttr) continue;
+
+        // Lấy tất cả vertices của face
+        const faceVerts = [];
+        for (let v = 0; v < posAttr.count; v++) {
+          faceVerts.push(new THREE.Vector3(
+            posAttr.getX(v),
+            posAttr.getY(v),
+            posAttr.getZ(v)
+          ));
+        }
+
+        // Kiểm tra xem cả 2 endpoint của cạnh có trùng với vertex của face không
+        let p1OnFace = false;
+        let p2OnFace = false;
+        for (let v = 0; v < faceVerts.length; v++) {
+          if (faceVerts[v].distanceTo(p1) < EPSILON) p1OnFace = true;
+          if (faceVerts[v].distanceTo(p2) < EPSILON) p2OnFace = true;
+        }
+
+        if (p1OnFace && p2OnFace) {
+          result.push(mesh);
+        }
+      }
+      return result;
     }
   }
 
