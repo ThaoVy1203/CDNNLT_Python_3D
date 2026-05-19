@@ -14,7 +14,7 @@ function renderTopbar(activePage = '') {
   const navLink = (href, label, key) => {
     const isActive = activePage === key;
     return `
-      <a href="${href}" style="padding:6px 4px;font-size:14px;font-weight:500;color:${isActive ? '#0f172a' : '#64748b'};text-decoration:none;transition:color .15s;white-space:nowrap;"
+      <a href="${href}" data-topbar-link="true" style="display:inline-flex;align-items:center;height:36px;padding:6px 4px;font-size:15px;font-weight:${isActive ? '600' : '500'};color:${isActive ? '#0f172a' : '#64748b'};text-decoration:none;transition:all .25s ease;white-space:nowrap;"
          onmouseover="if(!this.dataset.active)this.style.color='#0f172a'"
          onmouseout="if(!this.dataset.active)this.style.color='#64748b'"
          ${isActive ? 'data-active="true"' : ''}>
@@ -33,12 +33,13 @@ function renderTopbar(activePage = '') {
   // Avatar HTML
   const avatarHtml = currentUser && currentUser.picture
     ? `<img src="${currentUser.picture}" alt="avatar"
-         style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;"
+         data-topbar-avatar="true"
+         style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;transition:all .25s ease;"
          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-       <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:none;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:600;color:#475569;">
+       <span data-topbar-avatar="true" style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:none;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:600;color:#475569;transition:all .25s ease;">
          ${displayName ? displayName[0].toUpperCase() : 'U'}
        </span>`
-    : `<span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:600;color:#475569;">
+    : `<span data-topbar-avatar="true" style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:600;color:#475569;transition:all .25s ease;">
          ${displayName ? displayName[0].toUpperCase() : 'U'}
        </span>`;
 
@@ -48,8 +49,8 @@ function renderTopbar(activePage = '') {
 
     <!-- Logo -->
     <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;">
-      <div style="width:34px;height:34px;background:#0f172a;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <div id="topbarLogoMark" style="width:34px;height:34px;background:#0f172a;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .25s ease;">
+        <svg id="topbarLogoIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:all .25s ease;">
           <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
         </svg>
       </div>
@@ -57,7 +58,7 @@ function renderTopbar(activePage = '') {
     </a>
 
     <!-- Nav -->
-    <nav style="display:flex;align-items:center;gap:32px;">
+    <nav id="topbarNav" style="display:flex;align-items:center;gap:32px;transition:gap .25s ease;">
       ${navLinks}
     </nav>
 
@@ -72,12 +73,12 @@ function renderTopbar(activePage = '') {
       </button>
 
       <div id="userDropdown" style="display:${isLoggedIn ? 'block' : 'none'};position:relative;">
-        <button class="user-avatar-btn" onclick="toggleUserMenu()"
-          style="display:flex;align-items:center;gap:8px;padding:3px 10px 3px 3px;background:white;border:1px solid #e2e8f0;border-radius:999px;cursor:pointer;transition:box-shadow .15s;"
+        <button id="userAvatarBtn" class="user-avatar-btn" onclick="toggleUserMenu()"
+          style="display:flex;align-items:center;gap:9px;padding:3px 12px 3px 3px;background:white;border:1px solid #e2e8f0;border-radius:999px;cursor:pointer;transition:all .25s ease;"
           onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'"
           onmouseout="this.style.boxShadow='none'">
           ${avatarHtml}
-          <span id="userName" style="font-size:13px;font-weight:500;color:#0f172a;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${displayName}</span>
+          <span id="userName" style="font-size:14px;font-weight:600;color:#0f172a;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:all .25s ease;">${displayName}</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -156,6 +157,7 @@ function initTopbar() {
       if (loginBtn) loginBtn.style.display = 'inline-flex';
       if (userDropdown) userDropdown.style.display = 'none';
     }
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event('scroll')));
     return currentUser;
   } catch(e) {
     console.error('[initTopbar] error:', e);
@@ -175,21 +177,54 @@ function initTopbar() {
       return;
     }
 
-    const scrolled = window.scrollY > 20;
+    const scrolled = window.scrollY > 500;
 
     if (scrolled) {
       // Shrunk state - chỉ còn icon logo, gọn hơn
-      wrapper.style.padding = '8px 24px';
-      header.style.padding = '6px 14px';
-      header.style.maxWidth = '880px';
-      header.style.borderRadius = '20px';
-      header.style.background = 'rgba(255,255,255,0.75)';
-      header.style.boxShadow = '0 8px 28px rgba(15,23,42,0.10)';
+      wrapper.style.padding = '16px 18px';
+      header.style.padding = '8px 16px';
+      header.style.maxWidth = '845px';
+      header.style.borderRadius = '24px';
+      header.style.gap = '28px';
+      header.style.background = 'rgba(255,255,255,0.92)';
+      header.style.borderColor = 'rgba(226,232,240,0.85)';
+      header.style.boxShadow = '0 18px 42px rgba(15,23,42,0.10)';
       const logoText = document.getElementById('logoText');
       if (logoText) {
         logoText.style.maxWidth = '0';
         logoText.style.opacity = '0';
         logoText.style.marginLeft = '-10px';
+      }
+      const logoMark = document.getElementById('topbarLogoMark');
+      const logoIcon = document.getElementById('topbarLogoIcon');
+      const nav = document.getElementById('topbarNav');
+      const userBtn = document.getElementById('userAvatarBtn');
+      const userName = document.getElementById('userName');
+      if (logoMark) {
+        logoMark.style.width = '42px';
+        logoMark.style.height = '42px';
+        logoMark.style.borderRadius = '10px';
+      }
+      if (logoIcon) {
+        logoIcon.setAttribute('width', '21');
+        logoIcon.setAttribute('height', '21');
+      }
+      if (nav) nav.style.gap = '42px';
+      document.querySelectorAll('[data-topbar-link="true"]').forEach((link) => {
+        link.style.fontSize = '16px';
+        link.style.height = '40px';
+      });
+      document.querySelectorAll('[data-topbar-avatar="true"]').forEach((avatar) => {
+        avatar.style.width = '38px';
+        avatar.style.height = '38px';
+      });
+      if (userBtn) {
+        userBtn.style.gap = '10px';
+        userBtn.style.padding = '3px 12px 3px 3px';
+      }
+      if (userName) {
+        userName.style.fontSize = '16px';
+        userName.style.maxWidth = '130px';
       }
     } else {
       // Expanded state - hiện đầy đủ logo
@@ -197,13 +232,46 @@ function initTopbar() {
       header.style.padding = '12px 20px';
       header.style.maxWidth = '1240px';
       header.style.borderRadius = '20px';
+      header.style.gap = '24px';
       header.style.background = 'rgba(255,255,255,0.35)';
+      header.style.borderColor = 'rgba(255,255,255,0.4)';
       header.style.boxShadow = '0 4px 24px rgba(15,23,42,0.04)';
       const logoText = document.getElementById('logoText');
       if (logoText) {
         logoText.style.maxWidth = '120px';
         logoText.style.opacity = '1';
         logoText.style.marginLeft = '0';
+      }
+      const logoMark = document.getElementById('topbarLogoMark');
+      const logoIcon = document.getElementById('topbarLogoIcon');
+      const nav = document.getElementById('topbarNav');
+      const userBtn = document.getElementById('userAvatarBtn');
+      const userName = document.getElementById('userName');
+      if (logoMark) {
+        logoMark.style.width = '34px';
+        logoMark.style.height = '34px';
+        logoMark.style.borderRadius = '9px';
+      }
+      if (logoIcon) {
+        logoIcon.setAttribute('width', '17');
+        logoIcon.setAttribute('height', '17');
+      }
+      if (nav) nav.style.gap = '32px';
+      document.querySelectorAll('[data-topbar-link="true"]').forEach((link) => {
+        link.style.fontSize = '15px';
+        link.style.height = '36px';
+      });
+      document.querySelectorAll('[data-topbar-avatar="true"]').forEach((avatar) => {
+        avatar.style.width = '32px';
+        avatar.style.height = '32px';
+      });
+      if (userBtn) {
+        userBtn.style.gap = '9px';
+        userBtn.style.padding = '3px 12px 3px 3px';
+      }
+      if (userName) {
+        userName.style.fontSize = '14px';
+        userName.style.maxWidth = '120px';
       }
     }
 
