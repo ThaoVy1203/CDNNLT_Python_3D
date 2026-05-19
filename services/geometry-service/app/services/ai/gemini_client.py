@@ -135,33 +135,43 @@ class GeminiClient:
         print(f"🔄 Switched to API key #{self.current_key_index + 1}")
     
     def _generate_with_retry(self, model: str, contents, config):
-        """Gọi API với tự động xoay vòng key khi bị limit"""
-        tried_keys = set()
+        """Gọi API với tự động xoay vòng key khi bị limit và retry khi gặp lỗi 503/429"""
+        import time
+        max_retries_per_key = 3
         last_error = None
         
-        while len(tried_keys) < len(self.api_keys):
-            try:
-                response = self.client.models.generate_content(
-                    model=model,
-                    contents=contents,
-                    config=config
-                )
-                return response
-            except Exception as e:
-                error_msg = str(e)
-                last_error = e
-                tried_keys.add(self.current_key_index)
-                
-                is_quota_error = any(code in error_msg for code in [
-                    "429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota"
-                ])
-                
-                if is_quota_error and len(tried_keys) < len(self.api_keys):
-                    print(f"⚠️ Key #{self.current_key_index + 1} bị limit, thử key khác...")
-                    self._rotate_key()
-                else:
-                    raise e
+        # Thử qua tất cả các key
+        for _ in range(len(self.api_keys)):
+            # Thử nhiều lần trên mỗi key
+            for attempt in range(max_retries_per_key):
+                try:
+                    response = self.client.models.generate_content(
+                        model=model,
+                        contents=contents,
+                        config=config
+                    )
+                    return response
+                except Exception as e:
+                    error_msg = str(e)
+                    last_error = e
+                    
+                    is_quota_error = any(code in error_msg for code in [
+                        "429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota"
+                    ])
+                    
+                    if is_quota_error:
+                        wait_time = 2 ** attempt  # Backoff: 1s, 2s, 4s
+                        print(f"⚠️ API báo lỗi quá tải (503/429). Chờ {wait_time}s rồi thử lại lần {attempt+1}/{max_retries_per_key} với key hiện tại...")
+                        time.sleep(wait_time)
+                    else:
+                        # Lỗi khác (không phải do quá tải) thì throw luôn
+                        raise e
+            
+            # Nếu đã hết số lần thử cho key này mà vẫn lỗi, chuyển sang key khác
+            print(f"⚠️ Key #{self.current_key_index + 1} vẫn bị limit sau {max_retries_per_key} lần thử, chuyển sang key khác...")
+            self._rotate_key()
         
+        # Nếu đã thử qua tất cả các key mà vẫn lỗi
         raise last_error
     
     def _prepare_image(self, image_input: Union[str, bytes, Image.Image]) -> Image.Image:

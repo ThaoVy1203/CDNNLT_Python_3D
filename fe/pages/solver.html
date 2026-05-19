@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -326,7 +326,7 @@ if (typeof THREE === 'undefined') {
         <button class="pctrl" onclick="prevStep()">⏪</button>
         <button class="play-main" id="playBtn" onclick="togglePlay()">▶</button>
         <button class="pctrl" onclick="nextStep()">⏩</button>
-        <button class="pctrl" onclick="goToStep(5)">⏭</button>
+        <button class="pctrl" onclick="goToStep(solverTotalSteps)">⏭</button>
         <div class="progress-track" onclick="seekProgress(event)">
           <div class="progress-fill" id="progFill" style="width: 60%"></div>
         </div>
@@ -1337,6 +1337,10 @@ function togglePlay() {
   const playBtn = document.getElementById('playBtn');
   if (!playBtn) return;
   
+  if (!solverIsPlaying && solverCurrentStep >= solverTotalSteps) {
+    goToStep(1); // Reset về bước 1 nếu đang ở cuối cùng và bấm Play
+  }
+
   solverIsPlaying = !solverIsPlaying;
   
   if (solverIsPlaying) {
@@ -1347,7 +1351,7 @@ function togglePlay() {
       } else {
         togglePlay(); // Stop when reaching the end
       }
-    }, 2000); // Change step every 2 seconds
+    }, 500); // Change step every 0.5 seconds
   } else {
     playBtn.innerHTML = '▶';
     if (solverPlayInterval) {
@@ -2314,7 +2318,7 @@ const originalNextStep = window.nextStep;
 window.nextStep = function() {
   if (viewer2 && geometry3DData) {
     const total = getTotalDrawSteps();
-    const cur = (viewer2.currentStep || 0) + 1;
+    const cur = (viewer2.currentStep || 0); // Đã sửa lỗi nhảy 2 bước (viewer2.currentStep là 1-based index)
     if (cur < total) {
       const next = cur + 1;
       if (typeof viewer2.goToCommandStep === 'function' && Array.isArray(geometry3DData.commands)) {
@@ -2334,7 +2338,7 @@ window.nextStep = function() {
 const originalPrevStep = window.prevStep;
 window.prevStep = function() {
   if (viewer2 && geometry3DData) {
-    const cur = (viewer2.currentStep || 0) + 1;
+    const cur = (viewer2.currentStep || 0); // Đã sửa lỗi nhảy 2 bước
     if (cur > 1) {
       const prev = cur - 1;
       if (typeof viewer2.goToCommandStep === 'function' && Array.isArray(geometry3DData.commands)) {
@@ -2351,20 +2355,7 @@ window.prevStep = function() {
   }
 };
 
-const originalTogglePlay = window.togglePlay;
-window.togglePlay = function() {
-  if (viewer2) {
-    viewer2.togglePlay(2000); // 2 seconds per step
-    
-    // Update play button
-    const playBtn = document.getElementById('playBtn');
-    if (playBtn) {
-      playBtn.innerHTML = viewer2.isPlaying ? '⏸' : '▶';
-    }
-  } else if (originalTogglePlay) {
-    originalTogglePlay();
-  }
-};
+// Removed originalTogglePlay override since we want to use the global togglePlay which is properly synced.
 
 // Keyboard shortcuts for 3D viewer
 document.addEventListener('keydown', function(e) {
