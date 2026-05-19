@@ -49,8 +49,10 @@ async function handleGoogleLogin(response) {
       localStorage.setItem('geo3d_current_user', JSON.stringify({
         id: data.user.maNguoiDung,
         username: data.user.tenDangNhap,
+        name: payload.name || '',
         email: data.user.email,
         role: data.user.vaiTro,
+        picture: payload.picture || '',
         isGoogle: true
       }));
       

@@ -67,13 +67,26 @@
 }
 
 .canvas-toolbar .ctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   padding: 6px 12px;
   background: white;
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.2s;
+  vertical-align: middle;
+}
+
+.canvas-toolbar .ctrl span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  font-size: 13px;
 }
 
 .canvas-toolbar .ctrl:hover {

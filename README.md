@@ -1,317 +1,442 @@
 # Hệ Thống Hỗ Trợ Giải Toán Hình Học Không Gian 3D
 
-API Backend sử dụng FastAPI + Gemini AI để phân tích ảnh, giải toán và render hình học 3D.
+Hệ thống microservices sử dụng FastAPI + Gemini AI để phân tích ảnh đề bài, giải toán hình học không gian và render mô hình 3D trực tiếp trên trình duyệt với Three.js.
+
+---
 
 ## Cấu Trúc Thư Mục
 
 ```
-be/
-├── app/                              # Application code
-│   ├── api/                          # API layer
-│   │   └── routes/                   # API endpoints
-│   │       ├── nguoi_dung.py         # User management API
-│   │       ├── bai_toan.py           # Problem management API
-│   │       └── geometry.py           # Geometry AI API (main)
-│   │
-│   ├── core/                         # Core configuration
-│   │   ├── config.py                 # Settings & environment variables
-│   │   └── database.py               # Database connection (SQL Server)
-│   │
-│   ├── models/                       # Pydantic models (Data validation)
-│   │   ├── nguoi_dung.py             # User model
-│   │   ├── bai_toan.py               # Problem model
-│   │   ├── du_lieu_hinh_hoc.py       # Geometry data model
-│   │   ├── loi_giai.py               # Solution model
-│   │   └── dung_hinh_3d.py           # 3D drawing guide model
-│   │
-│   ├── repositories/                 # Data access layer
-│   │   ├── nguoi_dung_repository.py  # User CRUD operations
-│   │   ├── bai_toan_repository.py    # Problem CRUD operations
-│   │   ├── du_lieu_hinh_hoc_repository.py
-│   │   ├── loi_giai_repository.py
-│   │   └── dung_hinh_3d_repository.py
-│   │
-│   └── services/                     # Business logic layer
-│       ├── gemini_service.py         # Main AI service (orchestrator)
-│       │
-│       ├── ai/                       # AI-related services
-│       │   ├── gemini_client.py      # Gemini API client
-│       │   └── prompt.py             # All AI prompts (centralized)
-│       │
-│       └── renderer/                 # 3D rendering services
-│           └── transform.py          # Transform to 3D coordinates
+📦 geo3d/
+├── 🔒 .env
+├── 🔒 .env.example
+├── 🙈 .gitignore
+├── 🐳 docker-compose.yml
+├── 🗄️  dbCDNNLT.sql
+├── 📖 README.md
 │
-├── .env                              # Environment variables (API keys, DB config)
-├── .gitignore                        # Git ignore rules
-├── Dockerfile                        # Docker configuration
-├── main.py                           # Application entry point
-├── requirements.txt                  # Python dependencies
-├── README.md                         # This file
-└── HOW_TO_TEST.md                    # Testing guide
+├── 📂 services/
+│   ├── 📂 auth-service/
+│   │   ├── 📂 app/
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 📂 api/
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 📂 routes/
+│   │   │   │       ├── 🐍 __init__.py
+│   │   │   │       ├── 🐍 auth.py
+│   │   │   │       └── 🐍 nguoi_dung.py
+│   │   │   ├── 📂 core/
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   ├── 🐍 config.py
+│   │   │   │   └── 🐍 database.py
+│   │   │   ├── 📂 models/
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 nguoi_dung.py
+│   │   │   └── 📂 repositories/
+│   │   │       ├── 🐍 __init__.py
+│   │   │       └── 🐍 nguoi_dung_repository.py
+│   │   ├── 🐍 main.py
+│   │   ├── 📄 requirements.txt
+│   │   └── 🐳 Dockerfile
+│   │
+│   ├── 📂 geometry-service/
+│   │   ├── 📂 app/
+│   │   │   ├── 📂 api/
+│   │   │   │   └── 📂 routes/
+│   │   │   │       ├── 🐍 geometry.py
+│   │   │   │       └── 🐍 bai_toan.py
+│   │   │   ├── 📂 core/
+│   │   │   │   ├── 🐍 config.py
+│   │   │   │   └── 🐍 database.py
+│   │   │   ├── 📂 models/
+│   │   │   │   ├── 🐍 bai_toan.py
+│   │   │   │   ├── 🐍 du_lieu_hinh_hoc.py
+│   │   │   │   ├── 🐍 loi_giai.py
+│   │   │   │   ├── 🐍 dung_hinh_3d.py
+│   │   │   │   └── 🐍 dung_hinh_3d_loi_giai.py
+│   │   │   ├── 📂 repositories/
+│   │   │   │   ├── 🐍 bai_toan_repository.py
+│   │   │   │   ├── 🐍 du_lieu_hinh_hoc_repository.py
+│   │   │   │   ├── 🐍 loi_giai_repository.py
+│   │   │   │   ├── 🐍 dung_hinh_3d_repository.py
+│   │   │   │   └── 🐍 dunghinh3d_loigiai_repository.py
+│   │   │   └── 📂 services/
+│   │   │       ├── 🐍 gemini_service.py
+│   │   │       ├── 🐍 solution_geometry_service.py
+│   │   │       ├── 🐍 file_search_service.py
+│   │   │       ├── 📂 ai/
+│   │   │       │   ├── 🐍 gemini_client.py
+│   │   │       │   └── 🐍 prompt.py
+│   │   │       └── 📂 renderer/
+│   │   │           └── 🐍 transform.py
+│   │   ├── 📂 Documents/
+│   │   │   ├── 📕 Tom_tat_ly_thuyet_Hinh_khong_gian.pdf
+│   │   │   └── 📕 tong-hop-ly-thuyet-va-cong-thuc-tinh-nhanh-hinh-hoc-12.pdf
+│   │   ├── 📂 uploads/
+│   │   ├── 🐍 main.py
+│   │   ├── 📄 requirements.txt
+│   │   ├── 🐳 Dockerfile
+│   │   ├── 🐍 check_models.py
+│   │   ├── 🐍 check_quota.py
+│   │   ├── 🖥️  start.bat
+│   │   ├── 🖥️  test_db.bat
+│   │   ├── 🗃️  .file_search_cache.json
+│   │   ├── 🙈 .gitignore
+│   │   ├── 📖 README.md
+│   │   └── 📖 START_BACKEND.md
+│   │
+│   └── 📂 search-service/
+│       ├── 📂 app/
+│       │   ├── 🐍 __init__.py
+│       │   ├── 📂 api/
+│       │   │   ├── 🐍 __init__.py
+│       │   │   └── 📂 routes/
+│       │   │       ├── 🐍 __init__.py
+│       │   │       └── 🐍 search.py
+│       │   ├── 📂 core/
+│       │   │   ├── 🐍 __init__.py
+│       │   │   ├── 🐍 config.py
+│       │   │   └── 🐍 database.py
+│       │   ├── 📂 models/
+│       │   │   ├── 🐍 __init__.py
+│       │   │   └── 🐍 bai_toan_tuong_tu_cache.py
+│       │   ├── 📂 repositories/
+│       │   │   ├── 🐍 __init__.py
+│       │   │   └── 🐍 bai_toan_tuong_tu_cache_repository.py
+│       │   └── 📂 services/
+│       │       ├── 🐍 __init__.py
+│       │       ├── 🐍 similar_problems_service.py
+│       │       ├── 🐍 web_search_service.py
+│       │       ├── 🐍 file_search_service.py
+│       │       └── 📂 ai/
+│       │           ├── 🐍 __init__.py
+│       │           ├── 🐍 gemini_client.py
+│       │           └── 🐍 prompt.py
+│       ├── 📂 Documents/
+│       │   ├── 📕 Tom_tat_ly_thuyet_Hinh_khong_gian.pdf
+│       │   └── 📕 tong-hop-ly-thuyet-va-cong-thuc-tinh-nhanh-hinh-hoc-12.pdf
+│       ├── 🐍 main.py
+│       ├── 📄 requirements.txt
+│       ├── 🐳 Dockerfile
+│       └── 🗃️  .file_search_cache.json
+│
+└── 📂 fe/
+    ├── 📂 pages/
+    │   ├── 🌐 index.html
+    │   ├── 🌐 login.html
+    │   ├── 🌐 solver.html
+    │   ├── 🌐 history.html
+    │   ├── 🌐 profile.html
+    │   ├── 🌐 practice.html
+    │   ├── 🌐 docs.html
+    │   ├── 🌐 test_history_load.html
+    │   └── 🌐 test_similar.html
+    ├── 📂 src/
+    │   ├── ⚛️  main.tsx
+    │   ├── ⚛️  App.tsx
+    │   ├── 📂 components/
+    │   │   ├── ⚛️  ThreeScene.tsx
+    │   │   └── ⚛️  Pyramid.tsx
+    │   ├── 📂 three/
+    │   │   ├── 🟦 index.ts
+    │   │   ├── 🟦 ThreeViewer.ts
+    │   │   ├── 🟦 SceneManager.ts
+    │   │   ├── 🟦 GeometryBuilder.ts
+    │   │   ├── 🟦 MaterialLibrary.ts
+    │   │   ├── 🟦 AnnotationRenderer.ts
+    │   │   ├── 🟦 AnnotationAdapter.ts
+    │   │   └── 🟦 types.ts
+    │   ├── 📂 services/
+    │   │   └── 🟦 api.ts
+    │   └── 📂 types/
+    │       └── 🟦 geometry.ts
+    ├── 📂 js/
+    │   ├── 🟨 api.js
+    │   ├── 🟨 auth.js
+    │   ├── 🟨 google-auth.js
+    │   ├── 🟨 config.js
+    │   ├── 🟨 topbar.js
+    │   ├── 🟨 home.js
+    │   ├── 🟨 history.js
+    │   ├── 🟨 script.js
+    │   ├── 🟨 three-viewer.js
+    │   ├── 🟨 three.min.js
+    │   ├── 🟨 OrbitControls.js
+    │   └── 📂 components/
+    │       └── 📂 home/
+    │           ├── 🟨 hero.js
+    │           ├── 🟨 features.js
+    │           ├── 🟨 benefits.js
+    │           ├── 🟨 pricing.js
+    │           └── 🟨 testimonials.js
+    ├── 📂 css/
+    │   ├── 🎨 home.css
+    │   ├── 🎨 history.css
+    │   ├── 🎨 practice.css
+    │   ├── 🎨 profile.css
+    │   ├── 🎨 docs.css
+    │   └── 🎨 three-viewer.css
+    ├── 📂 assets/
+    │   └── 📂 images/
+    │       ├── 🖼️  banner.jpg
+    │       ├── 🎬 bg_hero.mp4
+    │       ├── 🎬 bg_card2.mp4
+    │       ├── 🖼️  bg_static.avif
+    │       └── 🎬 video.mp4
+    ├── 🌐 index.html
+    ├── 🎨 styles.css
+    ├── 📦 package.json
+    ├── 📦 package-lock.json
+    ├── 🟦 tsconfig.json
+    ├── 🟦 tsconfig.node.json
+    ├── ⚙️  vite.config.ts
+    ├── ⚙️  vite.config.three.ts
+    └── 🐳 Dockerfile
 ```
 
+---
+
 ## Kiến Trúc Hệ Thống
-### Layered Architecture (Clean Architecture)
+
+### Microservices Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend  (fe/ — cổng 5173)                                │
+│  TypeScript + React + Three.js + Vite                       │
+└──────┬──────────────┬──────────────┬───────────────────────┘
+       │              │              │
+       ▼              ▼              ▼
+┌────────────┐ ┌────────────┐ ┌────────────────────────────┐
+│auth-service│ │search-     │ │geometry-service (cổng 8000)│
+│(cổng 8003) │ │service     │ │  - Upload & phân tích ảnh  │
+│  - Đăng    │ │(cổng 8002) │ │  - Giải toán (Gemini AI)   │
+│    nhập    │ │  - Tìm bài │ │  - Sinh hướng dẫn dựng hình│
+│  - Google  │ │    tương tự│ │  - Render 3D (Three.js)    │
+│    OAuth   │ │  - Web     │ │  - File search (PDF)       │
+│  - CRUD    │ │    search  │ └────────────────────────────┘
+│    user    │ └────────────┘
+└────────────┘
+       │              │              │
+       └──────────────┴──────────────┘
+                      │
+              ┌───────▼────────┐
+              │  SQL Server    │
+              │  dbCDNNLT      │
+              └────────────────┘
+```
+
+### Layered Architecture (mỗi service)
+
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  API Layer (routes/)                                    │
-│  - Nhận HTTP requests                                   │
-│  - Validate input                                       │
-│  - Trả về HTTP responses                               │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Service Layer (services/)                              │
-│  - Business logic                                       │
-│  - Gọi Gemini AI                                        │
-│  - Xử lý dữ liệu                                        │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Repository Layer (repositories/)                       │
-│  - Data access                                          │
-│  - SQL queries                                          │
-│  - CRUD operations                                      │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Database (SQL Server)                                  │
-│  - BAITOAN, DULIEUHINHHOC, LOIGIAI, DUNGHINH3D         │
+│  API Layer  (app/api/routes/)                           │
+│  Nhận HTTP request · Validate input · Trả response      │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│  Service Layer  (app/services/)                         │
+│  Business logic · Gọi Gemini AI · Xử lý dữ liệu        │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│  Repository Layer  (app/repositories/)                  │
+│  Data access · SQL queries · CRUD operations            │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│  Database  (SQL Server)                                 │
+│  NGUOIDUNG · BAITOAN · DULIEUHINHHOC                    │
+│  LOIGIAI · DUNGHINH3D · DUNGHINH3D_LOIGIAI              │
+│  BAI_TOAN_TUONG_TU_CACHE                                │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Kiến Trúc Hệ Thống
+---
 
-### Layered Architecture (Clean Architecture)
+## Cơ Sở Dữ Liệu
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  API Layer (routes/)                                    │
-│  - Nhận HTTP requests                                   │
-│  - Validate input                                       │
-│  - Trả về HTTP responses                               │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Service Layer (services/)                              │
-│  - Business logic                                       │
-│  - Gọi Gemini AI                                        │
-│  - Xử lý dữ liệu                                        │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Repository Layer (repositories/)                       │
-│  - Data access                                          │
-│  - SQL queries                                          │
-│  - CRUD operations                                      │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────┐
-│  Database (SQL Server)                                  │
-│  - BAITOAN, DULIEUHINHHOC, LOIGIAI, DUNGHINH3D         │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Cài Đặt
-
-### 1. Cài đặt dependencies
-```cmd
-cd d:\CDNNLT\Project_CK\be
-pip install -r requirements.txt
+NGUOIDUNG ──────────────────────────────────────────────────┐
+  maNguoiDung (PK) · tenDangNhap · email · matKhau · vaiTro │
+                                                             │
+BAITOAN ─────────────────────────────────────────────────── ┤
+  maBaiToan (PK) · maNguoiDung (FK) · duongDan              │
+  deBaiTho · loaiHinh · tomTatDe · ngayTao                  │
+       │                                                     │
+       ├──► DULIEUHINHHOC                                    │
+       │      toaDoDiem (JSON) · cacCanh (JSON)              │
+       │      cacQuanHe (JSON)                               │
+       │                                                     │
+       ├──► DUNGHINH3D                                       │
+       │      cacBuocVe · hamThreeJS · thamSo                │
+       │      codeThreeJS · huongDanVe                       │
+       │                                                     │
+       └──► LOIGIAI                                          │
+              cacBuocGiai (JSON) · ketQuaCuoi                │
+              congThucSuDung (JSON)                          │
+                   │                                         │
+                   └──► DUNGHINH3D_LOIGIAI                   │
+                          cacBuocVe · codeThreeJS            │
+                          huongDanVe (bổ sung theo lời giải) │
+                                                             │
+BAI_TOAN_TUONG_TU_CACHE ────────────────────────────────────┘
+  tuKhoa (UNIQUE) · ketQua (JSON) · ngayTao · lanCapNhat
 ```
 
-### 2. Cấu hình môi trường (.env)
+---
+
+## Flow Hoạt Động
+
+```
+1. Upload ảnh đề bài
+   ↓
+2. geometry-service: Gemini AI phân tích ảnh → trích xuất đề bài
+   ↓
+3. Lưu vào BAITOAN + DULIEUHINHHOC (tọa độ điểm, cạnh, quan hệ)
+   ↓
+4. Frontend render mô hình 3D cơ bản từ DULIEUHINHHOC
+   ↓
+5. User bấm "Giải" → Gemini AI sinh lời giải từng bước
+   ↓
+6. Lưu vào LOIGIAI
+   ↓
+7. User bấm "Dựng hình 3D" → Gemini AI sinh code Three.js + hướng dẫn
+   ↓
+8. Lưu vào DUNGHINH3D + DUNGHINH3D_LOIGIAI
+   ↓
+9. Frontend phát lại dựng hình từng bước + hiển thị annotation
+   ↓
+10. search-service: Tìm bài toán tương tự (cache + Gemini + web search)
+```
+
+---
+
+## Cài Đặt & Khởi Động
+
+### Yêu cầu
+- Docker & Docker Compose
+- SQL Server (local hoặc cloud)
+- Google Gemini API key
+
+### 1. Cấu hình môi trường
+
+Sao chép `.env.example` thành `.env` và điền các giá trị:
+
 ```env
 # Database
 DB_SERVER=localhost
 DB_NAME=dbCDNNLT
 DB_USER=sa
-DB_PASSWORD=123456
+DB_PASSWORD=your_password
 
 # Gemini AI
 GEMINI_API_KEY=your_api_key_here
+
+# Google OAuth (auth-service)
+GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-### 3. Chạy database script
-Chạy `dbCDNNLT.sql` trong SQL Server Management Studio
+### 2. Khởi tạo database
 
-### 4. Khởi động server
-```cmd
-python main.py
+Chạy `dbCDNNLT.sql` trong SQL Server Management Studio.
+
+### 3. Chạy với Docker Compose
+
+```bash
+docker-compose up --build
 ```
 
-Server sẽ chạy tại: http://localhost:8000
+| Service           | URL                        |
+|-------------------|----------------------------|
+| geometry-service  | http://localhost:8000       |
+| geometry-service docs | http://localhost:8000/docs |
+| search-service    | http://localhost:8002       |
+| auth-service      | http://localhost:8003       |
+| frontend          | http://localhost:5173       |
 
-## API Documentation
+### 4. Chạy từng service thủ công (development)
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+```bash
+# geometry-service
+cd services/geometry-service
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# search-service
+cd services/search-service
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8002
+
+# auth-service
+cd services/auth-service
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8003
+
+# frontend
+cd fe
+npm install
+npm run dev
+```
+
+---
 
 ## API Endpoints
 
-### Người Dùng (`/nguoi-dung`)
-- `POST /nguoi-dung/` - Tạo người dùng
-- `GET /nguoi-dung/` - Danh sách người dùng
-- `GET /nguoi-dung/{id}` - Chi tiết người dùng
-- `DELETE /nguoi-dung/{id}` - Xóa người dùng
+### geometry-service (`/geometry`) — API chính
 
-### Bài Toán (`/bai-toan`)
-- `POST /bai-toan/` - Tạo bài toán
-- `GET /bai-toan/` - Danh sách bài toán
-- `GET /bai-toan/{id}` - Chi tiết bài toán
-- `GET /bai-toan/user/{user_id}` - Bài toán theo user
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `POST` | `/geometry/upload-and-save` | Upload ảnh, Gemini phân tích và lưu bài toán |
+| `GET`  | `/geometry/problem/{id}` | Lấy thông tin đầy đủ bài toán |
+| `POST` | `/geometry/solve-problem/{id}` | Giải bài toán bằng Gemini AI |
+| `GET`  | `/geometry/solution/{id}` | Lấy lời giải |
+| `POST` | `/geometry/render-3d/{id}` | Sinh hướng dẫn dựng hình + code Three.js |
+| `GET`  | `/geometry/drawing-guide/{id}` | Lấy hướng dẫn dựng hình |
 
-### Hình Học 3D (`/geometry`) - MAIN API
-- `POST /geometry/upload-and-save` - Upload ảnh, phân tích và lưu (Gemini AI)
-- `GET /geometry/problem/{id}` - Lấy thông tin đầy đủ bài toán
-- `GET /geometry/solution/{id}` - Lấy lời giải (nếu có)
-- `POST /geometry/solve-problem/{id}` - Giải bài toán bằng Gemini AI
-- `GET /geometry/drawing-guide/{id}` - Lấy hướng dẫn dựng hình (nếu có)
-- `POST /geometry/render-3d/{id}` - Tạo hướng dẫn dựng hình + code Three.js
+### geometry-service (`/bai-toan`)
 
-## Flow Hoạt Động
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `POST` | `/bai-toan/` | Tạo bài toán |
+| `GET`  | `/bai-toan/` | Danh sách bài toán |
+| `GET`  | `/bai-toan/{id}` | Chi tiết bài toán |
+| `GET`  | `/bai-toan/user/{user_id}` | Bài toán theo user |
+
+### auth-service
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `POST` | `/auth/login` | Đăng nhập |
+| `POST` | `/auth/register` | Đăng ký |
+| `POST` | `/auth/google` | Đăng nhập Google OAuth |
+| `GET`  | `/nguoi-dung/` | Danh sách người dùng |
+| `GET`  | `/nguoi-dung/{id}` | Chi tiết người dùng |
+
+### search-service
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `POST` | `/search/similar` | Tìm bài toán tương tự |
+
+---
+
+## Three.js Module Architecture
 
 ```
-1. Upload ảnh
-   ↓
-2. Gemini AI phân tích ảnh → Trích xuất đề bài
-   ↓
-3. Lưu vào BAITOAN + DULIEUHINHHOC
-   ↓
-4. User bấm "Giải" → Gemini AI giải toán
-   ↓
-5. Lưu vào LOIGIAI
-   ↓
-6. User bấm "Dựng hình 3D" → Gemini AI tạo hướng dẫn
-   ↓
-7. Lưu vào DUNGHINH3D (code Three.js + hướng dẫn)
+fe/src/three/
+├── ThreeViewer.ts          # Điểm vào: khởi tạo renderer, vòng lặp animation
+├── SceneManager.ts         # Quản lý scene, camera (PerspectiveCamera), ánh sáng
+├── GeometryBuilder.ts      # Tạo điểm, đoạn thẳng, mặt phẳng, đa diện
+├── MaterialLibrary.ts      # Vật liệu: màu sắc, độ trong suốt, wireframe
+├── AnnotationRenderer.ts   # Render nhãn 2D (screen-space projection)
+├── AnnotationAdapter.ts    # Chuyển đổi dữ liệu annotation từ API response
+└── types.ts                # Định nghĩa kiểu dữ liệu hình học
 ```
-
-## Kiến Trúc
-
-### Layered Architecture
-1. **API Layer** (`app/api/routes/`) - HTTP endpoints
-2. **Service Layer** (`app/services/`) - Business logic + AI integration
-3. **Repository Layer** (`app/repositories/`) - Data access
-4. **Model Layer** (`app/models/`) - Data structures
-5. **Core Layer** (`app/core/`) - Configuration & utilities
 
 ### AI Integration
-- **Gemini AI**: Phân tích ảnh, OCR, giải toán, tạo hướng dẫn dựng hình
-- **3D Renderer**: Chuyển đổi dữ liệu hình học sang tọa độ 3D
-- **Prompts**: Tất cả prompts tập trung tại `app/services/ai/prompt.py`
 
-## Development
-
-### Chạy với auto-reload
-```cmd
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Three.js Integration
-
-### Bảng DUNGHINH3D
-Lưu trữ hướng dẫn dựng hình 3D cho Three.js:
-- `cacBuocVe`: JSON thứ tự các bước vẽ
-- `hamThreeJS`: JSON danh sách hàm Three.js cần dùng
-- `thamSo`: JSON tham số cho từng hàm
-- `codeThreeJS`: Code Three.js đầy đủ (có thể chạy ngay)
-- `huongDanVe`: Text hướng dẫn chi tiết
-
-### API Endpoint
-- `POST /geometry/render-3d/{ma_bai_toan}` - Tạo hướng dẫn Three.js và code hoàn chỉnh
-
-### Three.js Functions Used
-
-#### 1. Scene Management
-- `new THREE.Scene()` - Tạo scene chính chứa tất cả objects
-- `new THREE.PerspectiveCamera(fov, aspect, near, far)` - Camera góc nhìn phối cảnh
-- `new THREE.WebGLRenderer()` - Renderer WebGL để vẽ lên canvas
-
-#### 2. Geometry Creation
-- `new THREE.BufferGeometry()` - Tạo geometry hiệu năng cao
-- `new THREE.Vector3(x, y, z)` - Tạo điểm 3D với tọa độ
-- `geometry.setFromPoints(points)` - Tạo geometry từ mảng điểm
-
-#### 3. Materials & Objects
-- `new THREE.LineBasicMaterial(options)` - Material cho đường thẳng
-    - Options: `{ color: 0x0000ff }`
-- `new THREE.MeshBasicMaterial(options)` - Material cho mặt phẳng
-    - Options: `{ color: 0x00ff00, transparent: true, opacity: 0.5 }`
-- `new THREE.Line(geometry, material)` - Tạo đường thẳng
-- `new THREE.Mesh(geometry, material)` - Tạo mesh (mặt 3D)
-
-#### 4. Lighting
-- `new THREE.AmbientLight(color, intensity)` - Ánh sáng môi trường đồng đều
-    - Example: `new THREE.AmbientLight(0x404040, 0.6)`
-- `new THREE.DirectionalLight(color, intensity)` - Ánh sáng định hướng (như mặt trời)
-    - Example: `new THREE.DirectionalLight(0xffffff, 0.8)`
-    - Set position: `light.position.set(x, y, z)`
-
-#### 5. Controls
-- `new THREE.OrbitControls(camera, domElement)` - Cho phép xoay, zoom camera
-    - `controls.enableDamping = true` - Bật hiệu ứng mượt mà
-    - `controls.update()` - Cập nhật trong animation loop
-
-#### 6. Animation
-- `requestAnimationFrame(callback)` - Tạo animation loop
-- `renderer.render(scene, camera)` - Render scene với camera
-
-### Usage Flow
-1. Upload ảnh → Phân tích → Lưu BAITOAN + DULIEUHINHHOC
-2. Gọi `POST /geometry/render-3d/{id}` → Tạo code Three.js
-3. Frontend nhận code và render 3D trực tiếp
-
-### Response Format
-```json
-{
-  "success": true,
-  "message": "Đã tạo hướng dẫn dựng hình Three.js",
-  "data": {
-    "dungHinhId": 1,
-    "threejs": {
-      "steps": ["Bước 1...", "Bước 2..."],
-      "functions": ["THREE.Scene()", "THREE.Camera()", ...],
-      "parameters": {
-        "camera": {"fov": 75, "position": [3,3,3]},
-        "lights": {...},
-        "materials": {...}
-      },
-      "code": "// Full Three.js code...",
-      "guide": "HƯỚNG DẪN DỰNG HÌNH...\n1. Tạo các điểm:\n   - Điểm A tại (0,0,0)\n   - Điểm B tại (1,0,0)\n2. Vẽ các cạnh:\n   - Vẽ đoạn thẳng AB\n   - AB vuông góc với CD\n..."
-    }
-  }
-}
-```
-
-### Example Guide Output (Generated by Gemini AI)
-```
-HƯỚNG DẪN DỰNG HÌNH CHÓP S.ABCD
-
-Bước 1: Vẽ đáy ABCD là hình vuông
-   - Vẽ hình vuông ABCD với cạnh a
-   - Đảm bảo AB = BC = CD = DA = a
-   - Các góc đều là góc vuông
-
-Bước 2: Xác định điểm S (đỉnh chóp)
-   - Từ A, dựng đường thẳng vuông góc với mặt phẳng (ABCD)
-   - Trên đường thẳng đó, lấy điểm S sao cho SA vuông góc với (ABCD)
-
-Bước 3: Xác định điểm M (trung điểm CD)
-   - Trên cạnh CD, lấy điểm M sao cho CM = MD = a/2
-
-Bước 4: Vẽ các cạnh bên
-   - Nối S với A, B, C, D để tạo các cạnh bên
-   - Vẽ đoạn thẳng SM
-
-Bước 5: Hoàn thiện
-   - Kiểm tra SA ⊥ (ABCD)
-   - Kiểm tra M là trung điểm của CD
-   - Tô màu hoặc đánh dấu các mặt để dễ nhìn
-
-Lưu ý:
-   - SA vuông góc với mặt phẳng đáy ABCD
-   - M là trung điểm của CD
-   - Khoảng cách giữa BC và SM cần tính theo đề bài
-```
-
-Hướng dẫn được tạo tự động bởi Gemini AI dựa trên đề bài thực tế, đảm bảo logic và dễ hiểu cho học sinh.
+- **Gemini AI**: Phân tích ảnh (OCR + parse hình học), sinh lời giải từng bước, sinh code Three.js và hướng dẫn dựng hình
+- **File Search**: Tìm kiếm trong tài liệu PDF lý thuyết hình học để bổ sung ngữ cảnh cho AI
+- **Web Search**: DuckDuckGo search để tìm bài toán tương tự trên internet
+- **Prompts**: Tập trung tại `app/services/ai/prompt.py` trong mỗi service
