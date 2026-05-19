@@ -5,6 +5,7 @@
 const CONFIG = {
   // API Configuration
   API_BASE_URL: 'http://localhost:8000',
+  AUTH_API_BASE_URL: 'http://localhost:8003',
   
   // Google OAuth Configuration
   // Note: Client ID is safe to expose in frontend

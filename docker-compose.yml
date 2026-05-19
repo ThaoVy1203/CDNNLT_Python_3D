@@ -1,21 +1,53 @@
-version: "3.9"
-
 services:
-  backend:
-    build: ./be
+  auth-service:
+    build: ./services/auth-service
+    container_name: geo3d-auth-service
     ports:
-      - "8000:8000"
+      - "8003:8003"
+    env_file:
+      - ./.env
     volumes:
-      - ./be:/app
+      - ./services/auth-service:/app
     environment:
       - PYTHONUNBUFFERED=1
 
+  search-service:
+    build: ./services/search-service
+    container_name: geo3d-search-service
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./.env
+    volumes:
+      - ./services/search-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  geometry-service:
+    build: ./services/geometry-service
+    container_name: geo3d-geometry-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    volumes:
+      - ./services/geometry-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SEARCH_SERVICE_URL=http://search-service:8002
+      - AUTH_SERVICE_URL=http://auth-service:8003
+    depends_on:
+      - auth-service
+      - search-service
+
   frontend:
     build: ./fe
+    container_name: geo3d-frontend
     ports:
       - "5173:5173"
     volumes:
       - ./fe:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - auth-service
+      - geometry-service

@@ -173,8 +173,8 @@ function handleGoogleSignIn() {
         
         // Try to sync with backend
         try {
-          const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
-          const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+          const AUTH_API_BASE_URL = CONFIG.AUTH_API_BASE_URL || 'http://127.0.0.1:8003';
+          const backendResponse = await fetch(`${AUTH_API_BASE_URL}/auth/google-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -247,8 +247,8 @@ async function handleGoogleCallback(response) {
     };
     
     try {
-      const API_BASE_URL = CONFIG.API_BASE_URL || 'http://127.0.0.1:8000';
-      const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+      const AUTH_API_BASE_URL = CONFIG.AUTH_API_BASE_URL || 'http://127.0.0.1:8003';
+      const backendResponse = await fetch(`${AUTH_API_BASE_URL}/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
