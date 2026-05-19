@@ -213,8 +213,8 @@
         this.objects.set(edgeName, line);
         this.scene.add(line);
 
-        // Đăng ký structural edge cho dynamic occlusion (nét đứt tự động)
-        if (style === 'solid') {
+        // Đăng ký TẤT CẢ cạnh (trừ dashed) cho dynamic occlusion
+        if (style !== 'dashed') {
           const start = data.points[edge.start];
           const end = data.points[edge.end];
           const p1 = new THREE.Vector3(start[0], start[1], start[2]);
@@ -1146,12 +1146,12 @@
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
 
       let line;
-      // Structural edge: no explicit style or style=solid, AND no special color
-      // These edges participate in dynamic occlusion (solid ↔ dashed)
-      const isStructural = (style === 'solid' && !opts.color);
+      // TẤT CẢ cạnh đều tham gia dynamic occlusion (khuất → nét đứt)
+      // Trừ cạnh đã được AI chỉ định sẵn là dashed (luôn nét đứt)
+      const isStructural = (style !== 'dashed');
 
       if (style === 'dashed') {
-        // AI-designated dashed edges (diagonals, medians, etc.) — always dashed
+        // AI-designated dashed edges — luôn nét đứt, không cần occlusion
         const mat = new THREE.LineDashedMaterial({
           color: hexColor,
           linewidth: opts.linewidth || 1,
@@ -1174,7 +1174,7 @@
       this.scene.add(line);
       this.objects.set(edgeName, line);
 
-      // Register structural edge for dynamic occlusion checking
+      // Register edge for dynamic occlusion checking (tất cả cạnh trừ dashed)
       if (isStructural) {
         const solidMat = new THREE.LineBasicMaterial({
           color: hexColor,
