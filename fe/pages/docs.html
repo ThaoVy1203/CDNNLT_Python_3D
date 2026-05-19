@@ -1,349 +1,594 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tài liệu học tập - Geo3D</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['Inter', 'system-ui', 'sans-serif'],
-          serif: ['Outfit', 'system-ui', 'sans-serif'],
-          mono: ['JetBrains Mono', 'monospace'],
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài liệu học tập - Geo3D</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['Lexend', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
         }
       }
     }
-  }
-</script>
-<link rel="stylesheet" href="../styles.css">
-<style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .animation-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .prose p { margin-bottom: 1em; }
-  .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
-  .prose li { margin-bottom: 0.5em; }
-</style>
+  </script>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .animation-fadeIn {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .prose p {
+      margin-bottom: 1em;
+    }
+
+    .prose ul {
+      list-style-type: disc;
+      padding-left: 1.5em;
+      margin-bottom: 1em;
+    }
+
+    .prose li {
+      margin-bottom: 0.5em;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900 min-h-screen relative overflow-x-hidden flex flex-col">
 
-<!-- Background Decorations -->
-<div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
-<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/10 blur-[120px] pointer-events-none z-[-1]"></div>
+<body
+  class="bg-slate-50 font-sans antialiased selection:bg-blue-100 selection:text-blue-900 min-h-screen relative overflow-x-hidden flex flex-col">
 
-<div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
-<script src="../js/auth.js"></script>
-<script src="../js/topbar.js"></script>
-<script>
-  document.getElementById('topbar-container').innerHTML = renderTopbar('docs');
-  initTopbar();
-</script>
+  <!-- Background Decorations -->
+  <div
+    class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none z-[-1]">
+  </div>
+  <div
+    class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-400/10 blur-[120px] pointer-events-none z-[-1]">
+  </div>
 
-<div class="flex-1 w-full max-w-[1200px] mx-auto px-6 sm:px-12 pt-[140px] pb-24 flex flex-col md:flex-row gap-8">
-  
-  <!-- Sidebar -->
-  <aside class="w-full md:w-[260px] flex-shrink-0">
-    <div class="sticky top-[110px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[24px] p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-      
-      <div class="mb-6">
-        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Bắt đầu</h3>
-        <ul class="space-y-1">
-          <li>
-            <button onclick="showSection('intro', this)" class="sidebar-link active w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-sm">Giới thiệu</button>
-          </li>
-          <li>
-            <button onclick="showSection('how-to-use', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Cách sử dụng</button>
-          </li>
-        </ul>
+  <div id="topbar-container" style="position:fixed;top:0;left:0;right:0;z-index:10000;height:0;overflow:visible;"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/topbar.js"></script>
+  <script>
+    document.getElementById('topbar-container').innerHTML = renderTopbar('docs');
+    initTopbar();
+  </script>
+
+  <div class="flex-1 w-full max-w-[1200px] mx-auto px-6 sm:px-12 pt-[140px] pb-24 flex flex-col md:flex-row gap-8">
+
+    <!-- Sidebar -->
+    <aside class="w-full md:w-[260px] flex-shrink-0">
+      <div
+        class="sticky top-[110px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[24px] p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+
+        <div class="mb-6">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Bắt đầu</h3>
+          <ul class="space-y-1">
+            <li>
+              <button onclick="showSection('intro', this)"
+                class="sidebar-link active w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-sm">Giới
+                thiệu</button>
+            </li>
+            <li>
+              <button onclick="showSection('how-to-use', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Cách
+                sử dụng</button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mb-6">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Lý thuyết</h3>
+          <ul class="space-y-1">
+            <li><button onclick="showSection('pyramid', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Hình
+                chóp</button></li>
+            <li><button onclick="showSection('prism', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Hình
+                lăng trụ</button></li>
+            <li><button onclick="showSection('sphere', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Mặt
+                cầu</button></li>
+            <li><button onclick="showSection('distance', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Khoảng
+                cách</button></li>
+            <li><button onclick="showSection('angle', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Góc
+                trong không gian</button></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Công thức</h3>
+          <ul class="space-y-1">
+            <li><button onclick="showSection('formulas', this)"
+                class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Công
+                thức tổng hợp</button></li>
+          </ul>
+        </div>
+
       </div>
+    </aside>
 
-      <div class="mb-6">
-        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Lý thuyết</h3>
-        <ul class="space-y-1">
-          <li><button onclick="showSection('pyramid', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Hình chóp</button></li>
-          <li><button onclick="showSection('prism', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Hình lăng trụ</button></li>
-          <li><button onclick="showSection('sphere', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Mặt cầu</button></li>
-          <li><button onclick="showSection('distance', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Khoảng cách</button></li>
-          <li><button onclick="showSection('angle', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Góc trong không gian</button></li>
-        </ul>
-      </div>
+    <!-- Main Content -->
+    <div class="flex-1 min-w-0 w-full" id="docsContent">
 
-      <div>
-        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-2">Công thức</h3>
-        <ul class="space-y-1">
-          <li><button onclick="showSection('formulas', this)" class="sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300">Công thức tổng hợp</button></li>
-        </ul>
-      </div>
+      <!-- Intro Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 w-full"
+        id="intro">
+        <div class="mb-10 pb-8 border-b border-slate-200">
+          <h1
+            class="font-serif text-[28px] md:text-[36px] font-semibold text-slate-900 tracking-tight leading-tight mb-4">
+            Tài liệu học tập Hình học không gian</h1>
+          <p class="text-[16px] text-slate-500 font-light leading-relaxed">Hệ thống kiến thức đầy đủ về hình học không
+            gian từ cơ bản đến nâng cao, kèm công thức và ví dụ minh họa.</p>
+        </div>
 
-    </div>
-  </aside>
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-4 mt-8">Giới thiệu</h2>
+          <p>
+            Hình học không gian là một phần quan trọng trong chương trình Toán học phổ thông, nghiên cứu về các hình
+            khối trong không gian ba chiều. Tài liệu này sẽ giúp bạn nắm vững các khái niệm cơ bản, công thức quan trọng
+            và phương pháp giải các dạng bài tập thường gặp.
+          </p>
 
-  <!-- Main Content -->
-  <div class="flex-1 min-w-0 w-full" id="docsContent">
-    
-    <!-- Intro Section -->
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 w-full" id="intro">
-      <div class="mb-10 pb-8 border-b border-slate-200">
-        <h1 class="font-serif text-[28px] md:text-[36px] font-semibold text-slate-900 tracking-tight leading-tight mb-4" style="word-break:keep-all;overflow-wrap:normal;">Tài liệu học tập Hình học không gian</h1>
-        <p class="text-[16px] text-slate-500 font-light leading-relaxed">Hệ thống kiến thức đầy đủ về hình học không gian từ cơ bản đến nâng cao, kèm công thức và ví dụ minh họa.</p>
-      </div>
+          <h3 class="font-serif text-[18px] font-semibold text-slate-900 mb-3 mt-8">Nội dung chính</h3>
+          <ul class="text-slate-600">
+            <li>Các khái niệm cơ bản về điểm, đường thẳng, mặt phẳng trong không gian</li>
+            <li>Quan hệ song song và vuông góc</li>
+            <li>Các hình khối: hình chóp, hình lăng trụ, mặt cầu</li>
+            <li>Công thức tính thể tích, diện tích</li>
+            <li>Khoảng cách và góc trong không gian</li>
+          </ul>
 
-      <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
-        <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-4 mt-8">Giới thiệu</h2>
-        <p>
-          Hình học không gian là một phần quan trọng trong chương trình Toán học phổ thông, nghiên cứu về các hình khối trong không gian ba chiều. Tài liệu này sẽ giúp bạn nắm vững các khái niệm cơ bản, công thức quan trọng và phương pháp giải các dạng bài tập thường gặp.
-        </p>
-
-        <h3 class="font-serif text-[18px] font-semibold text-slate-900 mb-3 mt-8">Nội dung chính</h3>
-        <ul class="text-slate-600">
-          <li>Các khái niệm cơ bản về điểm, đường thẳng, mặt phẳng trong không gian</li>
-          <li>Quan hệ song song và vuông góc</li>
-          <li>Các hình khối: hình chóp, hình lăng trụ, mặt cầu</li>
-          <li>Công thức tính thể tích, diện tích</li>
-          <li>Khoảng cách và góc trong không gian</li>
-        </ul>
-
-        <div class="mt-8 bg-amber-50 border border-amber-100 rounded-2xl p-5 flex gap-4">
-          <div class="text-[24px]">💡</div>
-          <div>
-            <h4 class="text-[14px] font-bold text-amber-900 mb-1">Mẹo học tập</h4>
-            <p class="text-[14px] text-amber-800/80 m-0 leading-relaxed">Hãy kết hợp việc học lý thuyết với thực hành vẽ hình và giải bài tập. Sử dụng công cụ Geo3D để trực quan hóa các bài toán sẽ giúp bạn hiểu sâu hơn.</p>
+          <div class="mt-8 bg-amber-50 border border-amber-100 rounded-2xl p-5 flex gap-4">
+            <div class="text-[24px]">💡</div>
+            <div>
+              <h4 class="text-[14px] font-bold text-amber-900 mb-1">Mẹo học tập</h4>
+              <p class="text-[14px] text-amber-800/80 m-0 leading-relaxed">Hãy kết hợp việc học lý thuyết với thực hành
+                vẽ hình và giải bài tập. Sử dụng công cụ Geo3D để trực quan hóa các bài toán sẽ giúp bạn hiểu sâu hơn.
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- How to Use Section -->
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12" id="how-to-use" style="display:none;">
-      <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Cách sử dụng Geo3D</h2>
-      
-      <div class="space-y-8 prose max-w-none text-slate-700 leading-relaxed text-[15px]">
-        <div>
-          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">1</span> Tải ảnh đề bài</h3>
-          <p class="ml-11 text-slate-600">Chụp hoặc tải lên ảnh đề bài toán hình học không gian. Hệ thống AI sẽ tự động nhận diện và trích xuất thông tin.</p>
+      <!-- How to Use Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="how-to-use" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Cách sử dụng
+          Geo3D</h2>
+
+        <div class="space-y-8 prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <div>
+            <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">1</span>
+              Tải ảnh đề bài</h3>
+            <p class="ml-11 text-slate-600">Chụp hoặc tải lên ảnh đề bài toán hình học không gian. Hệ thống AI sẽ tự
+              động nhận diện và trích xuất thông tin.</p>
+          </div>
+
+          <div>
+            <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">2</span>
+              Xem mô hình 3D</h3>
+            <p class="ml-11 text-slate-600">Hệ thống sẽ tự động dựng mô hình 3D tương tác. Bạn có thể xoay, phóng to,
+              thu nhỏ để quan sát từ mọi góc độ.</p>
+          </div>
+
+          <div>
+            <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">3</span>
+              Theo dõi dựng hình</h3>
+            <p class="ml-11 text-slate-600">Xem từng bước dựng hình chi tiết, giúp bạn hiểu cách vẽ hình chính xác.</p>
+          </div>
+
+          <div>
+            <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">4</span>
+              Phân tích và giải</h3>
+            <p class="ml-11 text-slate-600">Trước khi xem lời giải, hãy tự phân tích hướng giải của bạn. Điều này giúp
+              rèn luyện tư duy và ghi nhớ lâu hơn.</p>
+          </div>
         </div>
 
-        <div>
-          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">2</span> Xem mô hình 3D</h3>
-          <p class="ml-11 text-slate-600">Hệ thống sẽ tự động dựng mô hình 3D tương tác. Bạn có thể xoay, phóng to, thu nhỏ để quan sát từ mọi góc độ.</p>
-        </div>
-
-        <div>
-          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">3</span> Theo dõi dựng hình</h3>
-          <p class="ml-11 text-slate-600">Xem từng bước dựng hình chi tiết, giúp bạn hiểu cách vẽ hình chính xác.</p>
-        </div>
-
-        <div>
-          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-2 flex items-center gap-3"><span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-[14px]">4</span> Phân tích và giải</h3>
-          <p class="ml-11 text-slate-600">Trước khi xem lời giải, hãy tự phân tích hướng giải của bạn. Điều này giúp rèn luyện tư duy và ghi nhớ lâu hơn.</p>
+        <div class="mt-10 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex gap-4">
+          <div class="text-[24px]">⚡</div>
+          <div>
+            <h4 class="text-[14px] font-bold text-indigo-900 mb-1">Lưu ý</h4>
+            <p class="text-[14px] text-indigo-800/80 m-0 leading-relaxed">Hệ thống yêu cầu bạn viết ít nhất 50 ký tự
+              phân tích trước khi mở khóa lời giải. Đây là cách học hiệu quả nhất!</p>
+          </div>
         </div>
       </div>
 
-      <div class="mt-10 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex gap-4">
-        <div class="text-[24px]">⚡</div>
-        <div>
-          <h4 class="text-[14px] font-bold text-indigo-900 mb-1">Lưu ý</h4>
-          <p class="text-[14px] text-indigo-800/80 m-0 leading-relaxed">Hệ thống yêu cầu bạn viết ít nhất 50 ký tự phân tích trước khi mở khóa lời giải. Đây là cách học hiệu quả nhất!</p>
+      <!-- Pyramid Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="pyramid" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Hình chóp
+        </h2>
+
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <p>Hình chóp là khối đa diện có một mặt là đa giác (gọi là đáy) và các mặt còn lại là các tam giác có chung
+            một đỉnh (gọi là đỉnh của hình chóp).</p>
+
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">Các loại hình chóp</h3>
+          <ul class="text-slate-600 mb-8">
+            <li><strong>Hình chóp tam giác:</strong> Đáy là tam giác (tứ diện)</li>
+            <li><strong>Hình chóp tứ giác:</strong> Đáy là tứ giác</li>
+            <li><strong>Hình chóp đều:</strong> Đáy là đa giác đều và đường cao đi qua tâm đáy</li>
+          </ul>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6">
+              <h4 class="text-[12px] font-bold text-emerald-800 uppercase tracking-wider mb-4">Công thức thể tích</h4>
+              <div
+                class="text-[20px] font-serif font-semibold text-emerald-900 mb-4 bg-emerald-100/50 inline-block px-4 py-2 rounded-xl">
+                V = ⅓ × S<sub>đáy</sub> × h</div>
+              <ul class="list-none p-0 text-[14px] text-emerald-800/80 space-y-2">
+                <li>• <strong>S<sub>đáy</sub></strong>: Diện tích đáy</li>
+                <li>• <strong>h</strong>: Chiều cao (khoảng cách từ đỉnh đến đáy)</li>
+              </ul>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+              <h4 class="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">Ví dụ</h4>
+              <p class="text-[14px] text-slate-700 mb-4">Cho hình chóp S.ABCD có đáy ABCD là hình vuông cạnh a, SA ⊥ đáy
+                và SA = a√2.</p>
+              <div
+                class="text-[14px] text-slate-600 bg-white border border-slate-100 p-4 rounded-xl space-y-2 font-mono">
+                <div>S<sub>đáy</sub> = a²</div>
+                <div>h = SA = a√2</div>
+                <div class="pt-2 border-t border-slate-100 text-slate-900 font-bold">V = ⅓ × a² × a√2 = (a³√2)/3</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Pyramid Section -->
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12" id="pyramid" style="display:none;">
-      <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Hình chóp</h2>
-      
-      <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
-        <p>Hình chóp là khối đa diện có một mặt là đa giác (gọi là đáy) và các mặt còn lại là các tam giác có chung một đỉnh (gọi là đỉnh của hình chóp).</p>
+      <!-- Formulas Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="formulas" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Công thức
+          tổng hợp</h2>
 
-        <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">Các loại hình chóp</h3>
-        <ul class="text-slate-600 mb-8">
-          <li><strong>Hình chóp tam giác:</strong> Đáy là tam giác (tứ diện)</li>
-          <li><strong>Hình chóp tứ giác:</strong> Đáy là tứ giác</li>
-          <li><strong>Hình chóp đều:</strong> Đáy là đa giác đều và đường cao đi qua tâm đáy</li>
-        </ul>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6">
-            <h4 class="text-[12px] font-bold text-emerald-800 uppercase tracking-wider mb-4">Công thức thể tích</h4>
-            <div class="text-[20px] font-serif font-semibold text-emerald-900 mb-4 bg-emerald-100/50 inline-block px-4 py-2 rounded-xl">V = ⅓ × S<sub>đáy</sub> × h</div>
-            <ul class="list-none p-0 text-[14px] text-emerald-800/80 space-y-2">
-              <li>• <strong>S<sub>đáy</sub></strong>: Diện tích đáy</li>
-              <li>• <strong>h</strong>: Chiều cao (khoảng cách từ đỉnh đến đáy)</li>
+          <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
+            <h4 class="text-[12px] font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                </path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg> Thể tích</h4>
+            <ul class="list-none p-0 text-[15px] text-blue-900/80 space-y-3 font-mono">
+              <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Hình chóp:</span>
+                <span class="bg-white px-3 py-1 rounded-lg shadow-sm">V = ⅓ × S<sub>đ</sub> × h</span></li>
+              <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Lăng trụ:</span> <span
+                  class="bg-white px-3 py-1 rounded-lg shadow-sm">V = S<sub>đ</sub> × h</span></li>
+              <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Hình cầu:</span> <span
+                  class="bg-white px-3 py-1 rounded-lg shadow-sm">V = ⁴⁄₃πR³</span></li>
             </ul>
           </div>
 
-          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-            <h4 class="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">Ví dụ</h4>
-            <p class="text-[14px] text-slate-700 mb-4">Cho hình chóp S.ABCD có đáy ABCD là hình vuông cạnh a, SA ⊥ đáy và SA = a√2.</p>
-            <div class="text-[14px] text-slate-600 bg-white border border-slate-100 p-4 rounded-xl space-y-2 font-mono">
-              <div>S<sub>đáy</sub> = a²</div>
-              <div>h = SA = a√2</div>
-              <div class="pt-2 border-t border-slate-100 text-slate-900 font-bold">V = ⅓ × a² × a√2 = (a³√2)/3</div>
+          <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6">
+            <h4 class="text-[12px] font-bold text-emerald-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              </svg> Diện tích</h4>
+            <ul class="list-none p-0 text-[15px] text-emerald-900/80 space-y-3 font-mono">
+              <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Mặt cầu:</span>
+                <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = 4πR²</span></li>
+              <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Hình vuông:</span>
+                <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = a²</span></li>
+              <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Tam giác:</span>
+                <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = ½ × a × h</span></li>
+            </ul>
+          </div>
+
+          <div class="bg-amber-50/50 border border-amber-100 rounded-2xl p-6 md:col-span-2">
+            <h4 class="text-[12px] font-bold text-amber-800 uppercase tracking-wider mb-4 flex items-center gap-2"><svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12h20"></path>
+                <path d="M20 12v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg> Khoảng cách & Góc</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-3 font-mono text-[14px]">
+                <div class="font-sans font-medium text-amber-900 mb-1">Khoảng cách:</div>
+                <div class="bg-white p-3 rounded-xl shadow-sm">d(M,(P)) = |ax₀+by₀+cz₀+d| / √(a²+b²+c²)</div>
+                <div class="bg-white p-3 rounded-xl shadow-sm">d((P),(Q)) = |d₁-d₂| / √(a²+b²+c²)</div>
+              </div>
+              <div class="space-y-3 font-mono text-[14px]">
+                <div class="font-sans font-medium text-amber-900 mb-1">Góc:</div>
+                <div class="bg-white p-3 rounded-xl shadow-sm">Đường & Mặt: sinα = |cos(u⃗,n⃗)|</div>
+                <div class="bg-white p-3 rounded-xl shadow-sm">Mặt & Mặt: cosα = |cos(n⃗₁,n⃗₂)|</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Prism Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="prism" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Hình lăng
+          trụ</h2>
+
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <p>Hình lăng trụ là một hình không gian có hai mặt đáy là hai đa giác bằng nhau và nằm trên hai mặt phẳng song
+            song, các mặt bên là các hình bình hành.</p>
+
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">Các công thức cơ bản</h3>
+          <ul class="text-slate-600 mb-8">
+            <li><strong>Thể tích:</strong> V = S<sub>đáy</sub> × h (với h là chiều cao)</li>
+            <li><strong>Diện tích xung quanh:</strong> S<sub>xq</sub> = Tổng diện tích các mặt bên</li>
+            <li><strong>Diện tích toàn phần:</strong> S<sub>tp</sub> = S<sub>xq</sub> + 2 × S<sub>đáy</sub></li>
+          </ul>
+
+          <div class="grid grid-cols-1 gap-6 mt-8">
+            <div class="bg-amber-50/50 border border-amber-100 rounded-2xl p-6">
+              <h4 class="text-[12px] font-bold text-amber-800 uppercase tracking-wider mb-4">Các loại hình lăng trụ</h4>
+              <ul class="list-none p-0 text-[14px] text-amber-800/80 space-y-2">
+                <li>• <strong>Lăng trụ đứng:</strong> Có các cạnh bên vuông góc với mặt đáy.</li>
+                <li>• <strong>Lăng trụ đều:</strong> Là lăng trụ đứng có đáy là đa giác đều.</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Formulas Section -->
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12" id="formulas" style="display:none;">
-      <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Công thức tổng hợp</h2>
+      <!-- Sphere Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="sphere" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Mặt cầu</h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
-          <h4 class="text-[12px] font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Thể tích</h4>
-          <ul class="list-none p-0 text-[15px] text-blue-900/80 space-y-3 font-mono">
-            <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Hình chóp:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">V = ⅓ × S<sub>đ</sub> × h</span></li>
-            <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Lăng trụ:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">V = S<sub>đ</sub> × h</span></li>
-            <li class="flex items-center justify-between"><span class="font-sans text-blue-800">Hình cầu:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">V = ⁴⁄₃πR³</span></li>
-          </ul>
-        </div>
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <p>Tập hợp các điểm trong không gian cách điểm O cố định một khoảng không đổi R (R > 0) được gọi là mặt cầu
+            tâm O, bán kính R.</p>
 
-        <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6">
-          <h4 class="text-[12px] font-bold text-emerald-800 uppercase tracking-wider mb-4 flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg> Diện tích</h4>
-          <ul class="list-none p-0 text-[15px] text-emerald-900/80 space-y-3 font-mono">
-            <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Mặt cầu:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = 4πR²</span></li>
-            <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Hình vuông:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = a²</span></li>
-            <li class="flex items-center justify-between"><span class="font-sans text-emerald-800">Tam giác:</span> <span class="bg-white px-3 py-1 rounded-lg shadow-sm">S = ½ × a × h</span></li>
-          </ul>
-        </div>
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">Công thức mặt cầu và khối cầu</h3>
 
-        <div class="bg-amber-50/50 border border-amber-100 rounded-2xl p-6 md:col-span-2">
-          <h4 class="text-[12px] font-bold text-amber-800 uppercase tracking-wider mb-4 flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"></path><path d="M20 12v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Khoảng cách & Góc</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-3 font-mono text-[14px]">
-              <div class="font-sans font-medium text-amber-900 mb-1">Khoảng cách:</div>
-              <div class="bg-white p-3 rounded-xl shadow-sm">d(M,(P)) = |ax₀+by₀+cz₀+d| / √(a²+b²+c²)</div>
-              <div class="bg-white p-3 rounded-xl shadow-sm">d((P),(Q)) = |d₁-d₂| / √(a²+b²+c²)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="bg-fuchsia-50/50 border border-fuchsia-100 rounded-2xl p-6">
+              <h4 class="text-[12px] font-bold text-fuchsia-800 uppercase tracking-wider mb-4">Thể tích khối cầu</h4>
+              <div
+                class="text-[20px] font-serif font-semibold text-fuchsia-900 mb-4 bg-fuchsia-100/50 inline-block px-4 py-2 rounded-xl">
+                V = ⁴⁄₃πR³</div>
             </div>
-            <div class="space-y-3 font-mono text-[14px]">
-              <div class="font-sans font-medium text-amber-900 mb-1">Góc:</div>
-              <div class="bg-white p-3 rounded-xl shadow-sm">Đường & Mặt: sinα = |cos(u⃗,n⃗)|</div>
-              <div class="bg-white p-3 rounded-xl shadow-sm">Mặt & Mặt: cosα = |cos(n⃗₁,n⃗₂)|</div>
+
+            <div class="bg-fuchsia-50/50 border border-fuchsia-100 rounded-2xl p-6">
+              <h4 class="text-[12px] font-bold text-fuchsia-800 uppercase tracking-wider mb-4">Diện tích mặt cầu</h4>
+              <div
+                class="text-[20px] font-serif font-semibold text-fuchsia-900 mb-4 bg-fuchsia-100/50 inline-block px-4 py-2 rounded-xl">
+                S = 4πR²</div>
             </div>
           </div>
         </div>
-
       </div>
-    </div>
-    
-    <!-- Placeholder for other sections (prism, sphere, etc) -->
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 text-center" id="prism" style="display:none;">
-      <div class="text-[48px] mb-4">📦</div>
-      <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-2">Hình lăng trụ</h2>
-      <p class="text-slate-500">Nội dung đang được cập nhật...</p>
-    </div>
-    
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 text-center" id="sphere" style="display:none;">
-      <div class="text-[48px] mb-4">⚪</div>
-      <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-2">Mặt cầu</h2>
-      <p class="text-slate-500">Nội dung đang được cập nhật...</p>
-    </div>
-    
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 text-center" id="distance" style="display:none;">
-      <div class="text-[48px] mb-4">📏</div>
-      <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-2">Khoảng cách</h2>
-      <p class="text-slate-500">Nội dung đang được cập nhật...</p>
-    </div>
-    
-    <div class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12 text-center" id="angle" style="display:none;">
-      <div class="text-[48px] mb-4">📐</div>
-      <h2 class="font-serif text-[24px] font-semibold text-slate-900 mb-2">Góc trong không gian</h2>
-      <p class="text-slate-500">Nội dung đang được cập nhật...</p>
-    </div>
 
-  </main>
-</div>
+      <!-- Distance Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="distance" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Khoảng cách
+        </h2>
 
-<!-- FOOTER -->
-<footer class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10 mt-auto">
-  <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
-    <div class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
-      GEO3D
-    </div>
-  </div>
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <p>Tính khoảng cách trong không gian là một dạng bài toán thường gặp và quan trọng.</p>
 
-  <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
-    <div class="flex flex-col max-w-[380px]">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
-          </svg>
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">Khoảng cách từ một điểm đến mặt
+            phẳng</h3>
+          <p>Cho mặt phẳng (P) và điểm A. Để tìm khoảng cách từ A đến (P):</p>
+          <ul class="text-slate-600 mb-8">
+            <li><strong>Bước 1:</strong> Tìm hình chiếu vuông góc H của A lên (P).</li>
+            <li><strong>Bước 2:</strong> Khoảng cách chính là độ dài đoạn thẳng AH, ký hiệu d[A,(P)] = AH.</li>
+          </ul>
+
+          <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 mt-6">
+            <h4 class="text-[14px] font-bold text-emerald-800 mb-2">Ví dụ: Hình chóp S.ABCD có SA ⊥ đáy</h4>
+            <p class="text-[14px] text-emerald-900/80 m-0">Khoảng cách từ A đến (SCD): Trong mp(SAD), vẽ AH ⊥ SD tại H.
+              Suy ra AH ⊥ (SCD). Do đó d[A,(SCD)] = AH.</p>
+          </div>
         </div>
-        <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
       </div>
-      <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
-        Manage geometry effortlessly.
-      </p>
-      <div class="flex gap-4 opacity-60">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-      </div>
-    </div>
-    
-    <div class="flex flex-col">
-      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
-      <ul class="list-none p-0 m-0 space-y-4">
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a></li>
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a></li>
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a></li>
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a></li>
-        <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a></li>
-      </ul>
-    </div>
 
-    <div class="flex flex-col">
-      <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
-      <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
-        SPKT University<br/>
-        Ho Chi Minh City, VN 700000
-      </p>
+      <!-- Angle Section -->
+      <div
+        class="docs-section animation-fadeIn bg-white/70 backdrop-blur-md border border-white shadow-[0_4px_24px_rgba(0,0,0,0.02)] rounded-[32px] p-8 md:p-12"
+        id="angle" style="display:none;">
+        <h2 class="font-serif text-[32px] font-semibold text-slate-900 mb-8 pb-4 border-b border-slate-200">Góc trong
+          không gian</h2>
+
+        <div class="prose max-w-none text-slate-700 leading-relaxed text-[15px]">
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-4">1. Góc giữa đường thẳng và mặt phẳng
+          </h3>
+          <p>Là góc giữa đường thẳng và hình chiếu vuông góc của nó trên mặt phẳng đó.</p>
+          <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 mb-6">
+            <p class="text-[14px] text-blue-900/80 m-0"><strong>Ví dụ (Hình chóp SA ⊥ đáy ABCD):</strong> Góc giữa SB và
+              mặt phẳng đáy (ABCD) là góc SBA, vì AB là hình chiếu của SB lên (ABCD).</p>
+          </div>
+
+          <h3 class="font-serif text-[20px] font-semibold text-slate-900 mb-3 mt-8">2. Góc giữa hai mặt phẳng</h3>
+          <p>Là góc giữa hai đường thẳng lần lượt nằm trong hai mặt phẳng và cùng vuông góc với giao tuyến tại một điểm.
+          </p>
+          <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-5">
+            <p class="text-[14px] text-blue-900/80 m-0"><strong>Ví dụ (Góc giữa mặt bên (SBC) và đáy (ABCD)):</strong>
+              Hai mặt phẳng có giao tuyến là BC. Kẻ đường cao và xác định được BC ⊥ AB và BC ⊥ SB. Do đó góc giữa hai
+              mặt phẳng là góc SBA.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-  
-  <div class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
-    <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
-    <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
-  </div>
-</footer>
 
-<script>
-function showSection(sectionId, btnElement) {
-  // Hide all sections
-  document.querySelectorAll('.docs-section').forEach(section => {
-    section.style.display = 'none';
-  });
-  
-  // Show selected section
-  const section = document.getElementById(sectionId);
-  if (section) {
-    section.style.display = 'block';
-  }
-  
-  // Update active link styles
-  document.querySelectorAll('.sidebar-link').forEach(link => {
-    link.className = "sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300";
-  });
-  btnElement.className = "sidebar-link active w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-sm";
-  
-  // Scroll to top of content on mobile
-  if(window.innerWidth < 768) {
-    document.querySelector('#docsContent').scrollIntoView({ behavior: 'smooth' });
-  }
-}
-</script>
+  <!-- FOOTER -->
+  <footer
+    class="bg-[#050505] text-slate-50 relative overflow-hidden pb-6 pt-12 px-6 sm:px-12 border-t border-white/10 mt-auto">
+    <div class="absolute bottom-8 left-0 right-0 w-full flex justify-center pointer-events-none select-none z-0">
+      <div
+        class="font-sans font-bold text-[140px] md:text-[200px] leading-none text-white opacity-[0.03] tracking-tighter w-full text-center whitespace-nowrap overflow-hidden">
+        GEO3D
+      </div>
+    </div>
+
+    <div class="relative z-10 grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12 max-w-[1100px] mx-auto">
+      <div class="flex flex-col max-w-[380px]">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-slate-900">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+            </svg>
+          </div>
+          <div class="font-sans text-[24px] font-semibold text-white tracking-tight">Geo3D</div>
+        </div>
+        <p class="text-[14px] leading-relaxed text-slate-400 m-0 mb-8">
+          Manage geometry effortlessly.
+        </p>
+        <!-- Social Icons -->
+        <div class="flex gap-4 opacity-60">
+          <a href="#" class="hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+            </svg>
+          </a>
+          <a href="#" class="hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z">
+              </path>
+            </svg>
+          </a>
+          <a href="#" class="hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Use Link</h4>
+        <ul class="list-none p-0 m-0 space-y-4">
+          <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Feature</a>
+          </li>
+          <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">About</a>
+          </li>
+          <li><a href="#"
+              class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Testimonial</a></li>
+          <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Pricing</a>
+          </li>
+          <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Contact</a>
+          </li>
+          <li><a href="#" class="text-[14px] text-slate-400 no-underline hover:text-white transition-colors">Blog</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="flex flex-col">
+        <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Company</h4>
+        <p class="text-[14px] text-slate-400 leading-relaxed max-w-[200px]">
+          SPKT University<br />
+          Da Nang City, VN 700000
+        </p>
+      </div>
+
+      <!-- Newsletter -->
+      <div class="flex flex-col">
+        <h4 class="text-[14px] font-bold text-white mb-6 uppercase tracking-wider">Newsletter</h4>
+        <p class="text-[14px] text-slate-400 leading-relaxed mb-4">
+          Subscribe to our newsletter for the latest updates and features.
+        </p>
+        <form class="flex flex-col gap-3" onsubmit="event.preventDefault();">
+          <input type="email" placeholder="Enter your email"
+            class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-blue-500 focus:bg-white/10 w-full placeholder-slate-500 transition-all duration-300">
+          <button type="submit"
+            class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-[14px] font-medium hover:bg-blue-500 transition-all duration-300 w-full">
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div
+      class="relative z-10 pt-6 border-t border-white/10 flex justify-between items-center max-w-[1100px] mx-auto opacity-70">
+      <p class="text-[12px] text-slate-400 m-0">© 2026 Design & Developed by Geo3D Team</p>
+      <a href="#" class="text-[12px] text-slate-400 hover:text-white">Privacy Policy</a>
+    </div>
+  </footer>
+
+  <script>
+    function showSection(sectionId, btnElement) {
+      // Hide all sections
+      document.querySelectorAll('.docs-section').forEach(section => {
+        section.style.display = 'none';
+      });
+
+      // Show selected section
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.style.display = 'block';
+      }
+
+      // Update active link styles
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.className = "sidebar-link w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300";
+      });
+      btnElement.className = "sidebar-link active w-full text-left px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-300 bg-slate-900 text-white shadow-sm";
+
+      // Scroll to top of content on mobile
+      if (window.innerWidth < 768) {
+        document.querySelector('#docsContent').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  </script>
 
 </body>
+
 </html>

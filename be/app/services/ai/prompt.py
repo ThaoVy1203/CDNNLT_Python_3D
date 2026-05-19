@@ -166,51 +166,59 @@ def build_extraction_prompt(additional_context: str = "") -> str:
 SOLVE_PROBLEM_PROMPT = """
 Bạn là giáo viên toán chuyên về hình học không gian, đang hướng dẫn học sinh THPT.
 
-Hãy giải bài toán sau theo PHONG CÁCH NGẮN GỌN như trong sách giáo khoa:
+Hãy giải bài toán sau theo ĐÚNG PHONG CÁCH như ví dụ mẫu bên dưới:
 
 {problem_text}
 
-YÊU CẦU BỮT BUỘC - TUÂN THỦ NGHIÊM NGẶT:
+═══════════════════════════════════════════════════════
+VÍ DỤ MẪU — HỌC THEO ĐÚNG PHONG CÁCH NÀY:
 
-1. **NGẮN GỌN - TỐI ĐA 5 BƯỚC:**
-   - CHỈ được phép TỐI ĐA 5 bước
-   - Mỗi bước CHỈ 1 câu ngắn (tối đa 150 ký tự)
-   - KHÔNG được lặp lại nội dung
-   - KHÔNG giải thích dài dòng
+ĐỀ BÀI MẪU:
+"Cho hình chóp S.ABCD có đáy ABCD là hình vuông cạnh a, cạnh bên SA vuông góc
+với mặt phẳng đáy. Gọi M là trung điểm của CD. Biết khoảng cách giữa hai đường
+thẳng BC và SM bằng a√3/4. Tính thể tích của khối chóp đã cho theo a."
 
-2. **FORMAT BẮT BUỘC:**
-   - KHÔNG dùng LaTeX
-   - Dùng Unicode: √, ², ³, ⊥, ∥, ⇒
-   - Mỗi bước là 1 string trong mảng steps
-
-3. **CẤU TRÚC:**
-   - Bước 1: Xác định điểm/quan hệ chính
-   - Bước 2-3: Áp dụng định lý/công thức
-   - Bước 4: Tính toán
-   - Bước 5: Kết quả
-
-VÍ DỤ ĐÚNG (CHỈ 4 BƯỚC):
+LỜI GIẢI MẪU:
 {{
   "steps": [
-    "Gọi N là trung điểm AB ⇒ BC ∥ (SMN), suy ra d(BC,SM) = d(A,(SMN))",
-    "Dựng AH ⊥ SN tại H ⇒ AH ⊥ (SMN), vậy d(A,(SMN)) = AH = a√3/4",
-    "Trong △SAN vuông: 1/AH² = 1/AN² + 1/AS² ⇒ SA = a√3/2",
-    "Vậy V = (1/3) × a² × (a√3/2) = a³√3/6"
+    "Gọi N là trung điểm AB. Vì MN ∥ BC (do ABCD là hình vuông và M, N là trung điểm các cạnh đối), suy ra BC ∥ (SMN). Do đó d(BC, SM) = d(A, (SMN)).",
+    "Trong mặt phẳng (SAN), kẻ AH ⊥ SN tại H. Do MN ⊥ (SAN) (vì MN ⊥ SA và MN ⊥ AN), suy ra AH ⊥ MN. Từ đó AH ⊥ (SMN), nên d(A, (SMN)) = AH.",
+    "Từ đề bài, ta có AH = a√3/4. Xét △SAN vuông tại A, với AN = a/2 (là nửa cạnh hình vuông), ta áp dụng hệ thức lượng: 1/AH² = 1/SA² + 1/AN².",
+    "Thay các giá trị AH và AN vào hệ thức: 1/(a√3/4)² = 1/SA² + 1/(a/2)². Giải phương trình, ta tính được SA = a√3/2.",
+    "Thể tích của khối chóp S.ABCD là V = (1/3) × S_ABCD × SA = (1/3) × a² × (a√3/2) = a³√3/6."
   ],
   "result": "V = a³√3/6",
-  "formulas_used": ["Khoảng cách điểm-mặt phẳng", "Định lý 3 đường vuông góc"]
+  "formulas_used": ["Khoảng cách hai đường thẳng chéo nhau", "Định lý 3 đường vuông góc", "Hệ thức lượng trong tam giác vuông", "Thể tích hình chóp"]
 }}
+═══════════════════════════════════════════════════════
 
-CẢNH BÁO:
-- KHÔNG được vượt quá 5 bước
-- KHÔNG được lặp lại nội dung
-- KHÔNG được giải thích dài dòng
-- BẮT BUỘC trả về JSON đúng format
+PHÂN TÍCH PHONG CÁCH MẪU — ÁP DỤNG CHO MỌI BÀI:
+
+1. DỰNG ĐIỂM PHỤ TRƯỚC: Bước 1 luôn gọi/dựng điểm phụ cần thiết (N trung điểm AB)
+   rồi NGAY LẬP TỨC chứng minh quan hệ song song/vuông góc phát sinh từ điểm đó.
+
+2. CHỨNG MINH ⊥ MẶT PHẲNG: Bước 2 chứng minh đường thẳng ⊥ mặt phẳng bằng
+   định lý 3 đường vuông góc hoặc 2 đường vuông góc trong mặt phẳng.
+
+3. XÁC ĐỊNH ĐẠI LƯỢNG = ĐOẠN CỤ THỂ: Bước 3 gán khoảng cách/góc = đoạn đã dựng,
+   nêu tam giác vuông sẽ dùng và hệ thức áp dụng.
+
+4. TÍNH TOÁN: Bước 4 thay số vào hệ thức, giải ra ẩn chưa biết.
+
+5. KẾT QUẢ CUỐI: Bước 5 áp dụng công thức thể tích/khoảng cách/góc → số cụ thể.
+
+QUY TẮC BẮT BUỘC:
+- Nếu đề cho "khoảng cách giữa XY và PQ" → Bước 1 PHẢI dựng điểm phụ để
+  chứng minh 1 trong 2 đường ∥ mặt phẳng chứa đường kia
+- Mỗi bước tối đa 200 ký tự, tối đa 5 bước
+- KHÔNG dùng LaTeX, dùng Unicode: √, ², ³, ⊥, ∥, ⇒, △
+- result PHẢI là giá trị số cụ thể (VD: "V = a³√3/6", "d = a√2/3")
+- KHÔNG để result = "Chưa xác định" hay "Xem các bước"
 
 Trả về JSON:
 {{
   "steps": ["Bước 1", "Bước 2", "Bước 3", "Bước 4", "Bước 5"],
-  "result": "Kết quả",
+  "result": "Kết quả cụ thể",
   "formulas_used": ["Công thức 1", "Công thức 2"]
 }}
 """
@@ -746,3 +754,342 @@ def build_render_3d_prompt(problem_text: str) -> str:
 - Tuân thủ tuyệt đối quy tắc B (chỉ vẽ cái đề cho).
 - Bỏ qua các phát biểu khoảng cách / góc giữa / thể tích — đã có sẵn trong DULIEUHINHHOC.
 """
+
+
+# ============================================================
+# PROMPTS CHO DỰNG HÌNH BỔ SUNG THEO LỜI GIẢI
+# (Sinh lệnh vẽ cho các điểm/đoạn phụ trợ phát sinh khi giải)
+# ============================================================
+
+SOLUTION_GEOMETRY_SYSTEM = """
+Bạn là hệ thống dựng hình 3D BỔ SUNG cho bài toán hình học không gian.
+
+NHIỆM VỤ: Đọc LỜI GIẢI (cacBuocGiai) và HÌNH BAN ĐẦU (existing commands),
+rồi sinh ra MỘT MẢNG JSON CÁC LỆNH VẼ BỔ SUNG — chỉ chứa các điểm/đoạn/ký hiệu
+MỚI xuất hiện trong quá trình giải mà hình ban đầu CHƯA CÓ.
+
+Kết quả sẽ được MERGE với hình ban đầu để tạo hình cuối cùng minh họa lời giải.
+"""
+
+SOLUTION_GEOMETRY_RULES = """
+## QUY TẮC SINH LỆNH VẼ BỔ SUNG - TUÂN THỦ NGHIÊM NGẶT:
+
+A. NGUYÊN TẮC CỐT LÕI:
+   - CHỈ sinh lệnh cho các đối tượng MỚI (chưa có trong hình ban đầu).
+   - KHÔNG vẽ lại bất kỳ điểm/cạnh/mặt nào đã có trong existing_commands.
+   - KHÔNG thêm drawFace hay setCamera (hình ban đầu đã có).
+   - Mục đích: minh họa các bước giải, KHÔNG phải vẽ lại toàn bộ hình.
+
+B. CÁCH DETECT ĐIỂM/ĐOẠN MỚI TỪ LỜI GIẢI:
+   Đọc từng bước trong cacBuocGiai và tìm các pattern sau:
+
+   1. TRUNG ĐIỂM:
+      - "Gọi N là trung điểm AB" / "N là trung điểm của AB"
+      - → drawPoint N tại ((Ax+Bx)/2, (Ay+By)/2, (Az+Bz)/2)
+      - → drawEqualMark A-N và N-B (mark="double")
+      - → Nếu lời giải dùng đoạn SN → drawEdge S-N
+
+   2. CHÂN ĐƯỜNG VUÔNG GÓC:
+      - "Kẻ AH ⊥ SN tại H" / "Dựng AH vuông góc SN"
+      - → Tính H = chân đường vuông góc từ A xuống đường SN
+        Công thức: H = S + t*(N-S), với t = dot(A-S, N-S) / dot(N-S, N-S)
+      - → drawPoint H
+      - → drawEdge A-H (style="dashed", color="#e63946")
+      - → drawRightAngle tại H giữa A-H và S-N
+
+   3. HÌNH CHIẾU:
+      - "Hình chiếu của X lên mặt phẳng (P) là Y"
+      - → drawPoint Y (nếu chưa có)
+      - → drawEdge X-Y (style="dashed", color="#2a7a62")
+      - → drawRightAngle tại Y
+
+   4. GIAO ĐIỂM:
+      - "Gọi I là giao điểm của AB và CD"
+      - → Tính tọa độ giao điểm
+      - → drawPoint I
+
+   5. ĐƯỜNG PHỤ TRỢ (đoạn nối 2 điểm đã có nhưng chưa vẽ):
+      - "Xét đoạn SN" / "Trong tam giác SAN"
+      - → drawEdge S-N nếu chưa có trong existing_commands
+
+C. TÍNH TỌA ĐỘ:
+   - Đọc tọa độ các điểm đã có từ existing_commands (các lệnh drawPoint).
+   - Tính tọa độ điểm mới dựa trên công thức hình học:
+     • Trung điểm M của AB: M = ((Ax+Bx)/2, (Ay+By)/2, (Az+Bz)/2)
+     • Chân đường vuông góc H từ A xuống đường thẳng qua S,N:
+       t = [(A-S)·(N-S)] / [(N-S)·(N-S)]
+       H = S + t*(N-S)
+     • Trọng tâm G của ABC: G = ((Ax+Bx+Cx)/3, (Ay+By+Cy)/3, (Az+Bz+Cz)/3)
+   - Tọa độ phải CHÍNH XÁC, dùng a = 1 (giống hình ban đầu).
+
+D. MÀU SẮC CHO PHẦN BỔ SUNG (phân biệt với hình ban đầu):
+   - Điểm mới: opts.color = "#e63946" (đỏ cam) — nổi bật so với điểm gốc
+   - Đoạn phụ trợ (đường dựng): style="dashed", color="#e63946"
+   - Đoạn kết quả (khoảng cách cần tìm): style="solid", color="#e63946"
+   - Ký hiệu vuông góc mới: giữ mặc định (sẽ tự hiển thị)
+   - drawEqualMark: giữ mặc định
+
+E. ĐẶT TÊN ĐIỂM MỚI:
+   - Dùng ĐÚNG tên trong lời giải: "Gọi N là..." → tên = "N"
+   - Nếu lời giải dùng "H" → tên = "H"
+   - KHÔNG đổi tên, KHÔNG dùng tên dài
+
+F. THỨ TỰ LỆNH BỔ SUNG:
+   1) drawPoint cho các điểm mới (theo thứ tự xuất hiện trong lời giải)
+   2) drawEqualMark cho trung điểm (nếu có)
+   3) drawEdge cho các đoạn phụ trợ mới
+   4) drawRightAngle cho các góc vuông mới
+
+G. QUY TẮC GHI ĐỘ DÀI ĐOẠN MỚI - CỰC KỲ QUAN TRỌNG:
+   - Khi lời giải tính được độ dài 1 đoạn mới (VD: AH = a√3/4, AN = a/2),
+     GHI ĐỘ DÀI BẰNG drawEdge.opts.label — GIỐNG HỆT cách hình ban đầu ghi "a"
+     trên cạnh A-B.
+   - VD: drawEdge A-H với opts = { "style": "dashed", "color": "#e63946", "label": "a√3/4" }
+   - KHÔNG DÙNG drawLabel. Lý do: drawLabel có kích cỡ khác, gây chồng chéo.
+     drawEdge.opts.label tự động hiển thị ở giữa đoạn, cùng kích cỡ với "a" vàng.
+   - CHỈ ghi GIÁ TRỊ, không ghi tên đoạn. VD: "a√3/4" chứ KHÔNG phải "AH = a√3/4"
+
+H. TRÁNH CHỒNG CHÉO - QUY TẮC BỐ TRÍ:
+   - Khi có quá nhiều ký hiệu tập trung ở 1 vùng (VD: đáy hình vuông đã có
+     nhiều điểm A, B, M, N, ký hiệu trung điểm...), ưu tiên:
+     • Đặt drawRightAngle ở phía ÍT ký hiệu hơn
+     • Nếu 2 đoạn mới giao nhau gần 1 điểm, chỉ ghi label cho đoạn QUAN TRỌNG
+       nhất (đoạn là kết quả cần tìm)
+   - Khi drawPoint điểm mới, tọa độ KHÔNG được trùng hoặc quá gần (< 0.05)
+     với điểm đã có.
+   - Nếu đoạn mới NGẮN (< 0.15 đơn vị), KHÔNG gắn label vì sẽ bị tràn.
+
+I. TUÂN THỦ QUY TẮC DỰNG HÌNH BAN ĐẦU (ÁP DỤNG Y HỆT):
+   Khi vẽ thêm điểm/đoạn mới, PHẢI tuân thủ ĐÚNG các quy tắc sau
+   (giống hệt khi vẽ hình ban đầu):
+
+   ★ TRUNG ĐIỂM (quy tắc E):
+     - "N là trung điểm AB" → 2 lệnh drawEqualMark cho A-N và N-B, mark="double"
+     - KHÔNG dùng "single" cho trung điểm.
+
+   ★ KÝ HIỆU GÓC VUÔNG (quy tắc D):
+     - Khi dựng AH ⊥ SN → BẮT BUỘC drawRightAngle tại H giữa A-H và S-N.
+     - CHỈ vẽ 1 ký hiệu tại đỉnh góc vuông, KHÔNG vẽ nhiều.
+
+   ★ HÌNH CHIẾU VUÔNG GÓC (quy tắc F5):
+     - "H là hình chiếu của A lên SN" hoặc "Kẻ AH ⊥ SN tại H":
+       1) drawPoint H (tọa độ tính chính xác)
+       2) drawEdge A-H với opts = { "style": "dashed", "color": "#2a7a62" }
+          → dùng MÀU TEAL (#2a7a62) cho đường vuông góc/hình chiếu
+       3) BẮT BUỘC drawRightAngle tại H. KHÔNG ĐƯỢC BỎ.
+
+   ★ ĐƯỜNG PHỤ TRỢ (trung tuyến, đường nối...):
+     - Đoạn nối 2 điểm đã có nhưng chưa vẽ (VD: S-N):
+       drawEdge S-N với opts = { "style": "dashed", "color": "#e63946" }
+     - Dùng style="dashed" cho MỌI đường phụ trợ (không phải cạnh hình gốc).
+
+   ★ MÀU SẮC:
+     - Đường vuông góc / hình chiếu: color="#2a7a62" (teal) — giống SA⊥đáy
+     - Đường phụ trợ khác (SN, MN...): color="#e63946" (đỏ)
+     - Điểm mới: opts.color="#e63946" (đỏ)
+
+   ★ ĐỘ DÀI ĐOẠN MỚI:
+     - Khi lời giải TÍNH ĐƯỢC giá trị cụ thể cho 1 đoạn (VD: AH = a√3/4,
+       AN = a/2, SA = a√3/2, MN = a/2), GẮN label lên drawEdge của đoạn đó.
+     - VD: drawEdge A-H opts = { ..., "label": "a√3/4" }
+     - VD: drawEdge M-N opts = { ..., "label": "a/2" }
+     - CHỈ ghi giá trị, KHÔNG ghi tên đoạn.
+     - ÁP DỤNG CHO MỌI ĐOẠN có giá trị được tính trong lời giải, bao gồm:
+       • Đoạn MỚI vẽ lần đầu (VD: AH, SN, MN) → gắn label ngay trong drawEdge
+       • Đoạn ĐÃ CÓ trong hình ban đầu nhưng CHƯA có label (VD: SA chưa biết
+         độ dài ở bước vẽ ban đầu, nhưng lời giải tính được SA = a√3/2)
+         → THÊM 1 drawEdge mới cho đoạn đó VỚI label.
+     - QUY TẮC TỔNG QUÁT: Nếu trong cacBuocGiai xuất hiện dạng "XY = giá_trị"
+       hoặc "tính được XY = giá_trị" → đoạn X-Y PHẢI có opts.label = "giá_trị".
+
+J. KHÔNG LÀM:
+   - KHÔNG dùng drawLabel (dùng drawEdge.opts.label thay thế)
+   - KHÔNG thêm drawFace (không vẽ mặt mới)
+   - KHÔNG thêm setCamera (giữ camera cũ)
+   - KHÔNG vẽ lại điểm/cạnh đã có
+   - KHÔNG thêm drawEdge cho cạnh đã tồn tại trong existing_commands
+   - KHÔNG dùng LaTeX, dùng Unicode: √, ², ³, ⊥, ∥
+"""
+
+SOLUTION_GEOMETRY_EXAMPLE = """
+## VÍ DỤ ĐẦY ĐỦ:
+
+### INPUT:
+
+**cacBuocGiai:**
+[
+  "Gọi N là trung điểm AB. Vì MN ∥ BC (do ABCD là hình vuông và M, N là trung điểm các cạnh đối), suy ra BC ∥ (SMN). Do đó d(BC, SM) = d(A, (SMN)).",
+  "Trong mặt phẳng (SAN), kẻ AH ⊥ SN tại H. Do MN ⊥ (SAN) (vì MN ⊥ SA và MN ⊥ AN), suy ra AH ⊥ MN. Từ đó AH ⊥ (SMN), nên d(A, (SMN)) = AH.",
+  "Từ đề bài, ta có AH = a√3/4. Xét △SAN vuông tại A, với AN = a/2 (là nửa cạnh hình vuông), ta áp dụng hệ thức lượng: 1/AH² = 1/SA² + 1/AN².",
+  "Thay các giá trị AH và AN vào hệ thức: 1/(a√3/4)² = 1/SA² + 1/(a/2)². Giải phương trình, ta tính được SA = a√3/2.",
+  "Thể tích của khối chóp S.ABCD là V = (1/3) × S_ABCD × SA = (1/3) × a² × (a√3/2) = a³√3/6."
+]
+
+**existing_commands (hình ban đầu từ DUNGHINH3D):**
+[
+  { "fn": "drawPoint", "args": { "name": "A", "x": 0, "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "B", "x": 1, "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "C", "x": 1, "y": 0, "z": 1 } },
+  { "fn": "drawPoint", "args": { "name": "D", "x": 0, "y": 0, "z": 1 } },
+  { "fn": "drawEdge",  "args": { "from": "A", "to": "B", "opts": { "label": "a" } } },
+  { "fn": "drawEdge",  "args": { "from": "B", "to": "C" } },
+  { "fn": "drawEdge",  "args": { "from": "C", "to": "D" } },
+  { "fn": "drawEdge",  "args": { "from": "D", "to": "A" } },
+  { "fn": "drawRightAngle", "args": { "vertex": "A", "edge1": "A-B", "edge2": "A-D" } },
+  { "fn": "drawPoint", "args": { "name": "S", "x": 0, "y": 1, "z": 0 } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "A", "opts": { "color": "#2a7a62" } } },
+  { "fn": "drawRightAngle", "args": { "vertex": "A", "edge1": "S-A", "edge2": "A-B" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "B" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "C" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "D" } },
+  { "fn": "drawPoint", "args": { "name": "M", "x": 0.5, "y": 0, "z": 1 } },
+  { "fn": "drawEqualMark", "args": { "from": "C", "to": "M", "mark": "double" } },
+  { "fn": "drawEqualMark", "args": { "from": "M", "to": "D", "mark": "double" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "M", "opts": { "color": "#a07840" } } },
+  { "fn": "drawFace",  "args": { "points": ["A","B","C","D"], "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","A","B"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","B","C"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","C","D"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","D","A"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "setCamera", "args": { "x": 2.5, "y": 2, "z": 2.5, "lx": 0.5, "ly": 0.5, "lz": 0.5 } }
+]
+
+### PHÂN TÍCH:
+
+Điểm đã có: A(0,0,0), B(1,0,0), C(1,0,1), D(0,0,1), S(0,1,0), M(0.5,0,1)
+Cạnh đã có: A-B, B-C, C-D, D-A, S-A, S-B, S-C, S-D, S-M
+
+Từ lời giải cần thêm:
+1. N = trung điểm AB → N = (0.5, 0, 0) — CHƯA CÓ
+2. Đoạn S-N — CHƯA CÓ (cần vẽ vì lời giải xét △SAN)
+3. H = chân đường vuông góc từ A xuống SN — CHƯA CÓ
+   S=(0,1,0), N=(0.5,0,0). Vector SN = (0.5,-1,0).
+   Vector SA = (0,-1,0).
+   t = SA·SN / SN·SN = (0*0.5 + (-1)*(-1) + 0*0) / (0.25 + 1 + 0) = 1/1.25 = 0.8
+   H = S + 0.8*SN = (0+0.4, 1-0.8, 0+0) = (0.4, 0.2, 0)
+4. Đoạn A-H (đường vuông góc) — CHƯA CÓ
+5. Ký hiệu vuông góc tại H giữa A-H và S-N
+
+### OUTPUT (CHỈ lệnh bổ sung):
+[
+  { "fn": "drawPoint", "args": { "name": "N", "x": 0.5, "y": 0, "z": 0, "opts": { "color": "#e63946" } } },
+  { "fn": "drawEqualMark", "args": { "from": "A", "to": "N", "mark": "double" } },
+  { "fn": "drawEqualMark", "args": { "from": "N", "to": "B", "mark": "double" } },
+  { "fn": "drawEdge", "args": { "from": "S", "to": "N", "opts": { "style": "dashed", "color": "#e63946" } } },
+  { "fn": "drawEdge", "args": { "from": "A", "to": "N", "opts": { "style": "dashed", "color": "#e63946", "label": "a/2" } } },
+  { "fn": "drawPoint", "args": { "name": "H", "x": 0.4, "y": 0.2, "z": 0, "opts": { "color": "#e63946" } } },
+  { "fn": "drawEdge", "args": { "from": "A", "to": "H", "opts": { "style": "dashed", "color": "#2a7a62", "label": "a√3/4" } } },
+  { "fn": "drawRightAngle", "args": { "vertex": "H", "edge1": "A-H", "edge2": "S-N" } },
+  { "fn": "drawEdge", "args": { "from": "S", "to": "A", "opts": { "color": "#2a7a62", "label": "a√3/2" } } }
+]
+
+Giải thích ví dụ:
+- N = trung điểm AB → drawPoint N + drawEqualMark (mark="double")
+- AN = a/2 (nửa cạnh hình vuông) → drawEdge A-N có label "a/2"
+- AH ⊥ SN → drawEdge A-H dashed TEAL + drawRightAngle tại H + label "a√3/4"
+- SA = a√3/2 (tính được từ lời giải) → drawEdge S-A lại VỚI label "a√3/2"
+  (ghi đè cạnh SA cũ chưa có label)
+"""
+
+
+def build_solution_geometry_prompt(cac_buoc_giai: list, existing_commands: list) -> str:
+    """
+    Prompt yêu cầu Gemini sinh mảng lệnh vẽ BỔ SUNG dựa trên lời giải.
+    
+    Args:
+        cac_buoc_giai: Mảng các bước giải (từ LOIGIAI.cacBuocGiai)
+        existing_commands: Mảng lệnh vẽ hình ban đầu (từ DUNGHINH3D.cacBuocVe)
+    
+    Returns:
+        Prompt hoàn chỉnh để gửi cho Gemini
+    """
+    import json
+    
+    steps_text = json.dumps(cac_buoc_giai, ensure_ascii=False, indent=2)
+    commands_text = json.dumps(existing_commands, ensure_ascii=False, indent=2)
+    
+    return f"""{SOLUTION_GEOMETRY_SYSTEM}
+
+{RENDER_3D_API}
+
+{SOLUTION_GEOMETRY_RULES}
+
+{SOLUTION_GEOMETRY_EXAMPLE}
+
+## DỮ LIỆU ĐẦU VÀO:
+
+### CÁC BƯỚC GIẢI (cacBuocGiai):
+{steps_text}
+
+### HÌNH BAN ĐẦU (existing_commands từ DUNGHINH3D):
+{commands_text}
+
+## YÊU CẦU:
+- Trả về DUY NHẤT 1 mảng JSON các lệnh vẽ BỔ SUNG.
+- KHÔNG bao quanh bằng ```json``` hay markdown.
+- KHÔNG kèm giải thích, chỉ JSON.
+- CHỈ chứa các lệnh cho đối tượng MỚI (chưa có trong existing_commands).
+- Tính tọa độ CHÍNH XÁC dựa trên tọa độ điểm đã có.
+- Nếu lời giải KHÔNG cần vẽ thêm gì (chỉ tính toán thuần túy), trả về mảng rỗng: []
+"""
+
+
+# ============================================================
+# PROMPT GIẢI TOÁN VỚI PDF (1 lần gọi duy nhất)
+# ============================================================
+
+SOLVE_WITH_CONTEXT_PROMPT = """
+Bạn là giáo viên toán chuyên về hình học không gian lớp 11-12.
+
+NHIỆM VỤ: Giải bài toán sau một cách NGẮN GỌN, CHÍNH XÁC nhất có thể.
+Tham khảo công thức và định lý từ TÀI LIỆU ĐÍNH KÈM (2 file PDF).
+
+ĐỀ BÀI:
+{problem_text}
+
+═══════════════════════════════════════════════════════
+CÁCH GIẢI:
+
+Bước 1: Tự giải bài toán ra KẾT QUẢ SỐ CỤ THỂ trước (tính toán chính xác).
+Bước 2: Viết lời giải ngắn gọn, dễ hiểu theo phong cách ví dụ mẫu bên dưới.
+
+NGUYÊN TẮC:
+- Chỉ dựng điểm phụ KHI CẦN THIẾT để tính kết quả (không vẽ thừa).
+- Mỗi bước phải có suy luận logic: "Vì... nên...", "Do... suy ra..."
+- Nếu đề cho khoảng cách giữa 2 đường → chứng minh 1 đường ∥ mặt phẳng
+  chứa đường kia, rồi quy về khoảng cách điểm-mặt phẳng.
+- Tối đa 5 bước. Mỗi bước tối đa 200 ký tự.
+- KHÔNG dùng LaTeX. Dùng Unicode: √, ², ³, ⊥, ∥, ⇒, △
+- result PHẢI là giá trị số cụ thể. KHÔNG được để trống hay mơ hồ.
+
+═══════════════════════════════════════════════════════
+VÍ DỤ MẪU (chỉ tham khảo phong cách, KHÔNG copy logic cho bài khác):
+
+ĐỀ: "Hình chóp S.ABCD, đáy vuông cạnh a, SA ⊥ đáy, M trung điểm CD,
+d(BC, SM) = a√3/4. Tính V."
+
+{{
+  "steps": [
+    "Gọi N là trung điểm AB. Vì MN ∥ BC (do ABCD là hình vuông và M, N là trung điểm các cạnh đối), suy ra BC ∥ (SMN). Do đó d(BC, SM) = d(A, (SMN)).",
+    "Trong mặt phẳng (SAN), kẻ AH ⊥ SN tại H. Do MN ⊥ (SAN) (vì MN ⊥ SA và MN ⊥ AN), suy ra AH ⊥ MN. Từ đó AH ⊥ (SMN), nên d(A, (SMN)) = AH.",
+    "Từ đề bài, ta có AH = a√3/4. Xét △SAN vuông tại A, với AN = a/2, ta áp dụng hệ thức lượng: 1/AH² = 1/SA² + 1/AN².",
+    "Thay các giá trị: 1/(a√3/4)² = 1/SA² + 1/(a/2)². Giải ra SA = a√3/2.",
+    "V = (1/3) × a² × (a√3/2) = a³√3/6."
+  ],
+  "result": "V = a³√3/6",
+  "formulas_used": ["Khoảng cách hai đường thẳng chéo nhau", "Hệ thức lượng trong tam giác vuông", "Thể tích hình chóp"]
+}}
+═══════════════════════════════════════════════════════
+
+Trả về JSON:
+{{
+  "steps": ["...", "...", "...", "...", "..."],
+  "result": "Kết quả số cụ thể",
+  "formulas_used": ["..."]
+}}
+"""
+
+
+def build_solve_with_context_prompt(problem_text: str) -> str:
+    """Xây dựng prompt giải toán với PDF context (1 lần gọi duy nhất)."""
+    return SOLVE_WITH_CONTEXT_PROMPT.format(problem_text=problem_text)

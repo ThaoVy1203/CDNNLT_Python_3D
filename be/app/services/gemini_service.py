@@ -3,8 +3,7 @@ Gemini AI Service - Xử lý phân tích ảnh và giải toán hình học
 Tích hợp: AI extraction, Geometry solver, 3D renderer
 """
 from typing import Optional, Union
-from PIL import Image
-from app.services.ai.gemini_client import GeminiClient, solve_with_ai
+from app.services.ai.gemini_client import GeminiClient
 from app.services.renderer.transform import GeometryRenderer
 from app.core.config import settings
 
@@ -15,10 +14,7 @@ class GeminiService:
         self.renderer = GeometryRenderer()
     
     async def analyze_image(self, image: Union[str, bytes]) -> dict:
-        """
-        Phân tích ảnh bài toán hình học
-        Trả về: dữ liệu hình học đã trích xuất
-        """
+        """Phân tích ảnh bài toán hình học"""
         try:
             extraction = await self.gemini_client.extract_geometry_from_image(image)
             return {
@@ -35,10 +31,7 @@ class GeminiService:
             raise Exception(f"Image analysis failed: {str(e)}")
     
     async def solve_problem(self, problem_text: str) -> dict:
-        """
-        Giải bài toán hình học bằng Gemini AI
-        Trả về: các bước giải và kết quả từ AI
-        """
+        """Giải bài toán hình học bằng Gemini AI (không dùng PDF)"""
         try:
             from app.services.ai.prompt import build_solve_prompt
             import json
@@ -57,7 +50,6 @@ class GeminiService:
                 )
             )
             
-            # Parse response
             response_text = response.text
             if "```json" in response_text:
                 json_str = response_text.split("```json")[1].split("```")[0].strip()
@@ -66,40 +58,18 @@ class GeminiService:
             else:
                 json_str = response_text.strip()
             
-            # Fix: Replace single backslashes with double backslashes for LaTeX
-            # But be careful not to break already escaped sequences
-            # This regex finds backslashes that are not already escaped
             json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', json_str)
             
             try:
                 solution = json.loads(json_str)
-                
-                # Validate: Ensure steps is not too long
                 if "steps" in solution and len(solution["steps"]) > 10:
-                    print(f"⚠️  Too many steps ({len(solution['steps'])}), truncating to first 5")
                     solution["steps"] = solution["steps"][:5]
-                    
             except json.JSONDecodeError as e:
                 print(f"❌ JSON parse error: {e}")
                 print(f"Problematic JSON (first 1000 chars): {json_str[:1000]}")
-                print(f"Problematic JSON (last 500 chars): {json_str[-500:]}")
-                
-                # Try to extract steps manually from text
-                lines = response_text.split('\n')
-                steps = []
-                for line in lines:
-                    line = line.strip()
-                    if line and (line.startswith('-') or line.startswith('Bước') or line.startswith('•')):
-                        steps.append(line.lstrip('-•').strip())
-                        if len(steps) >= 5:
-                            break
-                
-                if not steps:
-                    steps = ["Không thể phân tích lời giải. Vui lòng thử lại."]
-                
                 solution = {
-                    "steps": steps,
-                    "result": "Xem chi tiết trong các bước giải",
+                    "steps": ["Không thể phân tích lời giải. Vui lòng thử lại."],
+                    "result": "Lỗi phân tích",
                     "formulas_used": []
                 }
             
@@ -112,14 +82,9 @@ class GeminiService:
             raise Exception(f"Problem solving failed: {str(e)}")
     
     async def generate_3d_coordinates(self, geometry_data: dict) -> dict:
-        """
-        Tạo tọa độ 3D cho visualization
-        Trả về: dữ liệu 3D JSON cho frontend
-        """
+        """Tạo tọa độ 3D cho visualization"""
         try:
-            # Transform to 3D coordinates
             result_3d = self.renderer.transform_to_3d(geometry_data)
-            
             return {
                 "points": result_3d.get("points", {}),
                 "edges": result_3d.get("edges", []),
@@ -130,18 +95,7 @@ class GeminiService:
             raise Exception(f"3D generation failed: {str(e)}")
 
     async def generate_render_commands(self, problem_text: str) -> dict:
-        """Sinh mảng lệnh vẽ Three.js cho 1 bài toán hình học.
-
-        Returns:
-            {
-                "commands": List[{"fn": str, "args": dict}],
-                "metadata": dict (rút từ các lệnh storeData),
-                "raw_response": str
-            }
-
-        Raises:
-            Exception nếu Gemini trả về JSON không hợp lệ.
-        """
+        """Sinh mảng lệnh vẽ Three.js cho 1 bài toán hình học."""
         from app.services.ai.prompt import build_render_3d_prompt
         import asyncio
         import json
@@ -160,33 +114,26 @@ class GeminiService:
         )
 
         text = (response.text or "").strip()
-
-        # Gemini có thể bao JSON trong ```json ... ``` dù prompt yêu cầu không.
-        # Tách phần JSON ra một cách an toàn.
         cleaned = text
         if "```" in cleaned:
             m = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", cleaned)
             if m:
                 cleaned = m.group(1).strip()
 
-        # Có khi Gemini trả về object thay vì array → cố gắng nhặt array bên trong
         try:
             commands = json.loads(cleaned)
         except json.JSONDecodeError as e:
-            # Fallback: tìm mảng [ ... ] đầu tiên
             m = re.search(r"\[[\s\S]+\]", cleaned)
             if not m:
                 raise Exception(f"Gemini không trả về JSON hợp lệ: {e}")
             commands = json.loads(m.group(0))
 
         if isinstance(commands, dict):
-            # Trường hợp Gemini bao trong { "commands": [...] }
             commands = commands.get("commands") or commands.get("steps") or []
 
         if not isinstance(commands, list):
             raise Exception("Output Gemini không phải mảng lệnh vẽ")
 
-        # Validate sơ bộ
         ALLOWED_FN = {
             "drawPoint", "drawEdge", "drawFace", "drawLabel",
             "drawRightAngle", "drawEqualMark", "drawAngle",
@@ -199,7 +146,6 @@ class GeminiService:
             fn = cmd.get("fn")
             args = cmd.get("args") or {}
             if fn not in ALLOWED_FN:
-                print(f"⚠️ [generate_render_commands] Bỏ qua lệnh không hợp lệ: {fn}")
                 continue
             valid_commands.append({"fn": fn, "args": args})
 
@@ -209,16 +155,12 @@ class GeminiService:
         }
 
     async def generate_drawing_guide(self, problem_text: str, shape_type: str) -> str:
-        """
-        Tạo hướng dẫn dựng hình cho học sinh bằng Gemini AI
-        Trả về: hướng dẫn từng bước theo thứ tự logic
-        """
+        """Tạo hướng dẫn dựng hình cho học sinh"""
         try:
             from app.services.ai.prompt import build_drawing_guide_prompt
             import asyncio
 
             prompt = build_drawing_guide_prompt(problem_text, shape_type)
-
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
@@ -228,174 +170,86 @@ class GeminiService:
                     config=self.gemini_client.generation_config
                 )
             )
-
             return response.text.strip()
         except Exception as e:
-            # Fallback nếu AI lỗi
-            return f"HƯỚNG DẪN DỰNG HÌNH {shape_type.upper()}\n\nBước 1: Vẽ các điểm cơ bản\nBước 2: Nối các cạnh theo đề bài\nBước 3: Hoàn thiện hình vẽ"
+            return f"HƯỚNG DẪN DỰNG HÌNH\n\nBước 1: Vẽ các điểm cơ bản\nBước 2: Nối các cạnh\nBước 3: Hoàn thiện"
 
     async def solve_problem_with_context(self, problem_text: str) -> dict:
         """
-        Giải bài toán với context từ tài liệu (File Search)
-        
-        CHIẾN LƯỢC MỚI:
-        1. Gọi solve_problem() để có kết quả chính xác
-        2. Dùng File Search + kết quả đó để viết lại lời giải chuẩn SGK
-        
-        Args:
-            problem_text: Đề bài toán
-            
-        Returns:
-            {
-                "steps": [...],
-                "result": "...",
-                "formulas_used": [...],
-                "references": [...]
-            }
+        Giải bài toán — GỘP 1 LẦN GỌI DUY NHẤT.
+        Gửi: đề bài + 2 file PDF + prompt từ prompt.py → Gemini trả về lời giải hoàn chỉnh.
         """
         try:
-            from app.services.file_search_service import file_search_service
-            from app.services.ai.prompt import build_solve_prompt
+            import google.generativeai as genai
             import json
+            import re
             import asyncio
-            
-            # BƯỚC 1: Giải bài toán để có kết quả chính xác
-            print(f"\n🧮 Step 1: Solving problem for accurate result...")
-            initial_solution = await self.solve_problem(problem_text)
-            initial_result = initial_solution.get("result", "")
-            initial_steps = initial_solution.get("steps", [])
-            
-            print(f"✅ Initial result: {initial_result}")
-            
-            # BƯỚC 2: Search tài liệu liên quan
-            print(f"\n📚 Step 2: Searching documents for context...")
-            search_results = await file_search_service.search(problem_text)
-            
-            # BƯỚC 3: Viết lại lời giải chuẩn SGK
-            if search_results:
-                print(f"✅ Found {len(search_results)} relevant documents")
-                
-                # Extract context from search results
-                context_parts = []
-                for result in search_results:
-                    context_parts.append(f"""
-📄 TÀI LIỆU: {result['file']}
+            from app.services.file_search_service import file_search_service
+            from app.services.ai.prompt import build_solve_with_context_prompt
 
-CÔNG THỨC:
-{chr(10).join('- ' + f for f in result.get('formulas', []))}
+            # Lấy file refs từ PDF đã upload
+            file_refs = []
+            if file_search_service.uploaded_files:
+                for file_id in file_search_service.uploaded_files.values():
+                    try:
+                        file_refs.append(genai.get_file(file_id))
+                    except Exception as e:
+                        print(f"⚠️ Could not get file {file_id}: {e}")
 
-ĐỊNH LÝ:
-{chr(10).join('- ' + t for t in result.get('theorems', []))}
+            print(f"\n🧮 Solving with {len(file_refs)} PDF files in ONE call...")
 
-PHƯƠNG PHÁP:
-{chr(10).join('- ' + m for m in result.get('methods', []))}
-""")
-                
-                context = "\n\n".join(context_parts)
-                
-                # Enhanced prompt: Refine solution with context
-                refine_prompt = f"""
-Bạn là giáo viên toán chuyên về hình học không gian.
+            # Lấy prompt từ prompt.py
+            solve_prompt = build_solve_with_context_prompt(problem_text)
 
-ĐỀ BÀI:
-{problem_text}
+            # Gọi Gemini 1 lần duy nhất: prompt + PDF files
+            model = genai.GenerativeModel(model_name=self.gemini_client.model_name)
+            contents = [solve_prompt] + file_refs
 
-KẾT QUẢ ĐÚNG (đã tính toán):
-{initial_result}
-
-CÁC BƯỚC ĐÃ GIẢI (tham khảo):
-{chr(10).join(f"{i+1}. {step}" for i, step in enumerate(initial_steps))}
-
-THÔNG TIN TỪ TÀI LIỆU THAM KHẢO:
-{context}
-
-YÊU CẦU:
-Hãy viết lại lời giải theo PHONG CÁCH SÁCH GIÁO KHOA:
-- Sử dụng phương pháp và công thức từ tài liệu tham khảo
-- Giữ nguyên KẾT QUẢ ĐÚNG: {initial_result}
-- Tối đa 5 bước, mỗi bước 1 câu ngắn gọn
-- Mỗi bước phải logic, dễ hiểu như trong SGK
-- KHÔNG dùng LaTeX, dùng Unicode: √, ², ³, ⊥, ∥, ⇒
-
-VÍ DỤ FORMAT:
-{{
-  "steps": [
-    "Gọi G là trọng tâm △ABC, M là trung điểm BC",
-    "Ta có A'G ⊥ (ABC) ⇒ A'G ⊥ BC; BC ⊥ AM ⇒ BC ⊥ (MAA')",
-    "Kẻ MI ⊥ AA', BC ⊥ IM ⇒ d(AA', BC) = IM = a√3/4",
-    "Kẻ GH ⊥ AA', áp dụng định lý Thales: GH = (2/3) × IM = a√3/6",
-    "Vậy V = A'G × S_ABC = (a/3) × (a²√3/4) = a³√3/12"
-  ],
-  "result": "{initial_result}",
-  "formulas_used": ["Định lý 3 đường vuông góc", "Khoảng cách hai đường thẳng chéo nhau", "Thể tích khối lăng trụ"]
-}}
-
-Trả về JSON:
-"""
-                
-                print(f"\n✍️  Step 3: Refining solution with textbook style...")
-                
-            else:
-                print(f"⚠️  No relevant documents found, using initial solution")
-                return initial_solution
-            
-            # Call Gemini to refine
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.gemini_client.client.models.generate_content(
-                    model=self.gemini_client.model_name,
-                    contents=refine_prompt,
-                    config=self.gemini_client.generation_config
+                lambda: model.generate_content(
+                    contents=contents,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.3,
+                        top_p=0.9,
+                        max_output_tokens=4096,
+                    )
                 )
             )
-            
+
             response_text = response.text.strip()
-            
-            # Extract JSON from response
+            print(f"✅ Got response ({len(response_text)} chars)")
+
+            # Parse JSON
             if "```json" in response_text:
                 json_str = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
                 json_str = response_text.split("```")[1].split("```")[0].strip()
             else:
                 json_str = response_text
-            
-            # Clean up JSON string
-            import re
+
             json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', json_str)
-            
+
             try:
-                refined_solution = json.loads(json_str)
-                
-                # Validate: Ensure steps is not too long
-                if "steps" in refined_solution and len(refined_solution["steps"]) > 10:
-                    print(f"⚠️  Too many steps ({len(refined_solution['steps'])}), truncating to first 5")
-                    refined_solution["steps"] = refined_solution["steps"][:5]
-                
-                # Ensure result matches initial result
-                if "result" not in refined_solution or not refined_solution["result"]:
-                    refined_solution["result"] = initial_result
-                    
+                solution = json.loads(json_str)
+                if "steps" in solution and len(solution["steps"]) > 10:
+                    solution["steps"] = solution["steps"][:5]
             except json.JSONDecodeError as e:
-                print(f"❌ JSON parse error in refine: {e}")
-                print(f"Falling back to initial solution")
-                refined_solution = initial_solution
-            
-            # Add references to solution
-            refined_solution["references"] = [
-                {
-                    "file": r["file"],
-                    "excerpt": r["excerpt"],
-                    "formulas": r.get("formulas", []),
-                    "theorems": r.get("theorems", [])
-                }
-                for r in search_results
+                print(f"❌ JSON parse error: {e}")
+                print(f"Response (first 500): {json_str[:500]}")
+                print("⚠️ Falling back to solve_problem() without PDF")
+                solution = await self.solve_problem(problem_text)
+
+            # Thêm references (tên file PDF đã dùng)
+            solution["references"] = [
+                {"file": fname, "excerpt": "", "formulas": [], "theorems": []}
+                for fname in file_search_service.uploaded_files.keys()
             ]
-            
-            print(f"✅ Refined solution ready!")
-            return refined_solution
-            
+
+            print(f"✅ Solution ready: {solution.get('result', 'N/A')}")
+            return solution
+
         except Exception as e:
             print(f"❌ Error in solve_with_context: {e}")
-            # Fallback to normal solve
             return await self.solve_problem(problem_text)

@@ -17,7 +17,9 @@ from app.repositories.bai_toan_repository import BaiToanRepository
 from app.repositories.du_lieu_hinh_hoc_repository import DuLieuHinhHocRepository
 from app.repositories.loi_giai_repository import LoiGiaiRepository
 from app.repositories.dung_hinh_3d_repository import DungHinh3DRepository
+from app.repositories.dunghinh3d_loigiai_repository import DungHinh3DLoiGiaiRepository
 from app.repositories.nguoi_dung_repository import NguoiDungRepository
+from app.services.solution_geometry_service import SolutionGeometryService
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -28,7 +30,9 @@ bai_toan_repo = BaiToanRepository()
 du_lieu_repo = DuLieuHinhHocRepository()
 loi_giai_repo = LoiGiaiRepository()
 dung_hinh_repo = DungHinh3DRepository()
+dunghinh_loigiai_repo = DungHinh3DLoiGiaiRepository()
 nguoi_dung_repo = NguoiDungRepository()
+solution_geo_service = SolutionGeometryService()
 
 # ============================================================
 # BƯỚC 1: Upload và phân tích ảnh
@@ -783,3 +787,122 @@ async def initialize_file_search():
             "success": False,
             "message": str(e)
         }
+
+
+# ============================================================
+# DỰNG HÌNH BỔ SUNG THEO LỜI GIẢI
+# ============================================================
+
+@router.post("/generate-solution-geometry/{ma_loi_giai}")
+async def generate_solution_geometry(ma_loi_giai: int):
+    """
+    Sinh lệnh vẽ bổ sung dựa trên lời giải.
+
+    Flow:
+    1. Lấy cacBuocGiai từ LOIGIAI
+    2. Lấy hình ban đầu từ DUNGHINH3D
+    3. Gọi Gemini AI sinh lệnh vẽ bổ sung
+    4. Lưu vào DUNGHINH3D_LOIGIAI
+    5. Trả về commands bổ sung
+
+    Args:
+        ma_loi_giai: Mã lời giải (FK đến LOIGIAI)
+
+    Returns:
+        - commands: mảng lệnh vẽ bổ sung
+        - newPoints: dict các điểm mới
+        - fromCache: True nếu đã có sẵn
+    """
+    try:
+        # Lấy lời giải để biết maBaiToan
+        # Tìm lời giải theo maLoiGiai
+        query = "SELECT * FROM LOIGIAI WHERE maLoiGiai = %s"
+        from app.core.database import DatabaseConnection
+        db = DatabaseConnection()
+        results = db.execute_query(query, (ma_loi_giai,))
+        if not results:
+            raise HTTPException(status_code=404, detail="Không tìm thấy lời giải")
+
+        loi_giai = results[0]
+        ma_bai_toan = loi_giai.get("maBaiToan")
+
+        # Gọi service
+        result = await solution_geo_service.generate_solution_geometry(
+            ma_loi_giai=ma_loi_giai,
+            ma_bai_toan=ma_bai_toan
+        )
+
+        return {
+            "success": True,
+            "message": result.get("message", "Đã sinh lệnh vẽ bổ sung"),
+            "data": result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        error_msg = str(e)
+        # Nếu Gemini quá tải → trả về success=false nhưng KHÔNG raise 500
+        # Frontend sẽ fallback hiển thị hình ban đầu
+        if "503" in error_msg or "UNAVAILABLE" in error_msg or "429" in error_msg:
+            return {
+                "success": False,
+                "message": "AI đang quá tải, không thể sinh hình bổ sung lúc này. Hiển thị hình ban đầu.",
+                "data": {"commands": [], "fromCache": False}
+            }
+        raise HTTPException(status_code=500, detail=f"Lỗi sinh hình bổ sung: {error_msg}")
+
+
+@router.get("/merged-geometry/{ma_loi_giai}")
+async def get_merged_geometry(ma_loi_giai: int):
+    """
+    Lấy hình đã merge (ban đầu + bổ sung) để hiển thị ở tab Kết quả.
+
+    Flow:
+    1. Lấy hình ban đầu từ DUNGHINH3D
+    2. Lấy hình bổ sung từ DUNGHINH3D_LOIGIAI
+    3. Merge 2 phần (base trước, additional sau, setCamera cuối)
+    4. Trả về merged_commands cho frontend render
+
+    Args:
+        ma_loi_giai: Mã lời giải
+
+    Returns:
+        - merged_commands: tất cả lệnh vẽ đã merge
+        - base_commands: lệnh hình ban đầu
+        - additional_commands: lệnh bổ sung
+        - all_points: dict tất cả điểm
+        - has_additional: True nếu có hình bổ sung
+    """
+    try:
+        # Lấy maBaiToan từ maLoiGiai
+        query = "SELECT * FROM LOIGIAI WHERE maLoiGiai = %s"
+        from app.core.database import DatabaseConnection
+        db = DatabaseConnection()
+        results = db.execute_query(query, (ma_loi_giai,))
+        if not results:
+            raise HTTPException(status_code=404, detail="Không tìm thấy lời giải")
+
+        loi_giai = results[0]
+        ma_bai_toan = loi_giai.get("maBaiToan")
+
+        # Gọi service merge
+        merged = solution_geo_service.get_merged_geometry(
+            ma_loi_giai=ma_loi_giai,
+            ma_bai_toan=ma_bai_toan
+        )
+
+        return {
+            "success": True,
+            "message": "Đã merge hình ban đầu và hình bổ sung",
+            "data": merged
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Lỗi merge hình: {str(e)}")

@@ -79,7 +79,7 @@ function renderMarqueeSlider() {
         <h2 class="font-sans text-[40px] md:text-[56px] leading-[1.1] font-medium text-white tracking-tight mb-8 max-w-[600px]">
           Sẵn sàng chinh phục <br/>Hình học không gian?
         </h2>
-        <button onclick="window.location.href='register.html'" class="px-8 py-3.5 bg-white text-slate-900 rounded-[12px] font-semibold text-[15px] hover:scale-105 transition-all shadow-[0_8px_30px_rgba(255,255,255,0.15)]">
+        <button onclick="window.location.href='solver.html'" class="px-8 py-3.5 bg-white text-slate-900 rounded-[12px] font-semibold text-[15px] hover:scale-105 transition-all shadow-[0_8px_30px_rgba(255,255,255,0.15)]">
           Bắt đầu học ngay
         </button>
 
