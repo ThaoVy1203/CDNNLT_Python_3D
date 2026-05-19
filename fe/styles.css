@@ -29,7 +29,7 @@
   --teal-bg:   rgba(5, 150, 105, 0.08);
   
   --red:       #ef4444;
-  --serif:     'Outfit', system-ui, sans-serif;
+  --serif:     'Lexend', system-ui, sans-serif;
   --sans:      'Inter', system-ui, sans-serif;
   --mono:      'JetBrains Mono', monospace;
   --radius:    12px;
@@ -622,24 +622,24 @@ body {
 
 /* ── SOLUTION ── */
 .solution-step {
-  padding: 16px 0 16px 20px;
-  border-left: 2px solid var(--border-md); margin-bottom: 4px; position: relative;
+  padding: 18px 0 18px 28px;
+  border-left: 3px solid var(--border-md); margin-bottom: 4px; position: relative;
 }
 .solution-step::before {
-  content: ''; position: absolute; left: -4px; top: 22px;
-  width: 6px; height: 6px; border-radius: 50%; background: var(--border-md);
+  content: ''; position: absolute; left: -6px; top: 28px;
+  width: 9px; height: 9px; border-radius: 50%; background: var(--border-md);
 }
 .solution-step.gold { border-left-color: var(--gold); }
 .solution-step.gold::before { background: var(--gold); }
 .solution-step.teal { border-left-color: var(--teal); }
 .solution-step.teal::before { background: var(--teal); }
 .ss-label {
-  font-size: 10px; font-weight: 600; letter-spacing: .1em;
-  text-transform: uppercase; margin-bottom: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; margin-bottom: 12px;
 }
 .solution-step.gold .ss-label { color: var(--gold); }
 .solution-step.teal .ss-label { color: var(--teal); }
-.solution-step p { font-size: 13px; color: var(--ink); line-height: 1.75; font-weight: 300; }
+.solution-step p { font-size: 16px; color: var(--ink); line-height: 1.8; font-weight: 400; }
 .solution-step strong { font-weight: 600; }
 .math-block {
   font-family: var(--mono); font-size: 12px;
