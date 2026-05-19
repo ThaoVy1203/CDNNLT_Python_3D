@@ -256,149 +256,173 @@ async def solve_problem_with_ai(ma_bai_toan: int):
 @router.post("/render-3d/{ma_bai_toan}")
 async def render_3d_geometry(ma_bai_toan: int, force_refresh: bool = False):
     """
-    Bước 2: Tạo dữ liệu dựng hình 3D từ bài toán đã phân tích.
-    
+    Bước 2: Sinh dữ liệu dựng hình 3D bằng Gemini.
+
+    Gemini đọc đề bài → trả về MẢNG LỆNH JSON (mỗi lệnh là 1 hàm vẽ Three.js).
+    Frontend chỉ việc gọi `viewer.executeCommands(commands)` để vẽ.
+
+    Metadata "không vẽ" (khoảng cách, góc giữa, thể tích...) KHÔNG sinh ở đây.
+    Đã có sẵn trong DULIEUHINHHOC (cột cacQuanHe.given_conditions / relationships)
+    được lưu từ bước upload-and-save.
+
     Args:
         ma_bai_toan: Mã bài toán
-        force_refresh: True = bỏ qua cache, render lại từ đầu (dùng khi cập nhật code solver)
-    
+        force_refresh: True = bỏ cache, gọi Gemini lại
+
     Returns:
-        - geometry: points, edges, faces, steps, annotations, camera
-        - threejs: code và parameters cho Three.js
+        - commands: mảng lệnh vẽ JSON (chỉ vẽ, không có storeData)
+        - metadata: dict trích từ DULIEUHINHHOC (given_conditions, relationships)
+        - hamThreeJS: danh sách tên hàm đã dùng
+        - huongDanVe: text mô tả từng bước
     """
     try:
-        from app.services.geometry_solver import GeometrySolver
-        
-        # Lấy thông tin bài toán từ DB
         bai_toan = bai_toan_repo.get_by_id(ma_bai_toan)
         if not bai_toan:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài toán")
-        
-        # Kiểm tra cache (bỏ qua nếu force_refresh)
+
+        # Đọc DULIEUHINHHOC để lấy metadata (đã có từ upload-and-save)
+        du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
+        metadata = _build_metadata_from_du_lieu(du_lieu)
+
+        # Cache: trả nguyên dữ liệu DB nếu đã có (trừ khi force_refresh)
         if not force_refresh:
             existing = dung_hinh_repo.get_by_bai_toan(ma_bai_toan)
             if existing:
+                cmds = json.loads(existing.get("cacBuocVe") or "[]")
+                params = json.loads(existing.get("thamSo") or "{}")
+                fns = json.loads(existing.get("hamThreeJS") or "[]")
                 return {
                     "success": True,
                     "message": "Đã có dữ liệu dựng hình 3D",
                     "data": {
                         "dungHinhId": existing.get("maDungHinh"),
-                        "geometry": json.loads(existing.get("thamSo", "{}")),
-                        "threejs": {
-                            "steps": json.loads(existing.get("cacBuocVe", "[]")),
-                            "functions": json.loads(existing.get("hamThreeJS", "[]")),
-                            "code": existing.get("codeThreeJS", ""),
-                            "guide": existing.get("huongDanVe", "")
-                        },
-                        "fromCache": True
-                    }
+                        "commands": cmds,
+                        "metadata": metadata,  # Luôn trả metadata mới nhất từ DULIEUHINHHOC
+                        "thamSo": params,
+                        "hamThreeJS": fns,
+                        "huongDanVe": existing.get("huongDanVe") or "",
+                        "fromCache": True,
+                    },
                 }
-        else:
-            # Xóa cache cũ để render lại
-            print(f"🔄 [render-3d] Force refresh mode - xóa cache cũ cho bài {ma_bai_toan}")
-            try:
-                dung_hinh_repo.delete_by_bai_toan(ma_bai_toan)
-            except Exception as e:
-                print(f"   Warning: Không xóa được cache cũ: {e}")
-        
-        # Lấy dữ liệu hình học từ DULIEUHINHHOC (Gemini extraction)
-        du_lieu = du_lieu_repo.get_by_bai_toan(ma_bai_toan)
-        
-        # Prepare extraction data for GeometrySolver
-        extraction_data = {
-            "problem_text": bai_toan.get('deBaiTho', ''),
-            "problem_type": bai_toan.get('loaiHinh', ''),
-            "given_conditions": [],
-            "questions": [],
-            "points": [],
-            "relationships": []
-        }
-        
-        # Parse data from DULIEUHINHHOC if available
-        if du_lieu:
-            try:
-                # Parse toaDoDiem (points from Gemini)
-                toa_do_diem = json.loads(du_lieu.get("toaDoDiem", "{}"))
-                if toa_do_diem:
-                    extraction_data["points"] = list(toa_do_diem.keys())
-                
-                # Parse cacQuanHe - hỗ trợ cả format cũ (list) và format mới (dict)
-                cac_quan_he_raw = json.loads(du_lieu.get("cacQuanHe", "[]"))
-                if isinstance(cac_quan_he_raw, dict):
-                    # Format mới: {"given_conditions": [...], "relationships": [...]}
-                    extraction_data["given_conditions"] = cac_quan_he_raw.get("given_conditions", [])
-                    extraction_data["relationships"] = cac_quan_he_raw.get("relationships", [])
-                    print(f"   [render-3d] Loaded {len(extraction_data['given_conditions'])} conditions from DB")
-                elif isinstance(cac_quan_he_raw, list):
-                    # Format cũ: chỉ có relationships
-                    extraction_data["relationships"] = cac_quan_he_raw
-            except json.JSONDecodeError as e:
-                print(f"Warning: Could not parse DULIEUHINHHOC data: {e}")
-        
-        # Fallback: Nếu given_conditions vẫn rỗng, parse từ problem_text
-        # (cho trường hợp data cũ chưa lưu given_conditions)
-        problem_text = extraction_data["problem_text"]
-        if not extraction_data["given_conditions"] and problem_text:
-            # Split by sentences
-            sentences = problem_text.split('.')
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if not sentence:
-                    continue
-                
-                # Check if it's a question
-                if '?' in sentence or 'tính' in sentence.lower() or 'tìm' in sentence.lower():
-                    extraction_data["questions"].append(sentence)
-                # Check if it's a given condition
-                elif '=' in sentence or 'vuông góc' in sentence.lower() or '⊥' in sentence:
-                    extraction_data["given_conditions"].append(sentence)
-                elif 'hình' in sentence.lower() or 'cạnh' in sentence.lower():
-                    extraction_data["given_conditions"].append(sentence)
-                elif 'trung điểm' in sentence.lower() or 'tâm' in sentence.lower():
-                    extraction_data["given_conditions"].append(sentence)
-        
-        print(f"Extraction data: type={extraction_data['problem_type']}, conditions={len(extraction_data['given_conditions'])}, points={extraction_data['points']}")
-        
-        # Solve geometry using Gemini extraction data
-        solver = GeometrySolver()
-        geometry_data = solver.solve_from_extraction(extraction_data, extraction_data['problem_type'])
-        
-        # Tạo hướng dẫn dựng hình
-        guide = _generate_drawing_guide(geometry_data)
-        
-        # Tạo dữ liệu Three.js
-        threejs_data = {
-            "steps": [step["description"] for step in geometry_data.get("steps", [])],
-            "functions": ["THREE.Scene()", "THREE.PerspectiveCamera()", "THREE.WebGLRenderer()", "THREE.OrbitControls()"],
-            "code": "// Three.js code will be generated by frontend",
-            "guide": guide
-        }
-        
-        # Lưu vào DB (bảng DUNGHINH3D)
+
+        # Gọi Gemini sinh mảng lệnh vẽ
+        problem_text = bai_toan.get("deBaiTho", "") or ""
+        if not problem_text.strip():
+            raise HTTPException(status_code=400, detail="Bài toán không có đề bài để dựng hình")
+
+        try:
+            result = await gemini_service.generate_render_commands(problem_text)
+        except Exception as e:
+            err = str(e)
+            if "503" in err or "UNAVAILABLE" in err:
+                raise HTTPException(status_code=503, detail="AI đang quá tải. Vui lòng thử lại sau 1-2 phút")
+            if "429" in err:
+                raise HTTPException(status_code=429, detail="Đã vượt quá giới hạn API. Vui lòng đợi vài phút")
+            raise HTTPException(status_code=500, detail=f"Lỗi sinh lệnh vẽ: {err}")
+
+        commands = result["commands"]
+
+        # Trích danh sách hàm đã dùng (unique, giữ thứ tự xuất hiện)
+        seen = set()
+        ham_three_js = []
+        for c in commands:
+            fn = c.get("fn")
+            if fn and fn not in seen:
+                seen.add(fn)
+                ham_three_js.append(fn)
+
+        # thamSo: tổng hợp tọa độ điểm + metadata (lấy từ DULIEUHINHHOC)
+        points = {}
+        for c in commands:
+            if c.get("fn") == "drawPoint":
+                a = c.get("args", {})
+                if a.get("name") is not None:
+                    points[a["name"]] = [a.get("x", 0), a.get("y", 0), a.get("z", 0)]
+        tham_so = {"points": points, "metadata": metadata}
+
+        # huongDanVe: text mô tả mỗi lệnh thành 1 dòng (bằng tiếng Việt cơ bản)
+        huong_dan = _commands_to_guide(commands)
+
+        # Lưu DB (upsert đảm bảo 1 bài toán = 1 dựng hình)
         dung_hinh_id = dung_hinh_repo.create_from_dict({
             "maBaiToan": ma_bai_toan,
-            "cacBuocVe": json.dumps(geometry_data.get("steps", []), ensure_ascii=False),
-            "hamThreeJS": json.dumps(threejs_data["functions"], ensure_ascii=False),
-            "thamSo": json.dumps(geometry_data, ensure_ascii=False),
-            "codeThreeJS": threejs_data["code"],
-            "huongDanVe": guide
+            "cacBuocVe": json.dumps(commands, ensure_ascii=False),
+            "hamThreeJS": json.dumps(ham_three_js, ensure_ascii=False),
+            "thamSo": json.dumps(tham_so, ensure_ascii=False),
+            "codeThreeJS": json.dumps(commands, ensure_ascii=False),  # FE chạy thẳng JSON này
+            "huongDanVe": huong_dan,
         })
-        
+
         return {
             "success": True,
-            "message": "Đã tạo dữ liệu dựng hình 3D từ Gemini extraction",
+            "message": "Đã sinh lệnh vẽ 3D từ Gemini",
             "data": {
                 "dungHinhId": dung_hinh_id,
-                "geometry": geometry_data,
-                "threejs": threejs_data,
-                "fromCache": False
-            }
+                "commands": commands,
+                "metadata": metadata,
+                "thamSo": tham_so,
+                "hamThreeJS": ham_three_js,
+                "huongDanVe": huong_dan,
+                "fromCache": False,
+            },
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Lỗi render 3D: {str(e)}")
+
+
+def _build_metadata_from_du_lieu(du_lieu: Optional[dict]) -> dict:
+    """Trích metadata "không vẽ" từ DULIEUHINHHOC để gửi cho FE.
+
+    Nguồn: cột cacQuanHe (lưu dạng dict {"given_conditions": [...], "relationships": [...]}
+    hoặc list cũ chỉ có relationships).
+    Output:
+        {
+            "given_conditions": [...],
+            "relationships": [...],
+            "non_visual": [
+                {"type": "distance", "raw": "Khoảng cách giữa BC và SM bằng a√3/4"},
+                ...
+            ]
+        }
+    """
+    out = {"given_conditions": [], "relationships": [], "non_visual": []}
+    if not du_lieu:
+        return out
+
+    try:
+        cqh = json.loads(du_lieu.get("cacQuanHe") or "[]")
+    except json.JSONDecodeError:
+        return out
+
+    if isinstance(cqh, dict):
+        out["given_conditions"] = cqh.get("given_conditions") or []
+        out["relationships"] = cqh.get("relationships") or []
+    elif isinstance(cqh, list):
+        out["relationships"] = cqh
+
+    # Lọc các phát biểu "không vẽ được" để FE dễ hiển thị riêng
+    KEYS_DISTANCE = ("khoảng cách", "khoang cach")
+    KEYS_ANGLE    = ("góc giữa", "goc giua", "góc tạo", "góc hợp")
+    KEYS_VOLUME   = ("thể tích", "the tich")
+    KEYS_AREA     = ("diện tích", "dien tich")
+    for cond in out["given_conditions"]:
+        if not isinstance(cond, str):
+            continue
+        cl = cond.lower()
+        kind = None
+        if any(k in cl for k in KEYS_DISTANCE): kind = "distance"
+        elif any(k in cl for k in KEYS_ANGLE):  kind = "angle_between"
+        elif any(k in cl for k in KEYS_VOLUME): kind = "volume"
+        elif any(k in cl for k in KEYS_AREA):   kind = "area"
+        if kind:
+            out["non_visual"].append({"type": kind, "raw": cond})
+
+    return out
 
 
 # ============================================================
@@ -688,6 +712,41 @@ def _generate_drawing_guide(geometry_data: dict) -> str:
         guide += f"   {name}: ({coords[0]:.2f}, {coords[1]:.2f}, {coords[2]:.2f})\n"
     
     return guide
+
+
+def _commands_to_guide(commands: list) -> str:
+    """Chuyển mảng lệnh vẽ Gemini sinh ra thành text mô tả từng bước."""
+    if not commands:
+        return ""
+    lines = ["HƯỚNG DẪN DỰNG HÌNH 3D\n"]
+    step_no = 0
+    for cmd in commands:
+        fn = (cmd or {}).get("fn")
+        a = (cmd or {}).get("args") or {}
+        desc = None
+        if fn == "drawPoint":
+            desc = f"Vẽ điểm {a.get('name')} tại ({a.get('x')}, {a.get('y')}, {a.get('z')})"
+        elif fn == "drawEdge":
+            label = (a.get("opts") or {}).get("label")
+            base = f"Vẽ cạnh {a.get('from')}-{a.get('to')}"
+            desc = f"{base} (= {label})" if label else base
+        elif fn == "drawFace":
+            desc = f"Vẽ mặt {''.join(a.get('points') or [])}"
+        elif fn == "drawLabel":
+            desc = f"Ghi nhãn '{a.get('text')}' tại ({a.get('x')}, {a.get('y')}, {a.get('z')})"
+        elif fn == "drawRightAngle":
+            desc = f"Ký hiệu góc vuông tại {a.get('vertex')} giữa {a.get('edge1')} và {a.get('edge2')}"
+        elif fn == "drawEqualMark":
+            desc = f"Ký hiệu đoạn bằng nhau {a.get('from')}-{a.get('to')} ({a.get('mark', 'single')})"
+        elif fn == "drawAngle":
+            v = a.get("value")
+            desc = f"Vẽ cung góc tại {a.get('vertex')}" + (f" = {v}°" if v is not None else "")
+        elif fn == "setCamera":
+            desc = f"Đặt camera tại ({a.get('x')}, {a.get('y')}, {a.get('z')})"
+        if desc:
+            step_no += 1
+            lines.append(f"Bước {step_no}: {desc}")
+    return "\n".join(lines)
 
 
 

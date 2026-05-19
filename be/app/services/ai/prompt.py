@@ -369,3 +369,380 @@ def build_evaluation_prompt(problem_text: str, user_approach: str) -> str:
         problem_text=problem_text,
         user_approach=user_approach
     )
+
+
+# ============================================================
+# PROMPTS CHO DỰNG HÌNH 3D (Gemini sinh mảng lệnh vẽ)
+# ============================================================
+
+RENDER_3D_SYSTEM = """
+Bạn là hệ thống dựng hình 3D cho bài toán hình học không gian.
+Bạn sẽ ĐỌC đề bài rồi sinh ra MỘT MẢNG JSON CÁC LỆNH VẼ để frontend Three.js
+thực thi. Mỗi lệnh có dạng { "fn": "...", "args": { ... } }.
+"""
+
+RENDER_3D_API = """
+## DANH SÁCH HÀM VẼ CÓ SẴN (chỉ được dùng đúng các hàm này):
+
+1. drawPoint(name, x, y, z, opts?)
+   - args: { "name": str, "x": num, "y": num, "z": num, "opts"?: { "color"?: "#rrggbb", "radius"?: num } }
+   - Vẽ 1 điểm + nhãn tên.
+
+2. drawEdge(from, to, opts?)
+   - args: { "from": str, "to": str, "opts"?: { "style"?: "solid"|"dashed", "color"?: "#rrggbb", "label"?: str } }
+   - Vẽ cạnh nối 2 điểm. Nếu opts.label có thì hiển thị nhãn độ dài giữa cạnh.
+   - QUY ƯỚC: 'from'/'to' phải là tên điểm đã drawPoint TRƯỚC.
+
+3. drawFace(points[], opts?)
+   - args: { "points": [str, str, ...], "opts"?: { "opacity"?: num, "color"?: "#rrggbb" } }
+   - Vẽ mặt phẳng trong suốt từ danh sách tên điểm.
+
+4. drawLabel(text, x, y, z, opts?)
+   - args: { "text": str, "x": num, "y": num, "z": num, "opts"?: { "color"?: "#rrggbb", "scale"?: num } }
+   - Nhãn văn bản tự do tại 1 vị trí.
+
+5. drawRightAngle(vertex, edge1, edge2)
+   - args: { "vertex": str, "edge1": "X-Y", "edge2": "X-Z" }
+   - Vẽ ô vuông nhỏ tại đỉnh vertex để ký hiệu góc vuông giữa 2 cạnh.
+
+6. drawEqualMark(from, to, mark?)
+   - args: { "from": str, "to": str, "mark"?: "single"|"double"|"triple" }
+   - Vẽ tick gạch trên đoạn để ký hiệu các đoạn bằng nhau.
+
+7. drawAngle(vertex, edge1, edge2, value?)
+   - args: { "vertex": str, "edge1": str, "edge2": str, "value"?: num }
+   - Vẽ cung góc + nhãn giá trị (nếu có).
+
+8. setCamera(x, y, z, lx?, ly?, lz?)
+   - args: { "x": num, "y": num, "z": num, "lx"?: num, "ly"?: num, "lz"?: num }
+   - Đặt vị trí camera nhìn vào hình.
+"""
+
+RENDER_3D_RULES = """
+## QUY TẮC SINH LỆNH VẼ - TUÂN THỦ NGHIÊM NGẶT:
+
+A. CHỌN HỆ TỌA ĐỘ:
+   - Coi tham số "a" của đề bài là 1 đơn vị (a = 1). MỌI tọa độ dùng đơn vị này.
+   - Đáy nằm trên mặt phẳng y = 0 (XZ).
+   - Trục Y hướng lên trên (chiều cao của hình chóp / lăng trụ).
+
+A2. ĐẶT TÊN ĐIỂM:
+   - Tên điểm phải là 1 KÝ TỰ DUY NHẤT (có thể kèm dấu phẩy upper như A',
+     B', C', D'). VD: "A", "B", "S", "M", "O", "G", "H", "A'".
+   - TUYỆT ĐỐI KHÔNG dùng tên dài kiểu "M_AB", "M_BC", "Mab", "trungdiem"...
+   - Khi cần điểm phụ, chọn 1 ký tự CHƯA xuất hiện theo thứ tự ưu tiên:
+     M, N, P, Q, K, I, J, T, U, V (sau khi A,B,C,D,S,O,G,H đã dùng).
+
+B. CHỈ VẼ NHỮNG GÌ ĐỀ BÀI CHO TRỰC TIẾP:
+   - KHÔNG tự thêm điểm phụ trợ (trung điểm cạnh khác, hình chiếu...) khi đề
+     không yêu cầu. Những thứ cần dựng thêm khi giải toán không thuộc bước vẽ.
+   - KHÔNG tự gán độ dài cho cạnh nếu đề không cho. VD: đề chỉ nói "SA vuông
+     góc đáy" mà không cho SA = bao nhiêu thì cạnh SA KHÔNG có drawEdge.opts.label.
+
+C. NHÃN ĐỘ DÀI (drawEdge.opts.label):
+   - Chỉ gắn cho cạnh đại diện khi đề thực sự cho biết độ dài.
+   - Hình vuông cạnh a → CHỈ gắn label "a" cho 1 cạnh (VD: A-B). Các cạnh còn
+     lại không gắn nữa (vì hình vuông nhìn là biết bằng nhau).
+   - Tam giác có cạnh khác nhau → gắn label cho từng cạnh có dữ liệu.
+   - "Khoảng cách giữa BC và SM = a√3/4" → KHÔNG gắn label lên cạnh nào, chỉ
+     storeData với type="distance".
+
+D. KÝ HIỆU GÓC VUÔNG (drawRightAngle):
+   - Hình vuông đáy → CHỈ vẽ 1 ký hiệu tại 1 đỉnh đại diện (VD: A giữa A-B
+     và A-D). KHÔNG vẽ cả 4 đỉnh.
+   - "SA ⊥ đáy" → vẽ 1 ký hiệu tại A giữa S-A và A-B (hoặc A-D).
+   - Tam giác vuông tại B → 1 ký hiệu tại B giữa B-A và B-C.
+
+E. KÝ HIỆU TRUNG ĐIỂM (drawEqualMark):
+   - "M là trung điểm CD" → 2 lệnh drawEqualMark cho C-M và M-D, mark="double".
+   - KHÔNG dùng "single" cho trung điểm vì trùng với ký hiệu cạnh đáy bằng nhau.
+
+F. KÝ HIỆU CẠNH BẰNG NHAU (drawEqualMark mark="single"):
+   - CHỈ dùng khi đề nói rõ "AB = BC" hoặc "tam giác đều"/"tam giác cân"...
+   - TAM GIÁC ĐỀU cạnh a:
+     • Khi hình ĐƠN GIẢN (chỉ có tam giác): ký hiệu 3 cạnh ở đáy ABC.
+     • Khi hình PHỨC TẠP (có thêm trung tuyến / trọng tâm / hình chiếu...
+       làm đáy ABC bị nhiều ký hiệu chồng chéo): ĐẶT 3 KÝ HIỆU "single"
+       LÊN ĐÁY TRÊN (A'B'C') để mặt đáy dưới đỡ rối. Đáy 2 đáy bằng nhau
+       nên chỉ cần ký hiệu 1 nơi.
+   - TAM GIÁC CÂN tại A (AB = AC) → drawEqualMark mark="single" cho A-B và A-C.
+   - Hình thoi → 4 cạnh đều có drawEqualMark mark="single".
+   - Hình vuông không cần (nhìn là biết).
+   - Trong lăng trụ có 2 đáy bằng nhau, CHỈ ký hiệu ở MỘT đáy (chọn đáy nào
+     ít ký hiệu hơn để dễ nhìn).
+
+F2. LĂNG TRỤ (phân biệt đứng và xiên): * Quan trọng nhớ kĩ
+   - "Lăng trụ ĐỨNG ABC.A'B'C'" → đáy trên trùng vị trí XZ với đáy dưới,
+     chỉ khác y. Tức A' ở trên đỉnh A, B' ở trên B, C' ở trên C.
+     PHẢI có drawRightAngle tại A giữa A-A' và A-B (hoặc tương tự),
+     vì cạnh bên vuông góc đáy.
+   - "Lăng trụ" KHÔNG có chữ "đứng" → mặc định LĂNG TRỤ XIÊN.
+     Đáy trên dịch ngang so với đáy dưới (VD: A' = A + offset_x ≈ 0.35,
+     offset_z ≈ 0.20). KHÔNG vẽ ký hiệu vuông góc cho cạnh bên.
+   - "Lăng trụ đều" = lăng trụ đứng có đáy đa giác đều → vẫn áp quy tắc đứng.
+   - Nhận diện: chỉ cần xuất hiện cụm "lăng trụ đứng" trong đề là coi là đứng.
+
+F3. TÂM ĐÁY (O hoặc bất kỳ tên nào):
+   - Khi đề có "O là tâm đáy", "O là tâm hình vuông ABCD", "O = AC ∩ BD"...
+     PHẢI vẽ HAI ĐƯỜNG CHÉO TRƯỚC để hiển thị cách xác định tâm:
+        drawEdge A-C với opts={ "style": "dashed", "color": "#888888" }
+        drawEdge B-D với opts={ "style": "dashed", "color": "#888888" }
+     RỒI MỚI drawPoint O tại giao điểm 2 đường chéo.
+   - Với tam giác (tâm trọng tâm G): vẽ 2 trung tuyến dạng dashed rồi mới drawPoint G.
+   - Mặt phẳng tâm tròn → vẽ đường kính dashed rồi tâm.
+   - Đường chéo dùng style "dashed" + color "#888888" để phân biệt với cạnh thật.
+
+F4. TRỌNG TÂM TAM GIÁC (G):
+   "G là trọng tâm tam giác ABC" → trọng tâm = giao điểm 3 đường trung tuyến.
+   PHẢI thực hiện đúng các bước sau, theo đúng thứ tự:
+   1) Tính tọa độ trung điểm 3 cạnh: Mab = (A+B)/2, Mbc = (B+C)/2, Mca = (C+A)/2.
+   2) drawPoint cho 2 trung điểm cần thiết với tên 1 KÝ TỰ DUY NHẤT chưa
+      xuất hiện (VD: dùng "M", "N", "P", "Q", "K"... thay vì "M_BC", "M_CA").
+   3) Vẽ 2 trung tuyến dạng dashed/gray (đủ xác định G):
+        drawEdge A-M  style="dashed" color="#888888"   (M là trung điểm BC)
+        drawEdge B-N  style="dashed" color="#888888"   (N là trung điểm CA)
+   4) drawEqualMark cho các đoạn bằng nhau ở mỗi cạnh có trung điểm.
+      QUY ƯỚC QUAN TRỌNG VỀ TICK:
+      - Nếu đáy là TAM GIÁC ĐỀU (tất cả các cạnh đều bằng nhau, các nửa
+        trung tuyến cũng bằng nhau với cùng độ dài a/2):
+        DÙNG CHUNG mark="single" cho TẤT CẢ — cả cạnh đáy + các nửa
+        cạnh do trung điểm chia ra. Vì cạnh đều = 2 nửa cạnh đều = chung
+        1 lớp ký hiệu.
+        VD: drawEqualMark B-M mark="single", drawEqualMark M-C mark="single",
+            drawEqualMark C-N mark="single", drawEqualMark N-A mark="single".
+      - Nếu đáy KHÔNG đều (tam giác thường, hình chữ nhật...):
+        DÙNG mark khác nhau cho từng cặp:
+            drawEqualMark B-M mark="double",  drawEqualMark M-C mark="double"
+            drawEqualMark C-N mark="triple",  drawEqualMark N-A mark="triple"
+        → Để phân biệt CM = MD vs cạnh khác.
+   5) Nếu đáy là TAM GIÁC ĐỀU thì trung tuyến cũng là đường cao →
+      BẮT BUỘC drawRightAngle tại trung điểm M giữa edge A-M và B-C.
+      Tương tự: drawRightAngle tại N giữa B-N và C-A (nếu vẽ trung tuyến từ B).
+   6) drawPoint G tại tọa độ ((Ax+Bx+Cx)/3, (Ay+By+Cy)/3, (Az+Bz+Cz)/3).
+   - KHÔNG vẽ G mà thiếu các trung tuyến trước đó. Học sinh cần thấy cách xác định.
+
+F5. HÌNH CHIẾU VUÔNG GÓC (X' là hình chiếu của X lên mặt phẳng P):
+   "Hình chiếu vuông góc của A' lên mặt phẳng (ABC) là điểm H/G/O..."
+   QUY TRÌNH BẮT BUỘC, KHÔNG ĐƯỢC BỎ BƯỚC NÀO:
+   1) Xác định điểm chiếu H (hoặc trùng với điểm có sẵn như G, O, trung điểm M...)
+      NẰM TRÊN mặt phẳng đáy. Tọa độ H có y = 0 nếu đáy là mp y=0.
+   2) Tọa độ X (đỉnh được chiếu) phải có:
+        x = H.x, z = H.z (nằm thẳng đứng phía trên H)
+        y = chiều cao của X (giả định = 1 nếu đề không cho)
+   3) drawPoint cho H trước (nếu chưa có). Nếu H trùng G/O đã vẽ thì bỏ qua.
+   4) drawPoint cho X.
+   5) drawEdge X-H với opts = { "style": "dashed", "color": "#2a7a62" }
+      → đường vuông góc thể hiện chiều cao thực sự của khối.
+   6) BẮT BUỘC drawRightAngle tại H để thể hiện X-H ⊥ đáy. KHÔNG được bỏ.
+      Cách chọn 2 cạnh:
+      - Nếu H là 1 đỉnh đáy (VD H = A): drawRightAngle vertex="A"
+        edge1="X-A" edge2="A-B" (hoặc cạnh đáy bất kỳ qua A).
+      - Nếu H là trung điểm cạnh đáy: drawRightAngle vertex="H"
+        edge1="X-H" edge2 = cạnh đáy đi qua H.
+      - Nếu H nằm trong miền tam giác (như trọng tâm G):
+        chọn 1 đường phụ đã vẽ đi qua H (VD trung tuyến A-M qua G):
+        drawRightAngle vertex="G" edge1="A'-G" edge2="A-M".
+        (Hoặc edge2 = "G-M" nếu A-M không trùng tên).
+
+F6. TRỰC TÂM TAM GIÁC (H_truc):
+   "H là trực tâm tam giác ABC" → trực tâm = giao điểm 3 đường cao.
+   - Vẽ 2-3 đường cao dạng dashed/gray:
+        drawEdge A-foot_a style="dashed" color="#888888"  (foot_a là chân đường cao từ A xuống BC)
+   - Sau đó drawPoint H_truc tại giao điểm.
+   Lưu ý: tính toán chân đường cao phức tạp, nếu đề chỉ ám chỉ chung chung,
+   có thể bỏ qua việc vẽ đường cao chính xác — chỉ cần drawPoint H ở vị trí trực tâm.
+
+F7. TÂM ĐƯỜNG TRÒN NGOẠI TIẾP (I):
+   "I là tâm đường tròn ngoại tiếp ABC" → giao điểm 3 đường trung trực.
+   - Tam giác đều: trùng với trọng tâm → áp dụng F4.
+   - Tam giác vuông: trùng với trung điểm cạnh huyền.
+   - Trường hợp khác: drawPoint I, bỏ qua đường trung trực nếu phức tạp.
+
+G. THÔNG TIN KHÔNG VẼ (khoảng cách, góc giữa, thể tích...):
+   - "Khoảng cách giữa X và Y = ...", "Góc giữa X và Y = ...", "Thể tích = ..."
+     → KHÔNG cần xử lý gì cả. Dữ liệu này đã có sẵn trong DULIEUHINHHOC
+       (cột cacQuanHe / given_conditions từ bước upload-and-save).
+   - Tuyệt đối KHÔNG gắn nhãn lên cạnh cho các phát biểu này.
+
+H. VẼ MẶT (drawFace) - QUY TẮC TÔ MÀU:
+   - CHỈ vẽ các mặt BAO BỌC HÌNH (mặt ngoài cùng tạo nên khối kín).
+     Hình chóp S.ABCD → 5 mặt: 1 đáy ABCD + 4 mặt bên SAB, SBC, SCD, SDA.
+     Lăng trụ ABC.A'B'C' → 5 mặt: 2 đáy + 3 mặt bên.
+     Lập phương ABCD.A'B'C'D' → 6 mặt.
+     Tứ diện ABCD → 4 mặt.
+   - MỖI MẶT CHỈ VẼ 1 LẦN. Không vẽ ABCD rồi vẽ thêm DCBA, không vẽ mặt
+     không tồn tại như mặt cắt khi đề không yêu cầu.
+   - KHÔNG vẽ mặt phụ trợ chứa điểm trung gian (VD: SAM, SCM khi đề chỉ
+     có S.ABCD và M là trung điểm CD). Mặt phụ chỉ vẽ khi đề bài hoặc
+     câu hỏi nói tới mặt phẳng đó.
+   - TẤT CẢ mặt dùng CÙNG opts để màu sắc đồng nhất, tránh hiện tượng
+     mặt này đậm hơn mặt kia gây bóng giả:
+        opacity: 0.12
+        color:   "#3d52a0"   (xanh chàm — dùng cho MỌI mặt, kể cả đáy)
+
+I. THỨ TỰ LỆNH (mỗi lệnh là 1 bước vẽ):
+   1) drawPoint cho TẤT CẢ điểm đáy (theo thứ tự A, B, C, D...)
+   2) drawEdge cho các cạnh đáy
+   3) drawRightAngle cho 1 góc đại diện ở đáy (nếu có)
+   4) NẾU đề có TÂM/TRỌNG TÂM/TRỰC TÂM ở đáy → vẽ các đường phụ dashed
+      (đường chéo / trung tuyến / đường cao) TRƯỚC, RỒI drawPoint tâm.
+      (Áp dụng quy tắc F3, F4, F6, F7).
+   5) drawPoint cho đỉnh trên (S, A', B'...) sau khi đã có đáy.
+      - Lăng trụ ĐỨNG: A' thẳng đứng trên A, ...
+      - Lăng trụ XIÊN: A' = A + offset (offset_x ≈ 0.35, offset_z ≈ 0.20).
+      - NẾU đề nói "hình chiếu vuông góc của A' lên đáy là H/G/O..." →
+        đặt A' thẳng đứng trên điểm H đó (A'.x = H.x, A'.z = H.z, A'.y = chiều cao).
+        ÁP DỤNG quy tắc F5.
+   6) drawEdge cho cạnh đứng / cạnh bên
+   7) drawRightAngle cho ⊥ với đáy:
+      - Hình chóp có "SA ⊥ đáy" → bắt buộc.
+      - Lăng trụ ĐỨNG → bắt buộc tại 1 đỉnh đáy.
+      - Lăng trụ XIÊN → KHÔNG vẽ (cạnh bên không vuông góc đáy).
+      - "Hình chiếu A' lên đáy là H" → vẽ drawEdge A'-H dashed/teal +
+        drawRightAngle tại H (nếu H trùng đỉnh đáy/cạnh đáy).
+   8) drawPoint điểm đặc biệt khác (M trung điểm, ...) + drawEqualMark nếu cần.
+   9) drawEdge các cạnh phụ liên quan đến điểm đặc biệt
+   10) drawFace các mặt bao bọc hình (mỗi mặt 1 lệnh, cùng opts)
+   11) setCamera
+
+J. KHÔNG dùng LaTeX trong nhãn. Dùng Unicode: a, a√2, a√3/4, 2a, ²...
+"""
+
+RENDER_3D_EXAMPLE = """
+## VÍ DỤ ĐẦY ĐỦ:
+
+Đề: "Cho hình chóp S.ABCD có đáy ABCD là hình vuông cạnh a, SA vuông góc với
+mặt phẳng đáy. Gọi M là trung điểm của CD. Biết khoảng cách giữa hai đường
+thẳng BC và SM bằng a√3/4."
+
+Output (JSON, KHÔNG có markdown bao quanh):
+[
+  { "fn": "drawPoint", "args": { "name": "A", "x": 0, "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "B", "x": 1, "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "C", "x": 1, "y": 0, "z": 1 } },
+  { "fn": "drawPoint", "args": { "name": "D", "x": 0, "y": 0, "z": 1 } },
+  { "fn": "drawEdge",  "args": { "from": "A", "to": "B", "opts": { "label": "a" } } },
+  { "fn": "drawEdge",  "args": { "from": "B", "to": "C" } },
+  { "fn": "drawEdge",  "args": { "from": "C", "to": "D" } },
+  { "fn": "drawEdge",  "args": { "from": "D", "to": "A" } },
+  { "fn": "drawRightAngle", "args": { "vertex": "A", "edge1": "A-B", "edge2": "A-D" } },
+  { "fn": "drawPoint", "args": { "name": "S", "x": 0, "y": 1, "z": 0 } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "A", "opts": { "color": "#2a7a62" } } },
+  { "fn": "drawRightAngle", "args": { "vertex": "A", "edge1": "S-A", "edge2": "A-B" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "B" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "C" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "D" } },
+  { "fn": "drawPoint", "args": { "name": "M", "x": 0.5, "y": 0, "z": 1 } },
+  { "fn": "drawEqualMark", "args": { "from": "C", "to": "M", "mark": "double" } },
+  { "fn": "drawEqualMark", "args": { "from": "M", "to": "D", "mark": "double" } },
+  { "fn": "drawEdge",  "args": { "from": "S", "to": "M", "opts": { "color": "#a07840" } } },
+  { "fn": "drawFace",  "args": { "points": ["A","B","C","D"], "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","A","B"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","B","C"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","C","D"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["S","D","A"],     "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "setCamera", "args": { "x": 2.5, "y": 2, "z": 2.5, "lx": 0.5, "ly": 0.5, "lz": 0.5 } }
+]
+
+## Bạn có thể tham khảo VÍ DỤ 2 nhưng không được lạm dụng, phải đọc đề mà vẽ đứng hay xiên(lăng trụ xiên + trọng tâm + hình chiếu vuông góc):
+
+Đề: "Cho hình lăng trụ ABC.A'B'C' có đáy là tam giác đều cạnh a. Hình chiếu
+vuông góc của A' lên (ABC) trùng với trọng tâm tam giác ABC. Biết khoảng cách
+giữa AA' và BC bằng a√3/4."
+
+Phân tích:
+- Đáy ABC tam giác đều cạnh a → A=(0,0,0), B=(1,0,0), C=(0.5, 0, √3/2 ≈ 0.866).
+- Trọng tâm G = ((0+1+0.5)/3, 0, (0+0+0.866)/3) = (0.5, 0, 0.289).
+- Đề KHÔNG nói "đứng" → lăng trụ XIÊN. A' nằm thẳng đứng trên G:
+    A' = (0.5, 1, 0.289).  Cạnh bên AA' xiên.
+- B' = B + (A'-A) = (1.5, 1, 0.289).
+- C' = C + (A'-A) = (1, 1, 1.155).
+- Trung điểm M của BC = (0.75, 0, 0.433); trung điểm N của CA = (0.25, 0, 0.433).
+
+Output:
+[
+  { "fn": "drawPoint", "args": { "name": "A", "x": 0,   "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "B", "x": 1,   "y": 0, "z": 0 } },
+  { "fn": "drawPoint", "args": { "name": "C", "x": 0.5, "y": 0, "z": 0.866 } },
+  { "fn": "drawEdge",  "args": { "from": "A", "to": "B", "opts": { "label": "a" } } },
+  { "fn": "drawEdge",  "args": { "from": "B", "to": "C" } },
+  { "fn": "drawEdge",  "args": { "from": "C", "to": "A" } },
+
+  // Trọng tâm G: vẽ 2 trung tuyến dashed/gray TRƯỚC, đặt tên trung điểm
+  // bằng 1 ký tự (M, N) chưa dùng. RỒI mới drawPoint G.
+  { "fn": "drawPoint", "args": { "name": "M", "x": 0.75, "y": 0, "z": 0.433 } },
+  { "fn": "drawEdge",  "args": { "from": "A", "to": "M", "opts": { "style": "dashed", "color": "#888888" } } },
+  // Tam giác đều → các nửa cạnh BM = MC bằng nhau VÀ bằng các cạnh khác sau khi chia.
+  // DÙNG CHUNG "single" cho TẤT CẢ tick ở đáy (không phân biệt double/triple).
+  { "fn": "drawEqualMark", "args": { "from": "B", "to": "M", "mark": "single" } },
+  { "fn": "drawEqualMark", "args": { "from": "M", "to": "C", "mark": "single" } },
+  // Tam giác đều → trung tuyến A-M cũng là đường cao → vuông góc với BC tại M
+  { "fn": "drawRightAngle", "args": { "vertex": "M", "edge1": "A-M", "edge2": "B-C" } },
+
+  { "fn": "drawPoint", "args": { "name": "N", "x": 0.25, "y": 0, "z": 0.433 } },
+  { "fn": "drawEdge",  "args": { "from": "B", "to": "N", "opts": { "style": "dashed", "color": "#888888" } } },
+  { "fn": "drawEqualMark", "args": { "from": "C", "to": "N", "mark": "single" } },
+  { "fn": "drawEqualMark", "args": { "from": "N", "to": "A", "mark": "single" } },
+  { "fn": "drawRightAngle", "args": { "vertex": "N", "edge1": "B-N", "edge2": "C-A" } },
+
+  // G = giao của 2 trung tuyến (cũng là trọng tâm)
+  { "fn": "drawPoint", "args": { "name": "G", "x": 0.5, "y": 0, "z": 0.289 } },
+
+  // A' nằm thẳng đứng trên G (vì hình chiếu A' lên đáy = G).
+  { "fn": "drawPoint", "args": { "name": "A'", "x": 0.5, "y": 1, "z": 0.289 } },
+  // Đường vuông góc A'-G dashed/teal
+  { "fn": "drawEdge",  "args": { "from": "A'", "to": "G", "opts": { "style": "dashed", "color": "#2a7a62" } } },
+  // BẮT BUỘC drawRightAngle tại G giữa A'-G và trung tuyến A-M (đi qua G).
+  // Đây là ký hiệu hình chiếu vuông góc của A' lên đáy.
+  { "fn": "drawRightAngle", "args": { "vertex": "G", "edge1": "A'-G", "edge2": "A-M" } },
+
+  { "fn": "drawPoint", "args": { "name": "B'", "x": 1.5, "y": 1, "z": 0.289 } },
+  { "fn": "drawPoint", "args": { "name": "C'", "x": 1,   "y": 1, "z": 1.155 } },
+
+  // Cạnh bên (xiên) — KHÔNG drawRightAngle vì lăng trụ xiên.
+  { "fn": "drawEdge",  "args": { "from": "A", "to": "A'" } },
+  { "fn": "drawEdge",  "args": { "from": "B", "to": "B'" } },
+  { "fn": "drawEdge",  "args": { "from": "C", "to": "C'" } },
+
+  // Cạnh đáy trên
+  { "fn": "drawEdge",  "args": { "from": "A'", "to": "B'" } },
+  { "fn": "drawEdge",  "args": { "from": "B'", "to": "C'" } },
+  { "fn": "drawEdge",  "args": { "from": "C'", "to": "A'" } },
+
+  // Tam giác đều → 3 cạnh bằng nhau. Đặt ký hiệu Ở ĐÁY TRÊN (A'B'C')
+  // vì đáy dưới đã có nhiều ký hiệu của trung tuyến / trọng tâm rồi.
+  { "fn": "drawEqualMark", "args": { "from": "A'", "to": "B'", "mark": "double" } },
+  { "fn": "drawEqualMark", "args": { "from": "B'", "to": "C'", "mark": "double" } },
+  { "fn": "drawEqualMark", "args": { "from": "C'", "to": "A'", "mark": "double" } },
+
+  // Mặt
+  { "fn": "drawFace",  "args": { "points": ["A","B","C"],       "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["A'","B'","C'"],    "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["A","B","B'","A'"], "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["B","C","C'","B'"], "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+  { "fn": "drawFace",  "args": { "points": ["C","A","A'","C'"], "opts": { "opacity": 0.12, "color": "#3d52a0" } } },
+
+  { "fn": "setCamera", "args": { "x": 2.5, "y": 2, "z": 2.5, "lx": 0.5, "ly": 0.5, "lz": 0.5 } }
+]
+"""
+
+def build_render_3d_prompt(problem_text: str) -> str:
+    """Prompt yêu cầu Gemini sinh mảng lệnh vẽ Three.js cho 1 bài toán."""
+    return f"""{RENDER_3D_SYSTEM}
+
+{RENDER_3D_API}
+
+{RENDER_3D_RULES}
+
+{RENDER_3D_EXAMPLE}
+
+## ĐỀ BÀI:
+{problem_text}
+
+## YÊU CẦU:
+- Trả về DUY NHẤT 1 mảng JSON các lệnh vẽ. KHÔNG bao quanh bằng ```json``` hay markdown.
+- KHÔNG kèm giải thích, chỉ JSON.
+- Mọi tọa độ tính theo a = 1.
+- Tuân thủ tuyệt đối quy tắc B (chỉ vẽ cái đề cho).
+- Bỏ qua các phát biểu khoảng cách / góc giữa / thể tích — đã có sẵn trong DULIEUHINHHOC.
+"""

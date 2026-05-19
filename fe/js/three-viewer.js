@@ -246,16 +246,19 @@
           const vertex = perp.vertex;
           const line1 = perp.line1;
           const line2 = perp.line2;
-          
+
           if (points[vertex]) {
+            // FIX: truyền tên vertex (string), không phải tọa độ.
+            // Bên trong createPerpendicularSymbol so sánh `p1Start === vertex`
+            // (tên cạnh "A" với tên đỉnh "A"). Nếu truyền coords, so sánh luôn fail.
             const perpSymbol = this.createPerpendicularSymbol(
-              points[vertex],
+              vertex,
               line1,
               line2,
               points
             );
             if (perpSymbol) {
-              perpSymbol.visible = false; // Hidden by default
+              perpSymbol.visible = false;
               perpSymbol.userData.annotationType = 'perpendicular';
               perpSymbol.userData.relatedVertex = vertex;
               perpSymbol.userData.relatedLines = [line1, line2];
@@ -264,7 +267,7 @@
           }
         });
       }
-      
+
       // Angle symbols (ký hiệu góc)
       if (annotations.angles && Array.isArray(annotations.angles)) {
         annotations.angles.forEach(angle => {
@@ -272,17 +275,18 @@
           const line1 = angle.line1;
           const line2 = angle.line2;
           const value = angle.angle || angle.value;
-          
+
           if (points[vertex]) {
+            // FIX: truyền tên vertex (string), không phải tọa độ.
             const angleSymbol = this.createAngleSymbol(
-              points[vertex],
+              vertex,
               line1,
               line2,
               value,
               points
             );
             if (angleSymbol) {
-              angleSymbol.visible = false; // Hidden by default
+              angleSymbol.visible = false;
               angleSymbol.userData.annotationType = 'angle';
               angleSymbol.userData.relatedVertex = vertex;
               angleSymbol.userData.relatedLines = [line1, line2];
@@ -371,8 +375,8 @@
     }
 
     createPerpendicularSymbol(vertex, line1, line2, points) {
-      // Create small square symbol at vertex
-      const size = 0.1;
+      // Ô vuông nhỏ thể hiện góc vuông tại vertex
+      const size = 0.08;
       
       // Get direction vectors
       const [p1Start, p1End] = line1.split('-');
@@ -531,46 +535,51 @@
     }
 
     createEqualSegmentMark(start, end, markType) {
-      // Create tick marks on edge to show equal segments
+      // Tick gạch vuông góc với cạnh, đặt ở midpoint của đoạn.
       const midpoint = new THREE.Vector3(
         (start[0] + end[0]) / 2,
         (start[1] + end[1]) / 2,
         (start[2] + end[2]) / 2
       );
-      
-      // Direction perpendicular to edge
+
       const edgeDir = new THREE.Vector3(
         end[0] - start[0],
         end[1] - start[1],
         end[2] - start[2]
       ).normalize();
-      
-      // Get perpendicular direction (simplified)
-      const perpDir = new THREE.Vector3(-edgeDir.y, edgeDir.x, 0).normalize();
-      
-      const tickSize = 0.08;
-      const tickSpacing = 0.04;
+
+      // Tìm hướng vuông góc với cạnh trong KHÔNG GIAN 3D bằng cross product
+      // (perpDir = edgeDir × ref). Nếu cạnh gần song song với Y thì đổi ref.
+      let ref = new THREE.Vector3(0, 1, 0);
+      if (Math.abs(edgeDir.dot(ref)) > 0.95) {
+        ref = new THREE.Vector3(1, 0, 0);
+      }
+      const perpDir = new THREE.Vector3().crossVectors(edgeDir, ref).normalize();
+
+      const tickSize = 0.10;     // Nhỏ gọn để không che cạnh
+      const tickSpacing = 0.05;
       const numTicks = markType === 'single' ? 1 : markType === 'double' ? 2 : 3;
-      
+
       const group = new THREE.Group();
-      
+      const material = new THREE.LineBasicMaterial({
+        color: 0xa07840, // gold
+        linewidth: 3,
+        depthTest: false
+      });
+
       for (let i = 0; i < numTicks; i++) {
         const offset = (i - (numTicks - 1) / 2) * tickSpacing;
         const tickCenter = midpoint.clone().add(edgeDir.clone().multiplyScalar(offset));
-        
+
         const p1 = tickCenter.clone().add(perpDir.clone().multiplyScalar(tickSize / 2));
         const p2 = tickCenter.clone().add(perpDir.clone().multiplyScalar(-tickSize / 2));
-        
+
         const geometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-        const material = new THREE.LineBasicMaterial({
-          color: 0x3d52a0,
-          linewidth: 2
-        });
-        
         const tick = new THREE.Line(geometry, material);
+        tick.renderOrder = 999;
         group.add(tick);
       }
-      
+
       return group;
     }
 
@@ -594,7 +603,8 @@
       const group = new THREE.Group();
       group.name = name;
 
-      const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+      // Cục điểm nhỏ gọn để không che lấp các cạnh / ký hiệu
+      const geometry = new THREE.SphereGeometry(0.04, 16, 16);
       const material = new THREE.MeshStandardMaterial({
         color: 0x3d52a0,
         metalness: 0.3,
@@ -605,7 +615,7 @@
       group.add(sphere);
 
       const label = this.createLabel(name);
-      label.position.set(coords[0], coords[1] + 0.2, coords[2]);
+      label.position.set(coords[0], coords[1] + 0.15, coords[2]);
       group.add(label);
 
       group.visible = false;
@@ -646,8 +656,22 @@
     }
 
     createFace(vertices) {
-      const points = vertices.map(v => new THREE.Vector3(v[0], v[1], v[2]));
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      // Fan triangulation cho polygon n đỉnh (xem drawFace để biết chi tiết).
+      const positions = new Float32Array(vertices.length * 3);
+      vertices.forEach((v, i) => {
+        positions[i * 3]     = v[0];
+        positions[i * 3 + 1] = v[1];
+        positions[i * 3 + 2] = v[2];
+      });
+      const indices = [];
+      for (let i = 1; i < vertices.length - 1; i++) {
+        indices.push(0, i, i + 1);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+
       const material = new THREE.MeshStandardMaterial({
         color: 0x3d52a0,
         transparent: true,
@@ -705,77 +729,69 @@
         });
       }
 
-      // Show objects and annotations up to current step (cumulative)
+      // Show objects up to current step (cumulative)
       for (let i = 0; i <= step; i++) {
         const currentStep = this.geometryData.steps[i];
         if (!currentStep) continue;
-
-        // Show geometry objects
         currentStep.objects.forEach(objName => {
           const obj = this.objects.get(objName);
-          if (obj) {
-            obj.visible = true;
-            
-            // Also show related annotations for this object
-            this.showAnnotationsForObject(objName);
-          }
+          if (obj) obj.visible = true;
         });
       }
+
+      // Sau khi đã set visibility cho objects, mới đánh giá annotations.
+      // Một annotation chỉ hiện khi mọi object liên quan đã visible.
+      this.updateAnnotationsVisibility();
     }
 
-    showAnnotationsForObject(objName) {
+    updateAnnotationsVisibility() {
       if (!this.annotations) return;
-      
-      // Show annotations related to this object
+
+      const isPointVisible = (name) => {
+        const obj = this.objects.get(name);
+        return !!(obj && obj.visible);
+      };
+      const isEdgeVisible = (edgeName) => {
+        // Edge object trực tiếp visible thì OK
+        const obj = this.objects.get(edgeName);
+        if (obj && obj.visible) return true;
+        // Hoặc khi đoạn không tồn tại như edge object riêng (VD: M nằm trên CD,
+        // ta chỉ tạo cạnh C-D, không có C-M / M-D), thì coi visible khi 2 endpoint
+        // đều đã visible.
+        const [a, b] = (edgeName || '').split('-');
+        return isPointVisible(a) && isPointVisible(b);
+      };
+
       this.annotations.children.forEach(annotation => {
-        const userData = annotation.userData;
-        
-        // Show edge labels when edge is visible
-        if (userData.annotationType === 'edge_label') {
-          if (userData.relatedEdge === objName) {
+        const ud = annotation.userData || {};
+        switch (ud.annotationType) {
+          case 'edge_label': {
+            annotation.visible = isEdgeVisible(ud.relatedEdge);
+            break;
+          }
+          case 'equal_segment': {
+            // Tick gạch trung điểm: hiện khi 2 endpoint đoạn đã visible
+            // (kể cả khi đoạn đó không tồn tại như edge object riêng)
+            const [a, b] = (ud.relatedEdge || '').split('-');
+            annotation.visible = isPointVisible(a) && isPointVisible(b);
+            break;
+          }
+          case 'perpendicular':
+          case 'angle': {
+            const vertexOk = isPointVisible(ud.relatedVertex);
+            const linesOk = (ud.relatedLines || []).every(isEdgeVisible);
+            annotation.visible = vertexOk && linesOk;
+            break;
+          }
+          default:
             annotation.visible = true;
-          }
-        }
-        
-        // Show perpendicular symbols when vertex is visible
-        if (userData.annotationType === 'perpendicular') {
-          if (objName === userData.relatedVertex) {
-            annotation.visible = true;
-          }
-          // Also show when related lines are visible
-          if (userData.relatedLines) {
-            const allLinesVisible = userData.relatedLines.every(line => {
-              return this.objects.get(line)?.visible;
-            });
-            if (allLinesVisible) {
-              annotation.visible = true;
-            }
-          }
-        }
-        
-        // Show angle symbols when vertex is visible
-        if (userData.annotationType === 'angle') {
-          if (objName === userData.relatedVertex) {
-            annotation.visible = true;
-          }
-          // Also show when related lines are visible
-          if (userData.relatedLines) {
-            const allLinesVisible = userData.relatedLines.every(line => {
-              return this.objects.get(line)?.visible;
-            });
-            if (allLinesVisible) {
-              annotation.visible = true;
-            }
-          }
-        }
-        
-        // Show equal segment marks when edge is visible
-        if (userData.annotationType === 'equal_segment') {
-          if (userData.relatedEdge === objName) {
-            annotation.visible = true;
-          }
         }
       });
+    }
+
+    showAnnotationsForObject(_objName) {
+      // Giữ method để tương thích, delegate sang updateAnnotationsVisibility
+      this.updateAnnotationsVisibility();
     }
 
     nextStep() {
@@ -919,6 +935,450 @@
       if (this.controls && this.controls.dispose) {
         this.controls.dispose();
       }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PUBLIC DRAW API — Gemini gọi các hàm này theo thứ tự
+    // Mỗi hàm tự add object vào scene và đăng ký vào this.objects
+    // để goToStep / updateAnnotationsVisibility hoạt động đúng.
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Tải mảng lệnh vẽ và execute đến lệnh thứ `untilStep` (mặc định: hết).
+     * Dùng cho việc xem đầy đủ mô hình.
+     */
+    loadCommands(commands) {
+      this.commandList = Array.isArray(commands) ? commands : [];
+      this.clearObjects();
+      this.executeCommands(this.commandList);
+      // Phục vụ UI: số bước = số lệnh không phải setCamera
+      this.totalCommandSteps = this.commandList.filter(c => {
+        const fn = (c || {}).fn;
+        return fn && fn !== 'setCamera';
+      }).length;
+    }
+
+    /**
+     * Hiện hình ở bước `idx` (1-based, tính theo lệnh vẽ thực sự).
+     * Cách làm: clear scene, execute lại commandList[0..k] với k là index lệnh
+     * tương ứng (bỏ qua setCamera khi đếm để ăn khớp với UI).
+     */
+    goToCommandStep(idx) {
+      if (!this.commandList) return;
+      this.clearObjects();
+
+      let drawCount = 0;
+      const upTo = [];
+      for (const cmd of this.commandList) {
+        const fn = (cmd || {}).fn;
+        // setCamera không tính vào step số, nhưng vẫn push để giữ camera
+        if (fn === 'setCamera') {
+          upTo.push(cmd);
+          continue;
+        }
+        // Đã đủ số lệnh vẽ → dừng (KHÔNG push lệnh hiện tại)
+        if (drawCount >= idx) break;
+        upTo.push(cmd);
+        drawCount++;
+      }
+      this.executeCommands(upTo);
+      this.currentStep = idx;
+    }
+
+    /**
+     * Vẽ một điểm trong không gian 3D.
+     * @param {string} name   - Tên điểm, VD: "A", "B'", "M"
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     * @param {object} [opts]
+     * @param {string} [opts.color]   - Hex string, VD: "#3d52a0"
+     * @param {number} [opts.radius]  - Bán kính cầu (default 0.04)
+     */
+    drawPoint(name, x, y, z, opts = {}) {
+      // Xóa điểm cũ nếu đã tồn tại
+      if (this.objects.has(name)) {
+        const old = this.objects.get(name);
+        this.scene.remove(old);
+        this.objects.delete(name);
+      }
+
+      const group = new THREE.Group();
+      group.name = name;
+
+      const radius = opts.radius || 0.02;
+      const color = opts.color ? new THREE.Color(opts.color) : new THREE.Color(0x3d52a0);
+
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 16, 16),
+        new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.7 })
+      );
+      sphere.position.set(x, y, z);
+      group.add(sphere);
+
+      const label = this.createLabel(name);
+      label.position.set(x, y + 0.15, z);
+      group.add(label);
+
+      group.visible = true;
+      this.scene.add(group);
+      this.objects.set(name, group);
+      return group;
+    }
+
+    /**
+     * Vẽ cạnh nối 2 điểm đã có trong scene.
+     * @param {string} fromName  - Tên điểm đầu (phải đã drawPoint trước)
+     * @param {string} toName    - Tên điểm cuối
+     * @param {object} [opts]
+     * @param {string} [opts.style]   - "solid" | "dashed" (default "solid")
+     * @param {string} [opts.color]   - Hex string
+     * @param {string} [opts.label]   - Nhãn độ dài hiển thị giữa cạnh (VD: "a", "a√2")
+     * @param {number} [opts.linewidth]
+     */
+    drawEdge(fromName, toName, opts = {}) {
+      const edgeName = `${fromName}-${toName}`;
+
+      // Lấy tọa độ từ điểm đã vẽ
+      const fromGroup = this.objects.get(fromName);
+      const toGroup   = this.objects.get(toName);
+      if (!fromGroup || !toGroup) {
+        console.warn(`drawEdge: điểm "${fromName}" hoặc "${toName}" chưa được drawPoint`);
+        return null;
+      }
+
+      // Lấy vị trí từ sphere con (children[0])
+      const fromPos = fromGroup.children[0].position;
+      const toPos   = toGroup.children[0].position;
+
+      const style = opts.style || 'solid';
+      const hexColor = opts.color
+        ? new THREE.Color(opts.color).getHex()
+        : (style === 'dashed' ? 0x2c3e50 : 0x3d52a0);
+
+      const pts = [
+        new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z),
+        new THREE.Vector3(toPos.x,   toPos.y,   toPos.z),
+      ];
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+
+      let line;
+      if (style === 'dashed') {
+        const mat = new THREE.LineDashedMaterial({
+          color: hexColor,
+          linewidth: opts.linewidth || 1,
+          dashSize: 0.1,
+          gapSize: 0.05,
+        });
+        line = new THREE.Line(geo, mat);
+        line.computeLineDistances();
+      } else {
+        const mat = new THREE.LineBasicMaterial({
+          color: hexColor,
+          linewidth: opts.linewidth || 2,
+        });
+        line = new THREE.Line(geo, mat);
+      }
+
+      line.name = edgeName;
+      line.visible = true;
+      this.scene.add(line);
+      this.objects.set(edgeName, line);
+
+      // Gắn nhãn độ dài nếu có
+      if (opts.label) {
+        const sprite = this.createEdgeLabel(
+          [fromPos.x, fromPos.y, fromPos.z],
+          [toPos.x,   toPos.y,   toPos.z],
+          opts.label
+        );
+        sprite.visible = true;
+        sprite.userData.annotationType = 'edge_label';
+        sprite.userData.relatedEdge = edgeName;
+        this.annotations.add(sprite);
+      }
+
+      return line;
+    }
+
+    /**
+     * Vẽ mặt phẳng (polygon) từ danh sách tên điểm.
+     * @param {string[]} pointNames  - VD: ["A","B","C","D"]
+     * @param {object}   [opts]
+     * @param {number}   [opts.opacity]  - 0..1 (default 0.15)
+     * @param {string}   [opts.color]    - Hex string
+     */
+    drawFace(pointNames, opts = {}) {
+      const faceId = 'face_' + pointNames.join('');
+      const coords = pointNames.map(n => {
+        const g = this.objects.get(n);
+        if (!g) { console.warn(`drawFace: điểm "${n}" chưa được drawPoint`); return null; }
+        return g.children[0].position;
+      }).filter(Boolean);
+
+      if (coords.length < 3) return null;
+
+      const color = opts.color ? new THREE.Color(opts.color) : new THREE.Color(0x3d52a0);
+      const opacity = opts.opacity !== undefined ? opts.opacity : 0.15;
+
+      // Build vertex buffer (Float32Array)
+      const vertices = new Float32Array(coords.length * 3);
+      coords.forEach((p, i) => {
+        vertices[i * 3]     = p.x;
+        vertices[i * 3 + 1] = p.y;
+        vertices[i * 3 + 2] = p.z;
+      });
+
+      // Fan triangulation: chia polygon n đỉnh thành (n-2) tam giác,
+      // mỗi tam giác lấy đỉnh 0 + 2 đỉnh kề tiếp theo.
+      // VD n=4 (ABCD): [0,1,2], [0,2,3]
+      // VD n=5 (ABCDE): [0,1,2], [0,2,3], [0,3,4]
+      // VD n=6 (lục giác): [0,1,2], [0,2,3], [0,3,4], [0,4,5]
+      // Hoạt động đúng với polygon lồi (convex). Polygon lõm hiếm gặp trong
+      // hình học không gian giáo trình nên có thể bỏ qua.
+      const indices = [];
+      for (let i = 1; i < coords.length - 1; i++) {
+        indices.push(0, i, i + 1);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+        metalness: 0.1,
+        roughness: 0.8,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.name = faceId;
+      mesh.visible = true;
+      this.scene.add(mesh);
+      this.objects.set(faceId, mesh);
+      return mesh;
+    }
+
+    /**
+     * Vẽ nhãn văn bản tự do tại một vị trí 3D.
+     * @param {string} text
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     * @param {object} [opts]
+     * @param {string} [opts.color]   - Hex string
+     * @param {number} [opts.scale]   - Scale của sprite (default 0.4)
+     */
+    drawLabel(text, x, y, z, opts = {}) {
+      const labelId = `label_${text}_${x}_${y}_${z}`;
+      const sprite = this.createLabel(text);
+
+      if (opts.color) {
+        // Tạo lại label với màu tùy chỉnh
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 256; canvas.height = 128;
+        ctx.clearRect(0, 0, 256, 128);
+        ctx.font = 'Bold 60px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = 6;
+        ctx.strokeText(text, 128, 64);
+        ctx.fillStyle = opts.color;
+        ctx.fillText(text, 128, 64);
+        const tex = new THREE.CanvasTexture(canvas);
+        sprite.material.map = tex;
+        sprite.material.needsUpdate = true;
+      }
+
+      const scale = opts.scale || 0.4;
+      sprite.scale.set(scale, scale / 2, 1);
+      sprite.position.set(x, y, z);
+      sprite.visible = true;
+      this.scene.add(sprite);
+      this.objects.set(labelId, sprite);
+      return sprite;
+    }
+
+    /**
+     * Vẽ ký hiệu vuông góc (ô vuông nhỏ) tại một đỉnh giữa 2 cạnh.
+     * @param {string} vertexName  - Tên đỉnh (phải đã drawPoint)
+     * @param {string} edge1       - Cạnh 1, VD: "S-A"
+     * @param {string} edge2       - Cạnh 2, VD: "A-B"
+     */
+    drawRightAngle(vertexName, edge1, edge2) {
+      const pts = this._collectPoints();
+      const symbol = this.createPerpendicularSymbol(vertexName, edge1, edge2, pts);
+      if (!symbol) return null;
+
+      const symId = `perp_${vertexName}_${edge1}_${edge2}`;
+      symbol.visible = true;
+      symbol.userData.annotationType = 'perpendicular';
+      symbol.userData.relatedVertex = vertexName;
+      symbol.userData.relatedLines = [edge1, edge2];
+      this.annotations.add(symbol);
+      return symbol;
+    }
+
+    /**
+     * Vẽ dấu gạch tick trên cạnh để ký hiệu các đoạn bằng nhau.
+     * @param {string} fromName
+     * @param {string} toName
+     * @param {string} [mark]  - "single" | "double" | "triple" (default "single")
+     */
+    drawEqualMark(fromName, toName, mark = 'single') {
+      const fromGroup = this.objects.get(fromName);
+      const toGroup   = this.objects.get(toName);
+      if (!fromGroup || !toGroup) return null;
+
+      const fp = fromGroup.children[0].position;
+      const tp = toGroup.children[0].position;
+
+      const tickGroup = this.createEqualSegmentMark(
+        [fp.x, fp.y, fp.z],
+        [tp.x, tp.y, tp.z],
+        mark
+      );
+      const segId = `${fromName}-${toName}`;
+      tickGroup.visible = true;
+      tickGroup.userData.annotationType = 'equal_segment';
+      tickGroup.userData.relatedEdge = segId;
+      this.annotations.add(tickGroup);
+      return tickGroup;
+    }
+
+    /**
+     * Vẽ cung góc tại đỉnh giữa 2 cạnh, kèm nhãn giá trị góc.
+     * @param {string} vertexName
+     * @param {string} edge1
+     * @param {string} edge2
+     * @param {number|string} [value]  - Giá trị góc, VD: 90 hoặc "60°"
+     */
+    drawAngle(vertexName, edge1, edge2, value) {
+      const pts = this._collectPoints();
+      const symbol = this.createAngleSymbol(vertexName, edge1, edge2, value, pts);
+      if (!symbol) return null;
+
+      symbol.visible = true;
+      symbol.userData.annotationType = 'angle';
+      symbol.userData.relatedVertex = vertexName;
+      symbol.userData.relatedLines = [edge1, edge2];
+      this.annotations.add(symbol);
+      return symbol;
+    }
+
+    /**
+     * Đặt vị trí camera nhìn vào hình.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     * @param {number} [lx] - lookAt x (default 0)
+     * @param {number} [ly] - lookAt y (default 0)
+     * @param {number} [lz] - lookAt z (default 0)
+     */
+    setCamera(x, y, z, lx = 0, ly = 0, lz = 0) {
+      if (!this.camera) return;
+      this.camera.position.set(x, y, z);
+      this.camera.lookAt(lx, ly, lz);
+      if (this.controls) {
+        this.controls.target.set(lx, ly, lz);
+        this.controls.update();
+      }
+    }
+
+    /**
+     * Thực thi một mảng lệnh vẽ do Gemini sinh ra.
+     * Mỗi lệnh có dạng: { fn, args }
+     * VD: { fn: "drawPoint", args: { name: "A", x: 0, y: 0, z: 0 } }
+     *
+     * Danh sách fn hợp lệ:
+     *   drawPoint(name, x, y, z, opts?)
+     *   drawEdge(from, to, opts?)
+     *   drawFace(points[], opts?)
+     *   drawLabel(text, x, y, z, opts?)
+     *   drawRightAngle(vertex, edge1, edge2)
+     *   drawEqualMark(from, to, mark?)
+     *   drawAngle(vertex, edge1, edge2, value?)
+     *   setCamera(x, y, z, lx?, ly?, lz?)
+     *
+     * Lưu ý: Metadata "không vẽ" (khoảng cách, góc giữa, ...) KHÔNG đi qua
+     * executeCommands. Chúng đã có sẵn trong DULIEUHINHHOC từ bước upload và
+     * được route /render-3d trả về ở field `metadata` riêng.
+     *
+     * @param {Array<{fn: string, args: object}>} commands
+     */
+    executeCommands(commands) {
+      if (!Array.isArray(commands)) {
+        console.error('executeCommands: commands phải là mảng');
+        return;
+      }
+
+      const ALLOWED = new Set([
+        'drawPoint', 'drawEdge', 'drawFace', 'drawLabel',
+        'drawRightAngle', 'drawEqualMark', 'drawAngle', 'setCamera',
+      ]);
+
+      commands.forEach((cmd, i) => {
+        const { fn, args } = cmd || {};
+        if (!fn || !ALLOWED.has(fn)) {
+          console.warn(`executeCommands[${i}]: hàm "${fn}" không hợp lệ, bỏ qua`);
+          return;
+        }
+        try {
+          const a = args || {};
+          switch (fn) {
+            case 'drawPoint':
+              this.drawPoint(a.name, a.x, a.y, a.z, a.opts);
+              break;
+            case 'drawEdge':
+              this.drawEdge(a.from, a.to, a.opts);
+              break;
+            case 'drawFace':
+              this.drawFace(a.points, a.opts);
+              break;
+            case 'drawLabel':
+              this.drawLabel(a.text, a.x, a.y, a.z, a.opts);
+              break;
+            case 'drawRightAngle':
+              this.drawRightAngle(a.vertex, a.edge1, a.edge2);
+              break;
+            case 'drawEqualMark':
+              this.drawEqualMark(a.from, a.to, a.mark);
+              break;
+            case 'drawAngle':
+              this.drawAngle(a.vertex, a.edge1, a.edge2, a.value);
+              break;
+            case 'setCamera':
+              this.setCamera(a.x, a.y, a.z, a.lx, a.ly, a.lz);
+              break;
+          }
+        } catch (err) {
+          console.error(`executeCommands[${i}] "${fn}" lỗi:`, err);
+        }
+      });
+
+      // Sau khi vẽ xong, fit camera nếu chưa setCamera
+      const hasSetCamera = commands.some(c => c && c.fn === 'setCamera');
+      if (!hasSetCamera) this.fitCamera();
+    }
+
+    // ─── Helper nội bộ ───────────────────────────────────────────
+
+    /** Thu thập tọa độ tất cả điểm hiện có dưới dạng { name: [x,y,z] } */
+    _collectPoints() {
+      const pts = {};
+      this.objects.forEach((obj, key) => {
+        // Điểm là Group có children[0] là Sphere
+        if (obj instanceof THREE.Group && obj.children[0] instanceof THREE.Mesh) {
+          const p = obj.children[0].position;
+          pts[key] = [p.x, p.y, p.z];
+        }
+      });
+      return pts;
     }
   }
 

@@ -218,6 +218,24 @@ class GeometrySolver:
             if "vuông cạnh" in t or "vuông tâm" in t:
                 return True
             return False
+
+        def extract_side_raw(text: str) -> Optional[str]:
+            """Lấy biểu thức gốc của cạnh từ cụm 'cạnh <expr>' (VD: 'cạnh a', 'cạnh 2a', 'cạnh a√3').
+            Trả về None nếu đề KHÔNG nói rõ độ dài cạnh."""
+            if not isinstance(text, str):
+                return None
+            m = re.search(
+                r"cạnh\s+((?:\d+\.?\d*)?\s*a?\s*√?\s*\d*\.?\d*|[a-zA-Z]\d*)",
+                text,
+                re.IGNORECASE,
+            )
+            if not m:
+                return None
+            raw = re.sub(r"\s+", "", m.group(1))
+            # Loại các match rỗng / chỉ có ký tự không hợp lệ
+            if not raw or raw in {"."}:
+                return None
+            return raw
         
         for condition in conditions:
             # Ensure condition is string
@@ -244,7 +262,11 @@ class GeometrySolver:
             # Hình vuông (chỉ match "hình vuông" thực sự, không match "vuông góc")
             elif is_real_square(condition):
                 side = self._extract_number(condition, default=1.0)
-                return {"type": "square", "side": side}
+                result = {"type": "square", "side": side}
+                side_raw = extract_side_raw(condition)
+                if side_raw:
+                    result["side_raw"] = side_raw
+                return result
             
             # Hình chữ nhật
             elif "hình chữ nhật" in condition_lower or "chữ nhật" in condition_lower:
@@ -515,26 +537,60 @@ class GeometrySolver:
         # Dùng findall để bắt TẤT CẢ matches trong 1 chuỗi (không chỉ match đầu)
         # Group 1: tên cạnh (2 chữ in hoa, có thể có dấu '), Group 2: biểu thức bên phải dấu =
         edge_pattern = r"([A-Z][A-Z'’]?)\s*=\s*([0-9a-zA-Z√√.]+(?:\s*[/√][0-9a-zA-Z]+)*)"
+
+        # Các cụm từ chỉ KHOẢNG CÁCH / GÓC, KHÔNG phải độ dài cạnh.
+        # Nếu một đoạn văn bản chứa các cụm này thì TUYỆT ĐỐI không được trích
+        # độ dài cạnh từ nó (tránh gán nhầm label "a√3/4" cho cạnh SM khi đề
+        # nói "khoảng cách giữa BC và SM bằng a√3/4").
+        IGNORE_PHRASES = (
+            "khoảng cách",
+            "khoang cach",
+            "góc giữa", "goc giua",
+            "góc tạo", "goc tao",
+            "góc hợp", "goc hop",
+            "góc nhị diện", "goc nhi dien",
+            "thể tích", "the tich",
+            "diện tích", "dien tich",
+        )
+
+        def _has_ignore_phrase(text_lower: str) -> bool:
+            # Cũng bắt notation d(X, Y) = ... vốn là khoảng cách
+            if re.search(r"\bd\s*\(", text_lower):
+                return True
+            return any(p in text_lower for p in IGNORE_PHRASES)
         
         def parse_text(text: str, source: str = ""):
-            """Tìm tất cả 'XX = value' trong text và lưu vào lengths/raw_labels"""
+            """Tìm tất cả 'XX = value' trong text và lưu vào lengths/raw_labels.
+
+            Bỏ qua các đoạn nói về khoảng cách / góc / thể tích / diện tích
+            để không gán nhầm label cho cạnh.
+            """
             if not isinstance(text, str):
                 return
-            for m in re.finditer(edge_pattern, text):
-                edge_name = m.group(1)
-                value_str = m.group(2).strip()
-                # Loại bỏ dấu câu thừa ở cuối (., ,, ;, :, !, ?)
-                value_str = re.sub(r"[.,;:!?]+$", "", value_str).strip()
-                # Loại bỏ dấu chấm thập phân thừa nếu nó nằm cuối số nguyên (VD: "2." → "2")
-                if value_str.endswith("."):
-                    value_str = value_str.rstrip(".")
-                # Bỏ qua nếu value rỗng sau khi strip
-                if not value_str:
+            # Tách text thành các đoạn nhỏ theo dấu câu để có thể loại từng đoạn
+            # nếu nó nói về khoảng cách / góc.
+            chunks = re.split(r"[.;\n]+", text)
+            for chunk in chunks:
+                if not chunk or not chunk.strip():
                     continue
-                value = self._extract_number(value_str, default=1.0)
-                lengths[edge_name] = value
-                raw_labels[edge_name] = re.sub(r"\s+", "", value_str)
-                print(f"   [_extract_actual_lengths] [{source}] {edge_name} = '{value_str}' → {value}")
+                if _has_ignore_phrase(chunk.lower()):
+                    print(f"   [_extract_actual_lengths] [{source}] SKIP (khoảng cách/góc): '{chunk.strip()[:80]}'")
+                    continue
+                for m in re.finditer(edge_pattern, chunk):
+                    edge_name = m.group(1)
+                    value_str = m.group(2).strip()
+                    # Loại bỏ dấu câu thừa ở cuối (., ,, ;, :, !, ?)
+                    value_str = re.sub(r"[.,;:!?]+$", "", value_str).strip()
+                    # Loại bỏ dấu chấm thập phân thừa nếu nó nằm cuối số nguyên (VD: "2." → "2")
+                    if value_str.endswith("."):
+                        value_str = value_str.rstrip(".")
+                    # Bỏ qua nếu value rỗng sau khi strip
+                    if not value_str:
+                        continue
+                    value = self._extract_number(value_str, default=1.0)
+                    lengths[edge_name] = value
+                    raw_labels[edge_name] = re.sub(r"\s+", "", value_str)
+                    print(f"   [_extract_actual_lengths] [{source}] {edge_name} = '{value_str}' → {value}")
         
         # Parse từ given_conditions (có thể từng item gộp nhiều thông tin)
         for condition in constraints.get("given_conditions", []) or []:
@@ -809,16 +865,17 @@ class GeometrySolver:
         
         # Xử lý điểm M (trung điểm)
         if "M" in points:
-            # SM - đường cần xét (NÉT ĐỨT màu vàng)
+            # SM là cạnh bình thường (nối đỉnh S với điểm M trên đáy)
+            # → NÉT LIỀN, không gắn label "SM" trực tiếp lên cạnh.
+            # Việc ghi nhãn độ dài SM (nếu đề có cho) sẽ do annotations xử lý.
             edges.append({
-                "start": "S", 
-                "end": "M", 
-                "style": "dashed",
-                "color": "gold", 
-                "label": "SM",
+                "start": "S",
+                "end": "M",
+                "style": "solid",
+                "color": "gold",
                 "linewidth": 2
             })
-            print(f"   [Edges] Added SM (dashed, gold)")
+            print(f"   [Edges] Added SM (solid, gold)")
         
         # Mặt
         faces = []
@@ -856,6 +913,23 @@ class GeometrySolver:
         # Parse độ dài thực tế từ constraints
         actual_lengths = self._extract_actual_lengths(constraints)
         raw_labels = actual_lengths.pop("__raw__", {})
+
+        # Parse các thông tin "khoảng cách / góc" để LƯU vào annotations.distances
+        # (chỉ ghi vào DB, KHÔNG hiển thị trực tiếp lên cạnh trong 3D viewer).
+        for cond in (constraints.get("given_conditions") or []) + [constraints.get("problem_text", "")]:
+            if not isinstance(cond, str):
+                continue
+            cl = cond.lower()
+            if "khoảng cách" in cl or "khoang cach" in cl or re.search(r"\bd\s*\(", cl):
+                annotations["distances"].append({
+                    "description": cond.strip(),
+                    "type": "distance"
+                })
+            elif "góc giữa" in cl or "goc giua" in cl or "góc tạo" in cl or "góc hợp" in cl:
+                annotations["distances"].append({
+                    "description": cond.strip(),
+                    "type": "angle_between"
+                })
         print(f"   [Annotations] Actual lengths: {actual_lengths}")
         print(f"   [Annotations] Raw labels: {raw_labels}")
         
@@ -887,25 +961,36 @@ class GeometrySolver:
         
         # Ghi chú độ dài cạnh đáy
         if "D" in points:
-            # Hình vuông - tất cả cạnh bằng nhau
-            label_text = fmt_label("AB", fallback="a")
-            
-            # Ghi độ dài lên 1 cạnh (ví dụ AB)
-            annotations["edges"].append({
-                "edge": "A-B",
-                "label": label_text,
-                "position": "bottom",
-                "color": "black"
-            })
-            
-            # Ký hiệu các cạnh bằng nhau (dấu gạch)
+            # Hình vuông - tất cả cạnh bằng nhau.
+            # CHỈ ghi label khi đề thực sự cho biết độ dài cạnh đáy
+            # (raw_labels có "AB"/"BC"/... HOẶC base.side_raw được parse từ "cạnh a").
+            base_side_raw = base.get("side_raw")
+            label_text = None
+            for k in ("AB", "BC", "CD", "DA", "BA", "CB", "DC", "AD"):
+                if k in raw_labels and raw_labels[k]:
+                    label_text = raw_labels[k]
+                    break
+            if not label_text and base_side_raw:
+                label_text = base_side_raw
+
+            if label_text:
+                # Ghi độ dài lên 1 cạnh (ví dụ AB)
+                annotations["edges"].append({
+                    "edge": "A-B",
+                    "label": label_text,
+                    "position": "bottom",
+                    "color": "black"
+                })
+
+            # Ký hiệu các cạnh bằng nhau (dấu gạch) - luôn áp dụng cho hình vuông
             annotations["equal_segments"].append({
                 "segments": ["A-B", "B-C", "C-D", "D-A"],
                 "mark": "single",  # single, double, triple
                 "description": "Các cạnh đáy bằng nhau"
             })
         else:
-            # Tam giác - ghi label cho TỪNG cạnh (vì có thể độ dài khác nhau như AB=a, BC=a√2)
+            # Tam giác - CHỈ ghi label cho cạnh nào đề thực sự cho biết độ dài
+            # (raw_labels có entry tương ứng), KHÔNG tự thêm "a" mặc định cho cạnh AB.
             for edge_pair in [("A", "B"), ("B", "C"), ("C", "A")]:
                 edge_key = edge_pair[0] + edge_pair[1]
                 edge_key_rev = edge_pair[1] + edge_pair[0]
@@ -914,13 +999,9 @@ class GeometrySolver:
                     label_text = raw_labels[edge_key]
                 elif edge_key_rev in raw_labels:
                     label_text = raw_labels[edge_key_rev]
-                elif edge_key in actual_lengths:
-                    label_text = fmt_label(edge_key, fallback="a")
-                elif edge_pair == ("A", "B"):
-                    label_text = "a"  # Mặc định cạnh AB là "a"
                 else:
                     continue  # Không có dữ liệu cho cạnh này → bỏ qua
-                
+
                 annotations["edges"].append({
                     "edge": f"{edge_pair[0]}-{edge_pair[1]}",
                     "label": label_text,
@@ -931,17 +1012,20 @@ class GeometrySolver:
         # Ghi chú chiều cao SA
         if apex.get("perpendicular_to_base", True):
             edge_name = apex.get("edge_name", "SA")
-            sa_label = fmt_label(edge_name, fallback="h")
-            
-            # Ghi độ dài SA
-            annotations["edges"].append({
-                "edge": "S-A",
-                "label": sa_label,
-                "position": "left",
-                "color": "teal"
-            })
-            
-            # Ký hiệu vuông góc tại A
+
+            # CHỈ ghi label độ dài SA nếu đề thực sự cho biết "SA = ..."
+            # (kiểm tra trong raw_labels). Nếu đề chỉ nói "SA vuông góc đáy" mà
+            # không cho độ dài → KHÔNG hiển thị nhãn nào trên cạnh SA.
+            sa_raw = raw_labels.get(edge_name) or raw_labels.get(edge_name[::-1])
+            if sa_raw:
+                annotations["edges"].append({
+                    "edge": "S-A",
+                    "label": sa_raw,
+                    "position": "left",
+                    "color": "teal"
+                })
+
+            # Ký hiệu vuông góc tại A (luôn hiển thị vì đây là quan hệ vuông góc đề bài)
             annotations["perpendicular"].append({
                 "vertex": "A",
                 "line1": "S-A",
@@ -949,7 +1033,7 @@ class GeometrySolver:
                 "symbol": "⊥",
                 "description": "SA ⊥ (ABCD)"
             })
-            
+
             # Nếu là hình vuông, thêm ký hiệu vuông góc tại các đỉnh khác
             if "D" in points:
                 annotations["perpendicular"].append({
@@ -1022,24 +1106,31 @@ class GeometrySolver:
                 "description": "Trung điểm",
                 "color": "gold"
             })
-            
-            # Ghi chú đường SM
-            sm_label = fmt_label("SM", fallback="SM")
-            annotations["edges"].append({
-                "edge": "S-M",
-                "label": sm_label,
-                "position": "right",
-                "color": "gold"
-            })
-            
+
+            # CHỈ ghi label độ dài lên cạnh SM nếu đề thực sự cho biết "SM = ..."
+            # (raw_labels được build sau khi đã loại các câu nói về khoảng cách / góc).
+            # Nếu đề chỉ nói "khoảng cách giữa BC và SM = a√3/4" thì raw_labels sẽ
+            # KHÔNG có "SM" → không hiển thị nhãn nào trên cạnh SM, chỉ lưu thông tin
+            # khoảng cách vào DB / annotations.distances ở chỗ khác.
+            sm_raw = raw_labels.get("SM") or raw_labels.get("MS")
+            if sm_raw:
+                annotations["edges"].append({
+                    "edge": "S-M",
+                    "label": sm_raw,
+                    "position": "right",
+                    "color": "gold"
+                })
+
             # Ghi chú: M là trung điểm của cạnh nào
             if edge_with_midpoint:
                 annotations["distances"].append({
                     "description": f"M là trung điểm của {edge_with_midpoint}",
                     "related_points": ["M", edge_with_midpoint[0], edge_with_midpoint[1]]
                 })
-                
-                # Ký hiệu 2 đoạn bằng nhau (CM = MD)
+
+                # Ký hiệu 2 đoạn bằng nhau (ví dụ CM = MD): gạch nhỏ trên 2 đoạn.
+                # Dùng "double" để KHÁC với "single" của 4 cạnh đáy hình vuông,
+                # tránh nhầm CM = AB.
                 annotations["equal_segments"].append({
                     "segments": [f"{edge_with_midpoint[0]}-M", f"M-{edge_with_midpoint[1]}"],
                     "mark": "double",
@@ -1071,6 +1162,118 @@ class GeometrySolver:
             "camera": camera
         }
     
+    def _build_distances_annotations(self, constraints: Dict, annotations: Dict) -> None:
+        """Lưu các phát biểu 'khoảng cách / góc giữa' vào annotations.distances.
+        Chỉ để lưu vào DB / hiển thị tóm tắt, KHÔNG bao giờ gắn nhãn lên cạnh."""
+        for cond in (constraints.get("given_conditions") or []) + [constraints.get("problem_text", "")]:
+            if not isinstance(cond, str) or not cond.strip():
+                continue
+            cl = cond.lower()
+            if "khoảng cách" in cl or "khoang cach" in cl or re.search(r"\bd\s*\(", cl):
+                annotations["distances"].append({"description": cond.strip(), "type": "distance"})
+            elif "góc giữa" in cl or "goc giua" in cl or "góc tạo" in cl or "góc hợp" in cl:
+                annotations["distances"].append({"description": cond.strip(), "type": "angle_between"})
+
+    def _build_common_annotations(
+        self,
+        constraints: Dict,
+        points: Dict,
+        base_edges: List[tuple],
+        base_label_edge: Optional[tuple] = None,
+        base_label_color: str = "black",
+        all_base_equal: bool = True,
+        all_point_names: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Helper dùng chung cho mọi shape (prism, cube, tetrahedron, ...).
+
+        Áp dụng quy ước nghiêm ngặt:
+            - Chỉ gắn nhãn cạnh khi đề THỰC SỰ cho biết độ dài (raw_labels có
+              entry tương ứng, hoặc base.side_raw được parse từ "cạnh a").
+            - Nếu đề chỉ nói "khoảng cách / góc" thì lưu vào distances, không
+              gắn lên cạnh.
+            - Tick gạch (mark "single") chỉ áp cho các cạnh đáy.
+
+        Args:
+            base_edges: list các tuple (start, end) là cạnh đáy.
+            base_label_edge: cạnh được dùng để gắn label độ dài (tuple). None = mặc định lấy phần tử đầu của base_edges.
+            all_base_equal: True nếu đáy có mọi cạnh bằng nhau (hình vuông, tam giác đều, lập phương).
+        """
+        annotations = {
+            "edges": [],
+            "points": [],
+            "perpendicular": [],
+            "angles": [],
+            "distances": [],
+            "equal_segments": [],
+        }
+
+        # 1) Lưu thông tin khoảng cách / góc
+        self._build_distances_annotations(constraints, annotations)
+
+        # 2) Parse độ dài thực tế
+        actual_lengths = self._extract_actual_lengths(constraints)
+        raw_labels = actual_lengths.pop("__raw__", {})
+        base = constraints.get("base", {}) or {}
+        base_side_raw = base.get("side_raw")
+
+        # 3) Gắn nhãn cạnh đáy: chọn cạnh đại diện nếu mọi cạnh đáy bằng nhau,
+        #    hoặc gắn cho từng cạnh nếu đề có dữ liệu riêng.
+        def edge_str(pair: tuple) -> str:
+            return f"{pair[0]}-{pair[1]}"
+
+        if all_base_equal:
+            # Tìm raw label cho 1 cạnh đáy bất kỳ
+            label_text = None
+            for (s, e) in base_edges:
+                k1, k2 = s + e, e + s
+                if k1 in raw_labels:
+                    label_text = raw_labels[k1]; break
+                if k2 in raw_labels:
+                    label_text = raw_labels[k2]; break
+            if not label_text and base_side_raw:
+                label_text = base_side_raw
+
+            if label_text and base_edges:
+                target = base_label_edge or base_edges[0]
+                annotations["edges"].append({
+                    "edge": edge_str(target),
+                    "label": label_text,
+                    "position": "bottom",
+                    "color": base_label_color,
+                })
+            # Tick gạch single cho TẤT CẢ cạnh đáy (đánh dấu bằng nhau)
+            annotations["equal_segments"].append({
+                "segments": [edge_str(p) for p in base_edges],
+                "mark": "single",
+                "description": "Các cạnh đáy bằng nhau",
+            })
+        else:
+            # Đáy có cạnh khác nhau: gắn label theo từng cạnh có dữ liệu
+            for (s, e) in base_edges:
+                k1, k2 = s + e, e + s
+                lt = raw_labels.get(k1) or raw_labels.get(k2)
+                if not lt:
+                    continue
+                annotations["edges"].append({
+                    "edge": edge_str((s, e)),
+                    "label": lt,
+                    "position": "bottom",
+                    "color": base_label_color,
+                })
+
+        # 4) Gắn nhãn cho các đỉnh
+        if all_point_names is None:
+            all_point_names = list(points.keys())
+        for name in all_point_names:
+            if name in points:
+                annotations["points"].append({
+                    "point": name,
+                    "label": name,
+                    "color": "black",
+                })
+
+        return annotations
+
     def _solve_prism(self, constraints: Dict) -> Dict[str, Any]:
         """
         Giải lăng trụ.
@@ -1139,13 +1342,24 @@ class GeometrySolver:
         ]
         
         steps = self._generate_prism_steps(points, edges)
-        
+
+        # Annotations: chỉ áp tick gạch + label cho cạnh đáy dưới (ABC).
+        # Cạnh đáy trên (A'B'C') và cạnh bên không tick để tránh rối hình.
+        annotations = self._build_common_annotations(
+            constraints=constraints,
+            points=points,
+            base_edges=[("A", "B"), ("B", "C"), ("C", "A")],
+            base_label_edge=("A", "B"),
+            all_base_equal=True,  # tam giác đều
+            all_point_names=["A", "B", "C", "A'", "B'", "C'"],
+        )
+
         return {
             "points": points,
             "edges": edges,
             "faces": faces,
             "steps": steps,
-            "annotations": {},
+            "annotations": annotations,
             "camera": {"position": [a*2, h*1.5, a*2], "lookAt": [a/2, h/2, 0]}
         }
     
@@ -1189,13 +1403,23 @@ class GeometrySolver:
         ]
         
         steps = self._generate_cube_steps(points, edges)
-        
+
+        # Annotations: tick gạch + label cho 4 cạnh đáy ABCD.
+        annotations = self._build_common_annotations(
+            constraints=constraints,
+            points=points,
+            base_edges=[("A", "B"), ("B", "C"), ("C", "D"), ("D", "A")],
+            base_label_edge=("A", "B"),
+            all_base_equal=True,  # lập phương: mọi cạnh bằng nhau
+            all_point_names=["A", "B", "C", "D", "A'", "B'", "C'", "D'"],
+        )
+
         return {
             "points": points,
             "edges": edges,
             "faces": faces,
             "steps": steps,
-            "annotations": {},
+            "annotations": annotations,
             "camera": {"position": [a*2, a*2, a*2], "lookAt": [a/2, a/2, a/2]}
         }
     
@@ -1234,13 +1458,23 @@ class GeometrySolver:
         ]
         
         steps = self._generate_tetrahedron_steps(points, edges)
-        
+
+        # Annotations: tick gạch + label cho 3 cạnh đáy ABC.
+        annotations = self._build_common_annotations(
+            constraints=constraints,
+            points=points,
+            base_edges=[("A", "B"), ("B", "C"), ("C", "A")],
+            base_label_edge=("A", "B"),
+            all_base_equal=True,  # tứ diện đều: cạnh đáy bằng nhau
+            all_point_names=["A", "B", "C", "D"],
+        )
+
         return {
             "points": points,
             "edges": edges,
             "faces": faces,
             "steps": steps,
-            "annotations": {},
+            "annotations": annotations,
             "camera": {"position": [a*3, h_A*1.5, h_D*1.5], "lookAt": [0, h_A/2, h_D/2]}
         }
     

@@ -424,7 +424,24 @@ body {
 .two-col { grid-template-columns: 1fr 320px; }
 
 .p-main { padding: 32px; border-right: 1px solid var(--border); }
-.p-side { padding: 26px 24px; background: var(--surface); }
+.p-side { padding: 26px 24px; background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+
+/* Sidebar Bước 03: danh sách lệnh vẽ có thể cuộn */
+#panel-2 #steps-container {
+  flex: 1 1 auto;
+  min-height: 0;          /* cho phép flex item cao hơn cha → kích hoạt scroll */
+  max-height: 520px;      /* chiều cao tối đa, đủ để khớp với canvas mô phỏng */
+  overflow-y: auto;
+  padding-right: 6px;     /* chừa chỗ cho scrollbar không đè lên nội dung */
+}
+#panel-2 #steps-container::-webkit-scrollbar { width: 6px; }
+#panel-2 #steps-container::-webkit-scrollbar-track { background: transparent; }
+#panel-2 #steps-container::-webkit-scrollbar-thumb {
+  background: var(--border); border-radius: 3px;
+}
+#panel-2 #steps-container::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-3);
+}
 
 /* ── LABELS ── */
 .label {

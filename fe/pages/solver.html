@@ -2041,13 +2041,26 @@ function initThreeViewers() {
 // To test: Upload an image in Step 1, then navigate to Step 2 or 3 to see 3D model from database.
 
 // Load 3D geometry data from API (DUNGHINH3D table)
+// Guard: tránh gọi đồng thời nhiều lần (showTab + loadProblemFromHistory).
+let _load3DInFlight = null;
 async function load3DGeometry(problemId) {
   if (!problemId) {
     console.log('❌ No problem ID for 3D rendering');
     return;
   }
-  
-  // Show loading indicators
+  // Đã có data và đúng problemId → không cần load lại
+  if (geometry3DData && Array.isArray(geometry3DData.commands) && geometry3DData._problemId === problemId) {
+    console.log('✅ 3D đã load sẵn cho problemId =', problemId, '— bỏ qua');
+    return;
+  }
+  // Đang có request đang chạy cho cùng problemId → reuse promise
+  if (_load3DInFlight && _load3DInFlight._problemId === problemId) {
+    console.log('⏳ Đang load 3D cho problemId =', problemId, '— chờ request hiện tại');
+    return _load3DInFlight;
+  }
+
+  const promise = (async () => {
+    // Show loading indicators
   const loading1 = document.getElementById('canvas1Loading');
   const loading2 = document.getElementById('canvas2Loading');
   if (loading1) loading1.style.display = 'block';
@@ -2056,67 +2069,59 @@ async function load3DGeometry(problemId) {
   try {
     console.log('📊 Loading 3D geometry from DUNGHINH3D table for problem:', problemId);
     
-    // Call API to get 3D geometry data from DUNGHINH3D table
-    // force_refresh=true để luôn render lại với code mới nhất (bỏ cache cũ trong DB)
-    const response = await apiService.render3D(problemId, true);
+    // Call API to get 3D geometry data from DUNGHINH3D table.
+    // force_refresh=false → ưu tiên dùng cache trong DB. Bài toán cũ đã có
+    // commands lưu sẵn thì không gọi Gemini lại, tránh hết quota.
+    const response = await apiService.render3D(problemId, false);
     
     console.log('✅ API response:', response);
     
     if (response.success && response.data) {
-      // Extract geometry data from response
-      // API returns: { geometry: {...}, threejs: {...} }
-      const geometryData = response.data.geometry;
-      
-      console.log('📐 Geometry data from DUNGHINH3D:', geometryData);
-      
-      // Validate geometry data structure
-      if (!geometryData || !geometryData.points || !geometryData.steps) {
-        console.error('❌ Invalid geometry data structure:', geometryData);
-        throw new Error('Dữ liệu hình học không hợp lệ từ DUNGHINH3D table');
+      // API mới trả về: { commands: [...], metadata: {...}, hamThreeJS: [...], huongDanVe: "..." }
+      const commands = response.data.commands;
+      const metadata = response.data.metadata || {};
+
+      console.log('📐 Render commands from DB:', commands?.length, 'lệnh');
+      console.log('📐 Metadata (không vẽ):', metadata);
+
+      if (!Array.isArray(commands) || commands.length === 0) {
+        console.error('❌ Không có lệnh vẽ trong response:', response.data);
+        throw new Error('Không có lệnh vẽ từ DUNGHINH3D');
       }
-      
-      // Store globally
-      geometry3DData = geometryData;
-      
-      // Update total steps count from database
-      solverTotalSteps = geometryData.steps.length;
+
+      // Lưu globally để các panel khác dùng
+      geometry3DData = {
+        commands,
+        metadata,
+        hamThreeJS: response.data.hamThreeJS || [],
+        huongDanVe: response.data.huongDanVe || '',
+        _problemId: problemId,
+      };
+
+      // Số bước = số lệnh "vẽ thực sự" (bỏ setCamera)
+      const drawCommands = commands.filter(c => c && c.fn && c.fn !== 'setCamera');
+      solverTotalSteps = drawCommands.length;
       const totalStepsNum = document.getElementById('totalStepsNum');
-      if (totalStepsNum) {
-        totalStepsNum.textContent = solverTotalSteps;
-      }
-      
-      console.log('📊 Total steps from DUNGHINH3D:', solverTotalSteps);
-      
-      // Load into Panel 1 viewer (show complete model)
+      if (totalStepsNum) totalStepsNum.textContent = solverTotalSteps;
+
+      console.log('📊 Tổng số bước vẽ:', solverTotalSteps);
+
+      // Panel 1: load đầy đủ (toàn bộ mô hình)
       if (viewer1) {
-        console.log('🎨 Loading geometry into Panel 1 (complete model)...');
-        viewer1.loadGeometry(geometryData);
-        // Show all steps in panel 1 (complete model)
-        if (geometryData.steps && geometryData.steps.length > 0) {
-          viewer1.goToStep(geometryData.steps.length - 1);
-        }
-        console.log('✅ Panel 1 viewer loaded successfully');
-      } else {
-        console.warn('⚠️ Panel 1 viewer not initialized');
+        console.log('🎨 Panel 1: load full model');
+        viewer1.loadCommands(commands);
       }
-      
-      // Load into Panel 2 viewer (step-by-step construction)
+
+      // Panel 2: load đầy đủ rồi nhảy về bước 1 để chạy step-by-step
       if (viewer2) {
-        console.log('🎨 Loading geometry into Panel 2 (step-by-step)...');
-        viewer2.loadGeometry(geometryData);
-        viewer2.goToStep(0); // Start from first step
-        
-        // Update step indicator
+        console.log('🎨 Panel 2: load step-by-step');
+        viewer2.loadCommands(commands);
+        viewer2.goToCommandStep(1);
         updateStepIndicator();
-        
-        // Update sidebar steps dynamically from DUNGHINH3D.cacBuocVe
-        updateSidebarSteps(geometryData.steps);
-        console.log('✅ Panel 2 viewer loaded successfully');
-      } else {
-        console.warn('⚠️ Panel 2 viewer not initialized');
+        updateSidebarSteps(drawCommands);
       }
-      
-      console.log('✅ 3D geometry loaded successfully from DUNGHINH3D table');
+
+      console.log('✅ 3D loaded successfully từ commands');
       
       // Hide loading indicators
       if (loading1) loading1.style.display = 'none';
@@ -2152,79 +2157,75 @@ async function load3DGeometry(problemId) {
       if (loading2) loading2.style.display = 'none';
     }, 5000);
   }
+  })();
+
+  promise._problemId = problemId;
+  _load3DInFlight = promise;
+  try {
+    return await promise;
+  } finally {
+    if (_load3DInFlight === promise) _load3DInFlight = null;
+  }
 }
 
-// Update sidebar steps dynamically from API data (DUNGHINH3D.cacBuocVe)
-function updateSidebarSteps(steps) {
-  if (!steps || steps.length === 0) {
-    console.warn('No steps data to update sidebar');
+// Update sidebar steps từ mảng commands (mới — Gemini sinh)
+function updateSidebarSteps(drawCommands) {
+  if (!drawCommands || drawCommands.length === 0) {
+    console.warn('No draw commands to update sidebar');
     return;
   }
-  
-  console.log('📊 Updating sidebar with', steps.length, 'steps from DUNGHINH3D.cacBuocVe');
-  
+
+  console.log('📊 Updating sidebar with', drawCommands.length, 'lệnh vẽ');
+
   const stepsContainer = document.getElementById('steps-container');
   if (!stepsContainer) {
     console.error('Steps container not found');
     return;
   }
-  
-  // Clear loading message
+
   stepsContainer.innerHTML = '';
-  
-  // Add new steps from database (DUNGHINH3D.cacBuocVe)
-  steps.forEach((step, index) => {
+
+  // Helper: chuyển 1 lệnh thành mô tả ngắn gọn tiếng Việt
+  function describe(cmd) {
+    const a = cmd.args || {};
+    switch (cmd.fn) {
+      case 'drawPoint':       return { title: `Vẽ điểm ${a.name}`, sub: `(${a.x}, ${a.y}, ${a.z})` };
+      case 'drawEdge':        return { title: `Vẽ cạnh ${a.from}-${a.to}`,
+                                        sub: (a.opts && a.opts.label) ? `Độ dài: ${a.opts.label}` : '' };
+      case 'drawFace':        return { title: `Vẽ mặt ${(a.points || []).join('')}`, sub: '' };
+      case 'drawLabel':       return { title: `Ghi nhãn "${a.text}"`, sub: '' };
+      case 'drawRightAngle':  return { title: `Góc vuông tại ${a.vertex}`, sub: `${a.edge1} ⊥ ${a.edge2}` };
+      case 'drawEqualMark':   return { title: `Đoạn bằng nhau ${a.from}-${a.to}`, sub: a.mark || 'single' };
+      case 'drawAngle':       return { title: `Cung góc tại ${a.vertex}`,
+                                        sub: a.value !== undefined ? `${a.value}°` : '' };
+      default:                return { title: cmd.fn, sub: '' };
+    }
+  }
+
+  drawCommands.forEach((cmd, index) => {
     const stepNum = index + 1;
+    const { title, sub } = describe(cmd);
+
     const stepDiv = document.createElement('div');
     stepDiv.className = 'step-item';
-    
-    // Set initial state
-    if (stepNum === 1) {
-      stepDiv.classList.add('active');
-    } else {
-      stepDiv.classList.add('faded');
-    }
-    
+    if (stepNum === 1) stepDiv.classList.add('active');
+    else stepDiv.classList.add('faded');
+
     stepDiv.onclick = () => goToStep(stepNum);
     stepDiv.style.cursor = 'pointer';
-    
-    // Extract description and objects from step data
-    const description = step.description || step.title || `Bước ${stepNum}`;
-    const objects = step.objects || [];
-    
-    // Format objects text - show point names and edge names
-    let objectsText = '';
-    if (objects.length > 0) {
-      const points = objects.filter(obj => obj.length === 1 || !obj.includes('-'));
-      const edges = objects.filter(obj => obj.includes('-'));
-      
-      if (points.length > 0) {
-        objectsText = 'Điểm: ' + points.slice(0, 5).join(', ');
-      }
-      if (edges.length > 0) {
-        if (objectsText) objectsText += ' | ';
-        objectsText += 'Cạnh: ' + edges.slice(0, 3).join(', ');
-      }
-      
-      // Truncate if too long
-      if (objectsText.length > 50) {
-        objectsText = objectsText.substring(0, 47) + '...';
-      }
-    }
-    
+
     stepDiv.innerHTML = `
       <div class="si-num">${stepNum}</div>
       <div class="si-content">
-        <h4>${description}</h4>
-        <p>${objectsText || 'Xem chi tiết trong canvas'}</p>
+        <h4>${title}</h4>
+        <p>${sub}</p>
       </div>
     `;
-    
+
     stepsContainer.appendChild(stepDiv);
   });
-  
-  // Update total steps count
-  solverTotalSteps = steps.length;
+
+  solverTotalSteps = drawCommands.length;
   const totalStepsNum = document.getElementById('totalStepsNum');
   if (totalStepsNum) {
     totalStepsNum.textContent = solverTotalSteps;
@@ -2236,58 +2237,60 @@ function updateSidebarSteps(steps) {
     currentStepNum.textContent = '1';
   }
   
-  console.log('✅ Sidebar updated with', steps.length, 'steps from DUNGHINH3D database');
+  console.log('✅ Sidebar updated with', drawCommands.length, 'lệnh vẽ từ DUNGHINH3D');
+}
+
+// Helper: tổng số bước vẽ (số lệnh không tính setCamera)
+function getTotalDrawSteps() {
+  if (!geometry3DData) return 0;
+  if (Array.isArray(geometry3DData.commands)) {
+    return geometry3DData.commands.filter(c => c && c.fn && c.fn !== 'setCamera').length;
+  }
+  // Fallback cho data cũ (geometry3DData.steps)
+  if (Array.isArray(geometry3DData.steps)) return geometry3DData.steps.length;
+  return 0;
 }
 
 // Update step indicator in Panel 2
 function updateStepIndicator() {
-  if (!geometry3DData || !geometry3DData.steps) return;
+  if (!geometry3DData) return;
   if (!viewer2) return;
-  
+
+  const total = getTotalDrawSteps();
+  const cur = (viewer2.currentStep || 0) + 1;
+
   const currentStepNum = document.getElementById('currentStepNum');
-  const totalStepsNum = document.getElementById('totalStepsNum');
-  
-  if (currentStepNum) {
-    currentStepNum.textContent = viewer2.currentStep + 1;
-  }
-  
-  if (totalStepsNum) {
-    totalStepsNum.textContent = geometry3DData.steps.length;
-  }
-  
-  // Update progress bar
-  const progress = ((viewer2.currentStep + 1) / geometry3DData.steps.length) * 100;
+  const totalStepsNum  = document.getElementById('totalStepsNum');
+  if (currentStepNum) currentStepNum.textContent = cur;
+  if (totalStepsNum)  totalStepsNum.textContent  = total;
+
+  const progress = total > 0 ? (cur / total) * 100 : 0;
   const progFill = document.getElementById('progFill');
-  if (progFill) {
-    progFill.style.width = progress + '%';
-  }
-  
-  // Update step label
+  if (progFill) progFill.style.width = progress + '%';
+
   const stepLabel = document.getElementById('stepLabel');
-  if (stepLabel) {
-    stepLabel.textContent = `${viewer2.currentStep + 1} / ${geometry3DData.steps.length}`;
-  }
+  if (stepLabel) stepLabel.textContent = `${cur} / ${total}`;
 }
 
 // Override existing step navigation functions to work with Three.js
 const originalGoToStep = window.goToStep;
 window.goToStep = function(step) {
-  // Call original function for SVG fallback
-  if (originalGoToStep) {
-    originalGoToStep(step);
-  }
-  
-  // Update Three.js viewer in Panel 2
+  if (originalGoToStep) originalGoToStep(step);
+
   if (viewer2 && geometry3DData) {
-    viewer2.goToStep(step - 1); // Convert to 0-based index
+    if (typeof viewer2.goToCommandStep === 'function' && Array.isArray(geometry3DData.commands)) {
+      viewer2.goToCommandStep(step);  // 1-based: hiển thị đến lệnh vẽ thứ `step`
+    } else {
+      viewer2.goToStep(step - 1);     // fallback dữ liệu cũ
+    }
     updateStepIndicator();
-    
+
     // Update sidebar step items
     const stepItems = document.querySelectorAll('#panel-2 .step-item');
     stepItems.forEach((item, index) => {
       item.classList.remove('done', 'active', 'faded');
       const numEl = item.querySelector('.si-num');
-      
+
       if (index + 1 < step) {
         item.classList.add('done');
         if (numEl) numEl.textContent = '✓';
@@ -2308,10 +2311,17 @@ window.goToStep = function(step) {
 const originalNextStep = window.nextStep;
 window.nextStep = function() {
   if (viewer2 && geometry3DData) {
-    if (viewer2.currentStep < geometry3DData.steps.length - 1) {
-      viewer2.nextStep();
+    const total = getTotalDrawSteps();
+    const cur = (viewer2.currentStep || 0) + 1;
+    if (cur < total) {
+      const next = cur + 1;
+      if (typeof viewer2.goToCommandStep === 'function' && Array.isArray(geometry3DData.commands)) {
+        viewer2.goToCommandStep(next);
+      } else {
+        viewer2.nextStep();
+      }
       updateStepIndicator();
-      solverCurrentStep = viewer2.currentStep + 1;
+      solverCurrentStep = (viewer2.currentStep || 0);
       updateStepDisplay();
     }
   } else if (originalNextStep) {
@@ -2322,10 +2332,16 @@ window.nextStep = function() {
 const originalPrevStep = window.prevStep;
 window.prevStep = function() {
   if (viewer2 && geometry3DData) {
-    if (viewer2.currentStep > 0) {
-      viewer2.prevStep();
+    const cur = (viewer2.currentStep || 0) + 1;
+    if (cur > 1) {
+      const prev = cur - 1;
+      if (typeof viewer2.goToCommandStep === 'function' && Array.isArray(geometry3DData.commands)) {
+        viewer2.goToCommandStep(prev);
+      } else {
+        viewer2.prevStep();
+      }
       updateStepIndicator();
-      solverCurrentStep = viewer2.currentStep + 1;
+      solverCurrentStep = (viewer2.currentStep || 0);
       updateStepDisplay();
     }
   } else if (originalPrevStep) {
@@ -2459,19 +2475,21 @@ async function loadResultPanel() {
   // Load 3D model with highlight
   if (viewer4 && geometry3DData) {
     console.log('🎨 Loading geometry into Panel 4 with highlight...');
-    
+
     const loading4 = document.getElementById('canvas4Loading');
     if (loading4) loading4.style.display = 'block';
-    
+
     try {
-      // Load full geometry
-      viewer4.loadGeometry(geometry3DData);
-      
-      // Show all steps (complete model)
-      if (geometry3DData.steps && geometry3DData.steps.length > 0) {
-        viewer4.goToStep(geometry3DData.steps.length - 1);
+      // Load full geometry — ưu tiên format mới (commands)
+      if (Array.isArray(geometry3DData.commands)) {
+        viewer4.loadCommands(geometry3DData.commands);
+      } else {
+        viewer4.loadGeometry(geometry3DData);
+        if (geometry3DData.steps && geometry3DData.steps.length > 0) {
+          viewer4.goToStep(geometry3DData.steps.length - 1);
+        }
       }
-      
+
       // TODO: Add highlight logic based on question type
       // For now, just show highlight label
       const highlightLabel = document.getElementById('highlightLabel');
@@ -2794,13 +2812,17 @@ async function loadProblemFromHistory(problemId) {
     // 6. Lưu currentProblemId đúng cách (không dùng window.)
     currentProblemId = parseInt(problemId);
     currentProblemData = { extraction: data.extraction };
-    
+
     // 6.1. Update tab lock status immediately after setting currentProblemId
     console.log('🔓 Updating tab lock status after loading from history. currentProblemId:', currentProblemId);
     updateTabLockStatus();
 
-    // 7. Load 3D geometry từ DUNGHINH3D (đã có sẵn trong DB)
-    setTimeout(() => load3DGeometry(currentProblemId), 500);
+    // 7. Pre-load 3D NGẦM ở tab 0 — khi user click sang tab "Mô hình 3D"
+    //    thì commands đã sẵn trong geometry3DData, viewer chỉ cần render lại.
+    //    KHÔNG await để không chặn UI tab 0.
+    load3DGeometry(currentProblemId).catch(err =>
+      console.warn('Pre-load 3D ở background lỗi (không nghiêm trọng):', err)
+    );
 
     // 8. Load lời giải nếu đã có trong DB - HIỂN THỊ NGAY và ẨN CHAT BOT
     if (data.loiGiai) {

@@ -70,6 +70,22 @@ CREATE TABLE DUNGHINH3D (
 );
 
 -- ============================================================
+-- BẢNG DỰNG HÌNH 3D BỔ SUNG THEO LỜI GIẢI
+-- Lưu các bước vẽ thêm (điểm phụ, đoạn phụ...) phát sinh
+-- trong quá trình giải. Kết hợp với DUNGHINH3D để có hình cuối.
+-- ============================================================
+CREATE TABLE DUNGHINH3D_LOIGIAI (
+    maDungHinhLoiGiai BIGINT IDENTITY(1,1) PRIMARY KEY,
+    maLoiGiai BIGINT,
+    cacBuocVe NVARCHAR(MAX),        -- JSON: Thứ tự các bước vẽ bổ sung
+    hamThreeJS NVARCHAR(MAX),       -- JSON: Danh sách hàm Three.js cần dùng
+    thamSo NVARCHAR(MAX),           -- JSON: Tham số cho từng hàm
+    codeThreeJS NVARCHAR(MAX),      -- Code Three.js đầy đủ (phần bổ sung)
+    huongDanVe NVARCHAR(MAX),       -- Text: Hướng dẫn chi tiết bổ sung
+    ngayTao DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (maLoiGiai) REFERENCES LOIGIAI(maLoiGiai)
+);
+-- ============================================================
 -- BẢNG CACHE CHO TÌM BÀI TOÁN TƯƠNG TỰ
 -- ============================================================
 CREATE TABLE BAI_TOAN_TUONG_TU_CACHE (
@@ -90,6 +106,7 @@ GO
 select * from NGUOIDUNG;
 SELECT * FROM DULIEUHINHHOC;
 SELECT * FROM DUNGHINH3D;
+SELECT * FROM DUNGHINH3D_LOIGIAI;
 SELECT * FROM BAITOAN;
 SELECT * FROM BAI_TOAN_TUONG_TU_CACHE;
 SELECT * FROM LOIGIAI;

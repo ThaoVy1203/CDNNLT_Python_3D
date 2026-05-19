@@ -128,7 +128,86 @@ class GeminiService:
             }
         except Exception as e:
             raise Exception(f"3D generation failed: {str(e)}")
-    
+
+    async def generate_render_commands(self, problem_text: str) -> dict:
+        """Sinh mảng lệnh vẽ Three.js cho 1 bài toán hình học.
+
+        Returns:
+            {
+                "commands": List[{"fn": str, "args": dict}],
+                "metadata": dict (rút từ các lệnh storeData),
+                "raw_response": str
+            }
+
+        Raises:
+            Exception nếu Gemini trả về JSON không hợp lệ.
+        """
+        from app.services.ai.prompt import build_render_3d_prompt
+        import asyncio
+        import json
+        import re
+
+        prompt = build_render_3d_prompt(problem_text)
+
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.gemini_client._generate_with_retry(
+                model=self.gemini_client.model_name,
+                contents=prompt,
+                config=self.gemini_client.generation_config,
+            ),
+        )
+
+        text = (response.text or "").strip()
+
+        # Gemini có thể bao JSON trong ```json ... ``` dù prompt yêu cầu không.
+        # Tách phần JSON ra một cách an toàn.
+        cleaned = text
+        if "```" in cleaned:
+            m = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", cleaned)
+            if m:
+                cleaned = m.group(1).strip()
+
+        # Có khi Gemini trả về object thay vì array → cố gắng nhặt array bên trong
+        try:
+            commands = json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            # Fallback: tìm mảng [ ... ] đầu tiên
+            m = re.search(r"\[[\s\S]+\]", cleaned)
+            if not m:
+                raise Exception(f"Gemini không trả về JSON hợp lệ: {e}")
+            commands = json.loads(m.group(0))
+
+        if isinstance(commands, dict):
+            # Trường hợp Gemini bao trong { "commands": [...] }
+            commands = commands.get("commands") or commands.get("steps") or []
+
+        if not isinstance(commands, list):
+            raise Exception("Output Gemini không phải mảng lệnh vẽ")
+
+        # Validate sơ bộ
+        ALLOWED_FN = {
+            "drawPoint", "drawEdge", "drawFace", "drawLabel",
+            "drawRightAngle", "drawEqualMark", "drawAngle",
+            "setCamera",
+        }
+        valid_commands = []
+        for cmd in commands:
+            if not isinstance(cmd, dict):
+                continue
+            fn = cmd.get("fn")
+            args = cmd.get("args") or {}
+            if fn not in ALLOWED_FN:
+                print(f"⚠️ [generate_render_commands] Bỏ qua lệnh không hợp lệ: {fn}")
+                continue
+            valid_commands.append({"fn": fn, "args": args})
+
+        return {
+            "commands": valid_commands,
+            "raw_response": text,
+        }
+
     async def generate_drawing_guide(self, problem_text: str, shape_type: str) -> str:
         """
         Tạo hướng dẫn dựng hình cho học sinh bằng Gemini AI
