@@ -1687,6 +1687,7 @@ async function solveProblemWithAPI() {
     if (data.success && data.data && data.data.solution) {
       // Store solution data
       currentProblemData.solution = data.data.solution;
+      currentProblemData.loiGiaiId = data.data.loiGiaiId || null;
       
       // Extract solution details
       const solution = data.data.solution;
@@ -1698,6 +1699,7 @@ async function solveProblemWithAPI() {
       console.log('📊 Solution details:');
       console.log('   - Steps:', steps.length);
       console.log('   - Result:', result);
+      console.log('   - loiGiaiId:', currentProblemData.loiGiaiId);
       console.log('   - Formulas:', formulas.length);
       console.log('   - References:', references.length);
       
@@ -2418,6 +2420,7 @@ async function loadResultPanel() {
   const solution = currentProblemData.solution;
   const result = solution.result || '';
   const steps = solution.steps || [];
+  const loiGiaiId = currentProblemData.loiGiaiId || null;
   
   // Update result hero
   const resultAnswer = document.getElementById('resultAnswer');
@@ -2472,54 +2475,104 @@ async function loadResultPanel() {
     summaryContainer.innerHTML = summaryHTML || '<p style="text-align:center;color:var(--ink-3);font-size:13px;">Không có tóm tắt</p>';
   }
   
-  // Load 3D model with highlight
-  if (viewer4 && geometry3DData) {
-    console.log('🎨 Loading geometry into Panel 4 with highlight...');
+  // Load 3D model - TRY MERGED GEOMETRY FIRST (hình cuối cùng)
+  const loading4 = document.getElementById('canvas4Loading');
+  if (loading4) loading4.style.display = 'block';
 
-    const loading4 = document.getElementById('canvas4Loading');
-    if (loading4) loading4.style.display = 'block';
+  try {
+    let mergedCommands = null;
+    let hasAdditional = false;
 
-    try {
-      // Load full geometry — ưu tiên format mới (commands)
-      if (Array.isArray(geometry3DData.commands)) {
-        viewer4.loadCommands(geometry3DData.commands);
-      } else {
-        viewer4.loadGeometry(geometry3DData);
-        if (geometry3DData.steps && geometry3DData.steps.length > 0) {
-          viewer4.goToStep(geometry3DData.steps.length - 1);
+    // Nếu có loiGiaiId → thử lấy merged geometry (hình ban đầu + bổ sung)
+    if (loiGiaiId) {
+      console.log('🔄 Generating solution geometry for loiGiaiId:', loiGiaiId);
+      
+      try {
+        // Bước 1: Generate hình bổ sung (nếu chưa có)
+        const genRes = await fetch(`http://127.0.0.1:8000/geometry/generate-solution-geometry/${loiGiaiId}`, {
+          method: 'POST'
+        });
+        
+        if (genRes.ok) {
+          const genData = await genRes.json();
+          console.log('✅ Solution geometry generated:', genData);
+        }
+        
+        // Bước 2: Lấy merged geometry
+        const mergeRes = await fetch(`http://127.0.0.1:8000/geometry/merged-geometry/${loiGiaiId}`);
+        
+        if (mergeRes.ok) {
+          const mergeData = await mergeRes.json();
+          if (mergeData.success && mergeData.data) {
+            mergedCommands = mergeData.data.merged_commands || [];
+            hasAdditional = mergeData.data.has_additional || false;
+            console.log('✅ Merged geometry loaded:', {
+              total: mergedCommands.length,
+              hasAdditional: hasAdditional,
+              additionalCount: (mergeData.data.additional_commands || []).length
+            });
+          }
+        }
+      } catch (mergeErr) {
+        console.warn('⚠️ Could not load merged geometry, falling back to base:', mergeErr);
+      }
+    }
+
+    // Render hình lên canvas
+    if (viewer4) {
+      if (mergedCommands && mergedCommands.length > 0) {
+        // Render hình đã merge (ban đầu + bổ sung)
+        console.log('🎨 Rendering MERGED geometry (base + solution additions)...');
+        viewer4.loadCommands(mergedCommands);
+      } else if (geometry3DData) {
+        // Fallback: render hình ban đầu nếu không có merged
+        console.log('🎨 Rendering BASE geometry (no solution additions)...');
+        if (Array.isArray(geometry3DData.commands)) {
+          viewer4.loadCommands(geometry3DData.commands);
+        } else {
+          viewer4.loadGeometry(geometry3DData);
+          if (geometry3DData.steps && geometry3DData.steps.length > 0) {
+            viewer4.goToStep(geometry3DData.steps.length - 1);
+          }
         }
       }
 
-      // TODO: Add highlight logic based on question type
-      // For now, just show highlight label
+      // Show highlight label
       const highlightLabel = document.getElementById('highlightLabel');
       if (highlightLabel) {
         highlightLabel.style.display = 'block';
         
-        // Determine what to highlight based on question
-        const extraction = currentProblemData.extraction || {};
-        const questions = extraction.questions || [];
-        const questionText = questions[0] || '';
-        
-        if (questionText.includes('góc')) {
-          highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Góc cần tính</span>';
-        } else if (questionText.includes('khoảng cách')) {
-          highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Khoảng cách cần tính</span>';
-        } else if (questionText.includes('thể tích')) {
-          highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Hình cần tính thể tích</span>';
-        } else if (questionText.includes('diện tích')) {
-          highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Mặt cần tính diện tích</span>';
+        if (hasAdditional) {
+          // Có hình bổ sung → hiển thị label phù hợp
+          highlightLabel.innerHTML = `
+            <span style="font-size:12px;color:#e63946;font-weight:600;">● Điểm/đoạn bổ sung từ lời giải</span>
+          `;
+        } else {
+          // Không có hình bổ sung → hiển thị theo câu hỏi
+          const extraction = currentProblemData.extraction || {};
+          const questions = extraction.questions || [];
+          const questionText = questions[0] || '';
+          
+          if (questionText.includes('góc')) {
+            highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Góc cần tính</span>';
+          } else if (questionText.includes('khoảng cách')) {
+            highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Khoảng cách cần tính</span>';
+          } else if (questionText.includes('thể tích')) {
+            highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Hình cần tính thể tích</span>';
+          } else if (questionText.includes('diện tích')) {
+            highlightLabel.innerHTML = '<span style="font-size:12px;color:var(--gold);font-weight:600;">● Mặt cần tính diện tích</span>';
+          }
         }
       }
-      
-      if (loading4) loading4.style.display = 'none';
-      
-      console.log('✅ Panel 4 loaded successfully');
-    } catch (error) {
-      console.error('❌ Error loading Panel 4:', error);
-      if (loading4) {
-        loading4.innerHTML = '<p style="color:var(--ink-3);font-size:12px;">⚠️ Không thể tải mô hình</p>';
-      }
+    }
+    
+    if (loading4) loading4.style.display = 'none';
+    console.log('✅ Panel 4 loaded successfully');
+    
+  } catch (error) {
+    console.error('❌ Error loading Panel 4:', error);
+    if (loading4) {
+      loading4.innerHTML = '<p style="color:var(--ink-3);font-size:12px;">⚠️ Không thể tải mô hình</p>';
     }
   }
 }
@@ -2831,13 +2884,14 @@ async function loadProblemFromHistory(problemId) {
       try { steps = JSON.parse(solution.cacBuocGiai || '[]'); } catch(e) {}
       const result = solution.ketQuaCuoi || '';
 
-      // Store solution data
+      // Store solution data + loiGiaiId
       currentProblemData.solution = {
         steps: steps,
         result: result
       };
+      currentProblemData.loiGiaiId = solution.maLoiGiai || null;
 
-      console.log('✅ Solution loaded from history, displaying immediately and hiding chat bot');
+      console.log('✅ Solution loaded from history, loiGiaiId:', currentProblemData.loiGiaiId);
       
       // Hide chat bot section since solution is available
       setTimeout(() => {
