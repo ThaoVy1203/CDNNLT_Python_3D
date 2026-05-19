@@ -3,7 +3,9 @@
  * Xử lý đăng nhập Google OAuth và lưu user vào database
  */
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const AUTH_API_BASE_URL = typeof CONFIG !== 'undefined'
+  ? (CONFIG.AUTH_API_BASE_URL || CONFIG.API_BASE_URL)
+  : 'http://127.0.0.1:8003';
 
 /**
  * Xử lý callback từ Google OAuth
@@ -20,7 +22,7 @@ async function handleGoogleLogin(response) {
     console.log('Google user info:', payload);
     
     // Gọi API backend để tạo/lấy user
-    const backendResponse = await fetch(`${API_BASE_URL}/auth/google-login`, {
+    const backendResponse = await fetch(`${AUTH_API_BASE_URL}/auth/google-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

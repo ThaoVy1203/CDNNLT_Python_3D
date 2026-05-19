@@ -7,6 +7,7 @@ venv/
 
 # File Search Cache
 be/.file_search_cache.json
+services/*/.file_search_cache.json
 
 # Node
 node_modules/

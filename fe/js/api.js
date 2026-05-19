@@ -4,6 +4,9 @@
 
 // Load config if available, otherwise use default
 const API_BASE_URL = typeof CONFIG !== 'undefined' ? CONFIG.API_BASE_URL : 'http://localhost:8000';
+const AUTH_API_BASE_URL = typeof CONFIG !== 'undefined'
+  ? (CONFIG.AUTH_API_BASE_URL || CONFIG.API_BASE_URL)
+  : 'http://localhost:8003';
 
 class ApiService {
   constructor() {
@@ -12,13 +15,15 @@ class ApiService {
 
   // Helper method for fetch requests
   async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const baseUrl = options.baseUrl || this.baseUrl;
+    const url = `${baseUrl}${endpoint}`;
     const config = {
       headers: {
         ...options.headers,
       },
       ...options,
     };
+    delete config.baseUrl;
 
     try {
       const response = await fetch(url, config);
@@ -120,7 +125,7 @@ class ApiService {
    * @returns {Promise<Array>}
    */
   async getUsers() {
-    return this.request('/nguoi-dung/');
+    return this.request('/nguoi-dung/', { baseUrl: AUTH_API_BASE_URL });
   }
 
   /**
@@ -129,7 +134,7 @@ class ApiService {
    * @returns {Promise<Object>}
    */
   async getUser(userId) {
-    return this.request(`/nguoi-dung/${userId}`);
+    return this.request(`/nguoi-dung/${userId}`, { baseUrl: AUTH_API_BASE_URL });
   }
 
   // ═══════════════════════════════════════════════════════════

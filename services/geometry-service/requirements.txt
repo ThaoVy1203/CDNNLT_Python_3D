@@ -1,0 +1,12 @@
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.10.0
+pymssql==2.3.1
+python-dotenv==1.0.1
+email-validator==2.2.0
+python-multipart==0.0.27
+Pillow==10.4.0
+google-generativeai==0.8.3
+google-genai
+duckduckgo-search==7.0.1
+requests==2.32.3
