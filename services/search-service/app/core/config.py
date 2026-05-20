@@ -17,7 +17,7 @@ class Settings:
     
     # Gemini AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     
     # Serper.dev (Google Search API)
     SERPER_API_KEY: str = os.getenv("SERPER_API_KEY", "")

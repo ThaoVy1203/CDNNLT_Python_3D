@@ -111,12 +111,25 @@ class FileSearchService:
                     
                     # Check if file exists in cache with same checksum
                     if filename in cache and cache[filename].get("checksum") == checksum:
-                        # Reuse cached file_id
+                        # Verify file_id is still accessible (not expired or wrong key)
                         file_id = cache[filename]["file_id"]
-                        self.uploaded_files[filename] = file_id
-                        new_cache[filename] = cache[filename]
-                        reused_count += 1
-                        print(f"   ♻️  {filename} → {file_id} (cached)")
+                        if await self._verify_file_id(file_id):
+                            self.uploaded_files[filename] = file_id
+                            new_cache[filename] = cache[filename]
+                            reused_count += 1
+                            print(f"   ♻️  {filename} → {file_id} (cached, verified)")
+                        else:
+                            # file_id expired or inaccessible → re-upload
+                            print(f"   ⚠️  {filename} → {file_id} (expired, re-uploading...)")
+                            file_id = await self._upload_file(pdf_path)
+                            if file_id:
+                                self.uploaded_files[filename] = file_id
+                                new_cache[filename] = {
+                                    "file_id": file_id,
+                                    "checksum": checksum
+                                }
+                                uploaded_count += 1
+                                print(f"   ✅ {filename} → {file_id} (re-uploaded)")
                     else:
                         # Upload new/changed file
                         file_id = await self._upload_file(pdf_path)
@@ -143,6 +156,22 @@ class FileSearchService:
             print(f"❌ File Search initialization error: {e}")
             return False
     
+    async def _verify_file_id(self, file_id: str) -> bool:
+        """
+        Kiểm tra file_id còn truy cập được không.
+        Trả về True nếu OK, False nếu expired/403/404.
+        """
+        try:
+            genai.get_file(file_id)
+            return True
+        except Exception as e:
+            error_msg = str(e)
+            if "403" in error_msg or "404" in error_msg or "not found" in error_msg.lower():
+                return False
+            # Lỗi khác (network, timeout) → coi như OK để tránh upload thừa
+            print(f"   ⚠️  Verify file_id {file_id} got unexpected error: {e}")
+            return True
+
     async def _upload_file(self, file_path: Path) -> Optional[str]:
         """
         Upload một file lên Gemini

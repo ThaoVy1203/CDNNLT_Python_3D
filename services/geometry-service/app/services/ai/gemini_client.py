@@ -91,10 +91,14 @@ class GeminiClient:
         self.api_key = self.api_keys[0]
         self.client = genai.Client(api_key=self.api_key)
         
-        # Đọc model từ environment variable
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        # Đọc model từ settings (đảm bảo nhất quán với config.py và docker env)
+        from app.core.config import settings as app_settings
+        self.model_name = app_settings.GEMINI_MODEL
         print(f"🤖 Using Gemini model: {self.model_name}")
         print(f"🔑 Loaded {len(self.api_keys)} API key(s)")
+        # In 8 ký tự đầu + cuối của mỗi key để debug (không lộ toàn bộ)
+        for i, k in enumerate(self.api_keys):
+            print(f"   Key #{i+1}: {k[:8]}...{k[-4:]}")
         
         self.generation_config = types.GenerateContentConfig(
             temperature=1.0,
@@ -135,44 +139,51 @@ class GeminiClient:
         print(f"🔄 Switched to API key #{self.current_key_index + 1}")
     
     def _generate_with_retry(self, model: str, contents, config):
-        """Gọi API với tự động xoay vòng key khi bị limit và retry khi gặp lỗi 503/429"""
+        """Gọi API với tự động retry khi gặp lỗi 503/429, chờ đúng thời gian Gemini yêu cầu"""
         import time
-        max_retries_per_key = 3
+        import re
+        max_retries = 3
         last_error = None
         
-        # Thử qua tất cả các key
-        for _ in range(len(self.api_keys)):
-            # Thử nhiều lần trên mỗi key
-            for attempt in range(max_retries_per_key):
-                try:
-                    response = self.client.models.generate_content(
-                        model=model,
-                        contents=contents,
-                        config=config
-                    )
-                    return response
-                except Exception as e:
-                    error_msg = str(e)
-                    last_error = e
-                    
-                    is_quota_error = any(code in error_msg for code in [
-                        "429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota"
-                    ])
-                    
-                    if is_quota_error:
-                        wait_time = 2 ** attempt  # Backoff: 1s, 2s, 4s
-                        print(f"⚠️ API báo lỗi quá tải (503/429). Chờ {wait_time}s rồi thử lại lần {attempt+1}/{max_retries_per_key} với key hiện tại...")
-                        time.sleep(wait_time)
-                    else:
-                        # Lỗi khác (không phải do quá tải) thì throw luôn
-                        raise e
-            
-            # Nếu đã hết số lần thử cho key này mà vẫn lỗi, chuyển sang key khác
-            print(f"⚠️ Key #{self.current_key_index + 1} vẫn bị limit sau {max_retries_per_key} lần thử, chuyển sang key khác...")
-            self._rotate_key()
-        
-        # Nếu đã thử qua tất cả các key mà vẫn lỗi
-        raise last_error
+        for attempt in range(max_retries):
+            try:
+                response = self.client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=config
+                )
+                return response
+            except Exception as e:
+                error_msg = str(e)
+                last_error = e
+                
+                is_quota_error = any(code in error_msg for code in [
+                    "429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota"
+                ])
+                
+                if not is_quota_error:
+                    raise e
+                
+                # Xác định loại lỗi cụ thể
+                if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                    error_code = "429 (Rate Limit)"
+                elif "503" in error_msg or "UNAVAILABLE" in error_msg:
+                    error_code = "503 (Service Unavailable)"
+                else:
+                    error_code = "quota error"
+                
+                # Parse retry delay từ error message (VD: "retry in 42.035s" hoặc "retry_delay {seconds: 42}")
+                wait_time = 10  # default
+                match = re.search(r'retry\s*(?:in|_delay.*?)\s*(\d+)', error_msg, re.IGNORECASE)
+                if match:
+                    wait_time = int(match.group(1)) + 2  # +2s buffer
+                
+                if attempt < max_retries - 1:
+                    print(f"⚠️ API {error_code}. Chờ {wait_time}s rồi thử lại (lần {attempt+1}/{max_retries})...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ API {error_code} sau {max_retries} lần thử. Từ bỏ.")
+                    raise e
     
     def _prepare_image(self, image_input: Union[str, bytes, Image.Image]) -> Image.Image:
         """Chuẩn bị ảnh"""

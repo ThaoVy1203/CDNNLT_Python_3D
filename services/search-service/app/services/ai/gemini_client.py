@@ -91,8 +91,9 @@ class GeminiClient:
         self.api_key = self.api_keys[0]
         self.client = genai.Client(api_key=self.api_key)
         
-        # Đọc model từ environment variable
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        # Đọc model từ settings (đảm bảo nhất quán với config.py và docker env)
+        from app.core.config import settings as app_settings
+        self.model_name = app_settings.GEMINI_MODEL
         print(f"🤖 Using Gemini model: {self.model_name}")
         print(f"🔑 Loaded {len(self.api_keys)} API key(s)")
         

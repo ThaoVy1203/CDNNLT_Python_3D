@@ -849,15 +849,42 @@ G. QUY TẮC GHI ĐỘ DÀI ĐOẠN MỚI - CỰC KỲ QUAN TRỌNG:
      drawEdge.opts.label tự động hiển thị ở giữa đoạn, cùng kích cỡ với "a" vàng.
    - CHỈ ghi GIÁ TRỊ, không ghi tên đoạn. VD: "a√3/4" chứ KHÔNG phải "AH = a√3/4"
 
-H. TRÁNH CHỒNG CHÉO - QUY TẮC BỐ TRÍ:
-   - Khi có quá nhiều ký hiệu tập trung ở 1 vùng (VD: đáy hình vuông đã có
-     nhiều điểm A, B, M, N, ký hiệu trung điểm...), ưu tiên:
-     • Đặt drawRightAngle ở phía ÍT ký hiệu hơn
-     • Nếu 2 đoạn mới giao nhau gần 1 điểm, chỉ ghi label cho đoạn QUAN TRỌNG
-       nhất (đoạn là kết quả cần tìm)
-   - Khi drawPoint điểm mới, tọa độ KHÔNG được trùng hoặc quá gần (< 0.05)
-     với điểm đã có.
-   - Nếu đoạn mới NGẮN (< 0.15 đơn vị), KHÔNG gắn label vì sẽ bị tràn.
+H. TRÁNH CHỒNG CHÉO - QUY TẮC BỐ TRÍ (CỰC KỲ QUAN TRỌNG):
+
+   H1. NGUYÊN TẮC KHOẢNG CÁCH TỐI THIỂU:
+       - Mọi điểm mới PHẢI cách điểm đã có ít nhất 0.08 đơn vị.
+       - Nếu tính ra tọa độ trùng hoặc quá gần → dịch nhẹ 0.05 theo hướng
+         ít ký hiệu nhất (thường là hướng Y lên trên hoặc hướng vuông góc
+         với mặt phẳng chứa nhiều điểm).
+
+   H2. PHÂN BỐ KÝ HIỆU ĐỀU — ƯU TIÊN VÙNG TRỐNG:
+       - Trước khi đặt drawRightAngle hoặc drawEqualMark, KIỂM TRA vùng xung
+         quanh đỉnh đó đã có bao nhiêu ký hiệu (từ existing_commands).
+       - Nếu đỉnh đó đã có ≥ 2 ký hiệu (VD: A đã có drawRightAngle A-B/A-D
+         và drawRightAngle S-A/A-B) → KHÔNG thêm ký hiệu nữa tại A.
+         Thay vào đó, đặt ký hiệu ở đỉnh KHÁC cùng thể hiện quan hệ vuông góc.
+       - VD: Thay vì drawRightAngle tại A (đã đông), dùng drawRightAngle tại H
+         (điểm mới, chưa có ký hiệu nào).
+
+   H3. CHỌN HƯỚNG CHO Ô VUÔNG GÓC VUÔNG:
+       - Khi vertex nằm trên 1 cạnh (VD: H nằm trên SN), ô vuông sẽ vẽ theo
+         2 hướng: hướng cạnh chứa nó (SN) và hướng đường vuông góc (AH).
+       - Nếu cả 2 hướng đều nằm trong mặt phẳng y=0 (đáy) → ô vuông sẽ nằm
+         phẳng trên đáy, khó nhìn khi camera nhìn từ trên xuống.
+         → Ưu tiên chọn cặp edge có ÍT NHẤT 1 hướng KHÔNG nằm trên đáy
+         (có thành phần y ≠ 0) để ô vuông nổi lên 3D.
+
+   
+
+   H4. ĐẸP MẮT — NGUYÊN TẮC THẨM MỸ:
+       - Các đoạn phụ trợ nên tạo thành hình dạng CÂN ĐỐI, KHÔNG lệch hẳn
+         về 1 phía của hình.
+       - Khi có nhiều đoạn dashed mới, ưu tiên vẽ chúng ở các MẶT KHÁC NHAU
+         của khối hình (VD: 1 đoạn ở mặt trước, 1 đoạn ở mặt bên) thay vì
+         dồn hết vào 1 mặt.
+       - Điểm mới (màu đỏ #e63946) nên nằm ở vị trí DỄ NHÌN — không bị che
+         bởi mặt phẳng (drawFace) của hình gốc. Ưu tiên đặt ở phía camera
+         nhìn thấy (phía trước/trên hình).
 
 I. TUÂN THỦ QUY TẮC DỰNG HÌNH BAN ĐẦU (ÁP DỤNG Y HỆT):
    Khi vẽ thêm điểm/đoạn mới, PHẢI tuân thủ ĐÚNG các quy tắc sau

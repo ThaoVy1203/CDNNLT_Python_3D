@@ -444,34 +444,36 @@
       }
       
       if (!vertexCoords) return null;
-      
-      if (p1Start === vertex && points[p1End]) {
-        dir1 = new THREE.Vector3(
-          points[p1End][0] - vertexCoords[0],
-          points[p1End][1] - vertexCoords[1],
-          points[p1End][2] - vertexCoords[2]
-        ).normalize();
-      } else if (p1End === vertex && points[p1Start]) {
-        dir1 = new THREE.Vector3(
-          points[p1Start][0] - vertexCoords[0],
-          points[p1Start][1] - vertexCoords[1],
-          points[p1Start][2] - vertexCoords[2]
-        ).normalize();
-      }
-      
-      if (p2Start === vertex && points[p2End]) {
-        dir2 = new THREE.Vector3(
-          points[p2End][0] - vertexCoords[0],
-          points[p2End][1] - vertexCoords[1],
-          points[p2End][2] - vertexCoords[2]
-        ).normalize();
-      } else if (p2End === vertex && points[p2Start]) {
-        dir2 = new THREE.Vector3(
-          points[p2Start][0] - vertexCoords[0],
-          points[p2Start][1] - vertexCoords[1],
-          points[p2Start][2] - vertexCoords[2]
-        ).normalize();
-      }
+
+      // Helper: get direction from vertex along an edge.
+      // If vertex is an endpoint of the edge, direction points to the other end.
+      // If vertex is NOT an endpoint (e.g. midpoint on the edge), use the edge direction itself.
+      const getDir = (edgeStart, edgeEnd) => {
+        if (edgeStart === vertex && points[edgeEnd]) {
+          return new THREE.Vector3(
+            points[edgeEnd][0] - vertexCoords[0],
+            points[edgeEnd][1] - vertexCoords[1],
+            points[edgeEnd][2] - vertexCoords[2]
+          ).normalize();
+        } else if (edgeEnd === vertex && points[edgeStart]) {
+          return new THREE.Vector3(
+            points[edgeStart][0] - vertexCoords[0],
+            points[edgeStart][1] - vertexCoords[1],
+            points[edgeStart][2] - vertexCoords[2]
+          ).normalize();
+        } else if (points[edgeStart] && points[edgeEnd]) {
+          // Vertex is not an endpoint — use edge direction from start to end
+          return new THREE.Vector3(
+            points[edgeEnd][0] - points[edgeStart][0],
+            points[edgeEnd][1] - points[edgeStart][1],
+            points[edgeEnd][2] - points[edgeStart][2]
+          ).normalize();
+        }
+        return null;
+      };
+
+      dir1 = getDir(p1Start, p1End);
+      dir2 = getDir(p2Start, p2End);
       
       if (!dir1 || !dir2) return null;
       
@@ -516,34 +518,34 @@
       const [p2Start, p2End] = line2.split('-');
       
       let dir1, dir2;
-      
-      if (p1Start === vertex && points[p1End]) {
-        dir1 = new THREE.Vector3(
-          points[p1End][0] - vertexCoords[0],
-          points[p1End][1] - vertexCoords[1],
-          points[p1End][2] - vertexCoords[2]
-        ).normalize();
-      } else if (p1End === vertex && points[p1Start]) {
-        dir1 = new THREE.Vector3(
-          points[p1Start][0] - vertexCoords[0],
-          points[p1Start][1] - vertexCoords[1],
-          points[p1Start][2] - vertexCoords[2]
-        ).normalize();
-      }
-      
-      if (p2Start === vertex && points[p2End]) {
-        dir2 = new THREE.Vector3(
-          points[p2End][0] - vertexCoords[0],
-          points[p2End][1] - vertexCoords[1],
-          points[p2End][2] - vertexCoords[2]
-        ).normalize();
-      } else if (p2End === vertex && points[p2Start]) {
-        dir2 = new THREE.Vector3(
-          points[p2Start][0] - vertexCoords[0],
-          points[p2Start][1] - vertexCoords[1],
-          points[p2Start][2] - vertexCoords[2]
-        ).normalize();
-      }
+
+      // Helper: get direction from vertex along an edge.
+      const getDir = (edgeStart, edgeEnd) => {
+        if (edgeStart === vertex && points[edgeEnd]) {
+          return new THREE.Vector3(
+            points[edgeEnd][0] - vertexCoords[0],
+            points[edgeEnd][1] - vertexCoords[1],
+            points[edgeEnd][2] - vertexCoords[2]
+          ).normalize();
+        } else if (edgeEnd === vertex && points[edgeStart]) {
+          return new THREE.Vector3(
+            points[edgeStart][0] - vertexCoords[0],
+            points[edgeStart][1] - vertexCoords[1],
+            points[edgeStart][2] - vertexCoords[2]
+          ).normalize();
+        } else if (points[edgeStart] && points[edgeEnd]) {
+          // Vertex is not an endpoint — use edge direction from start to end
+          return new THREE.Vector3(
+            points[edgeEnd][0] - points[edgeStart][0],
+            points[edgeEnd][1] - points[edgeStart][1],
+            points[edgeEnd][2] - points[edgeStart][2]
+          ).normalize();
+        }
+        return null;
+      };
+
+      dir1 = getDir(p1Start, p1End);
+      dir2 = getDir(p2Start, p2End);
       
       if (!dir1 || !dir2) return null;
       
